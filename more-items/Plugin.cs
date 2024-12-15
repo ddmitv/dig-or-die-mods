@@ -97,9 +97,8 @@ public class MoreItemsPlugin : BaseUnityPlugin {
             CustomCTile.texture = new Texture2D(1, 1, TextureFormat.ARGB32, false);
             CustomCTile.texture.filterMode = FilterMode.Trilinear;
             CustomCTile.texture.LoadImage(ModResources.Textures);
-
-            Harmony.CreateAndPatchAll(typeof(MoreItemsPlugin));
         });
+        Harmony.CreateAndPatchAll(typeof(MoreItemsPlugin));
 
         customItems = [
             new CustomItem(name: "flashLightMK3",
@@ -259,9 +258,9 @@ public class MoreItemsPlugin : BaseUnityPlugin {
             textureName = __instance.m_textureName;
         }
     }
-    [HarmonyPatch(typeof(CUnitDefense), "Update")]
-    [HarmonyPostfix]
-    private static void CUnitDefense_Update() {
-        Console.WriteLine("inside CUnitDefense_Update");
-    }
+    // [HarmonyPatch(typeof(CUnitDefense), "Update")]
+    // [HarmonyPostfix]
+    // private static void CUnitDefense_Update() {
+    //     Console.WriteLine("inside CUnitDefense_Update");
+    // }
 }
