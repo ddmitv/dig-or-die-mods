@@ -3,3 +3,5 @@
 !.gitignore
 !.gitattributes
 !.editorconfig
+!dependency-libs/
+!more-items/
