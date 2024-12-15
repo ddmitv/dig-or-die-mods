@@ -1,0 +1,8 @@
+/*
+
+!.gitignore
+!Plugin.cs
+!more-items.csproj
+!ModResources.resx
+!ModResources.Designer.cs
+!Resources/
