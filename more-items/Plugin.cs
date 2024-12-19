@@ -88,6 +88,59 @@ public class CustomItem {
     private CItem item;
 }
 
+[HarmonyPatch(typeof(CUnitDefense))]
+public class SyncPatches {
+    private static void PatchExplosive(CodeMatcher codeMatcher) {
+        Label explosiveCond;
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new CodeMatch(OpCodes.Ldarg_0),
+                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
+                new CodeMatch(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.explosive))),
+                new CodeMatch(OpCodes.Bne_Un))
+            .CreateLabelAt(codeMatcher.Pos + 4, out explosiveCond)
+            .Advance(1)
+            .InsertAndAdvance(new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
+                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CItem_Defense), nameof(CItem.m_codeName))),
+                new CodeInstruction(OpCodes.Ldstr, "megaExplosive"),
+                new CodeInstruction(OpCodes.Beq, explosiveCond),
+                new CodeInstruction(OpCodes.Ldarg_0));
+    }
+
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(CUnitDefense), "Update")]
+    private static IEnumerable<CodeInstruction> CUnitDefense_Update(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+        Label teslaCond;
+
+        codeMatcher
+            .MatchForward(useEnd: false,
+                new CodeMatch(OpCodes.Ldarg_0),
+                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
+                new CodeMatch(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.turretTesla))),
+                new CodeMatch(OpCodes.Bne_Un))
+            .CreateLabelAt(codeMatcher.Pos + 4, out teslaCond) // after bne.un
+            .Advance(1)
+            .InsertAndAdvance(
+                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
+                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CItem_Defense), nameof(CItem.m_codeName))),
+                new CodeInstruction(OpCodes.Ldstr, "turretTeslaMK2"),
+                new CodeInstruction(OpCodes.Beq, teslaCond),
+                new CodeInstruction(OpCodes.Ldarg_0));
+        PatchExplosive(codeMatcher);
+
+        return codeMatcher.Instructions();
+    }
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(CUnitDefense), "OnActivate")]
+    [HarmonyPatch(typeof(CUnitDefense), "OnDisplayWorld")]
+    private static IEnumerable<CodeInstruction> CUnitDefense_OnActivate(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+        PatchExplosive(codeMatcher);
+        return codeMatcher.Instructions();
+    }
+}
+
 [BepInPlugin("more-items", "More Items", "0.0.0")]
 public class MoreItemsPlugin : BaseUnityPlugin {
     public static CustomItem[] customItems = null;
@@ -97,6 +150,8 @@ public class MoreItemsPlugin : BaseUnityPlugin {
             CustomCTile.texture = new Texture2D(1, 1, TextureFormat.ARGB32, false);
             CustomCTile.texture.filterMode = FilterMode.Trilinear;
             CustomCTile.texture.LoadImage(ModResources.Textures);
+
+            Harmony.CreateAndPatchAll(typeof(SyncPatches));
         });
         Harmony.CreateAndPatchAll(typeof(MoreItemsPlugin));
 
@@ -160,6 +215,25 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     m_neverUnspawn = true
                 }
             ),
+            new CustomItem(name: "megaExplosive",
+                item: new CItem_Defense(tile: new CustomCTile(11, 0), tileIcon: new CustomCTile(11, 0),
+                    hpMax: 250, mainColor: 8947848U, rangeDetection: 0f, angleMin: 0f, angleMax: 360f,
+                    attack: new CAttackDesc(
+                        range: 15f,
+                        damage: 3000,
+                        nbAttacks: 0,
+                        cooldown: -1f,
+                        knockbackOwn: 0f,
+                        knockbackTarget: 10f,
+                        projDesc: null,
+                        sound: "rocketExplosion"
+                    ),
+                    tileUnit: null
+                ) {
+                    m_isActivable = true,
+                    m_neverUnspawn = true
+                }
+            ),
             new CustomItem(name: "turretParticlesMK2",
                 item: new CItem_Defense(tile: new CTile(0, 0) { m_textureName = "items_defenses" }, tileIcon: new CustomCTile(12, 0),
                     hpMax: 350, mainColor: 8947848U, rangeDetection: 10f,
@@ -196,26 +270,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     m_electricValue = -5,
                     m_light = new Color24(9724047U)
                 }
-            )
-            // new CustomItem(name: "megaExplosive",
-            //     item: new CItem_Defense(tile: new CustomCTile(11, 0), tileIcon: new CustomCTile(11, 0),
-            //         hpMax: 250, mainColor: 8947848U, rangeDetection: 0f, angleMin: 0f, angleMax: 360f,
-            //         attack: new CAttackDesc(
-            //             range: 15f,
-            //             damage: 3000,
-            //             nbAttacks: 0,
-            //             cooldown: -1f,
-            //             knockbackOwn: 0f,
-            //             knockbackTarget: 10f,
-            //             projDesc: null,
-            //             sound: "rocketExplosion"
-            //         ),
-            //         tileUnit: null
-            //     ) {
-            //         m_isActivable = true,
-            //         m_neverUnspawn = true
-            //     }
-            // )
+            ),
         ];
 
         System.Console.WriteLine("Plugin more-items loaded!");
