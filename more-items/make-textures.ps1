@@ -19,4 +19,4 @@ $textures = @(
     "harvester_unit.png"
 )
 
-magick $($textures.foreach({"textures/$_"})) +append "Resources/textures"
+magick $($textures.foreach({"$PSScriptRoot/textures/$_"})) +append "$PSScriptRoot/Resources/textures"
