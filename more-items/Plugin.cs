@@ -118,7 +118,7 @@ public class CUnitDefense_Patches {
             if (timeRepaired > self.m_item.m_attack.m_cooldown) {
 
                 timeRepaired -= self.m_item.m_attack.m_cooldown;
-                SWorld_inst.DoDamageToCell(new int2(targetPos), 10, 2, true);
+                SWorld_inst.DoDamageToCell(new int2(targetPos), ((CItem_Collector)self.m_item).m_collectorDamage, 2, true);
             }
         }
         codeMatcher.Start()
@@ -211,7 +211,11 @@ public class CUnitDefense_Patches {
 
 public class CItem_Collector : CItem_Defense {
     public CItem_Collector(CTile tile, CTile tileIcon, ushort hpMax, uint mainColor, float rangeDetection, float angleMin, float angleMax, CAttackDesc attack, CTile tileUnit)
-        : base(tile, tileIcon, hpMax, mainColor, rangeDetection, angleMin, angleMax, attack, tileUnit) {}
+        : base(tile, tileIcon, hpMax, mainColor, rangeDetection, angleMin, angleMax, attack, tileUnit) {
+        m_attack.m_damage = 0;
+    }
+
+    public ushort m_collectorDamage = 0;
 }
 
 [BepInPlugin("more-items", "More Items", "0.0.0")]
@@ -360,7 +364,8 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                 ) {
                     m_anchor = CItemCell.Anchor.Everyside_Small,
                     m_displayRangeOnCells = true,
-                    m_neverUnspawn = true
+                    m_neverUnspawn = true,
+                    m_collectorDamage = 10
                 }
             ),
             new CustomItem(name: "blueLightSticky",
