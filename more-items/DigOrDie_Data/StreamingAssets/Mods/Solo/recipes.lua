@@ -210,7 +210,10 @@ recipesUltimate = CreateRecipesGroup( "ULTIMATE", { "autoBuilderUltimate"}
 	, CreateRecipe( "turretReparatorMK3", 1 )
 	, CreateRecipe( "turretParticlesMK2", 1 )
 	, CreateRecipe( "turretTeslaMK2", 1 )
-	, CreateRecipe( "harvester", 1 )
+	, CreateRecipe( "blueLightSticky", 1 )
+	, CreateRecipe( "redLightSticky", 1 )
+	, CreateRecipe( "greenLightSticky", 1 )
+	, CreateRecipe( "collector", 1 )
 );
 
 list_recipesgroups = { recipesMK1, recipesMK2, recipesMK3, recipesMK4, recipesMK5, recipesUltimate }
