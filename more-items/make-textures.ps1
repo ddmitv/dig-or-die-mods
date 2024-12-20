@@ -24,7 +24,8 @@ $textures = @(
     "greenLightSticky.png",
     "greenLightSticky_midair.png",
     "basaltCollector_icon.png",
-    "basaltCollector_unit.png"
+    "basaltCollector_unit.png",
+    "turretLaser360_icon.png"
 )
 
 magick $($textures.foreach({"$PSScriptRoot/textures/$_"})) +append "$PSScriptRoot/Resources/textures"

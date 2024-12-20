@@ -414,6 +414,21 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     m_electricValue = -5
                 }
             ),
+            new CustomItem(name: "turretLaser360",
+                item: new CItem_Defense(tile: new CTile(0, 0) { m_textureName = "items_defenses" }, tileIcon: new CustomCTile(26, 0),
+                    hpMax: 250, mainColor: 8947848U, rangeDetection: 10f,
+                    angleMin: -9999f, angleMax: 9999f,
+                    attack: new CAttackDesc(
+                        range: 10f,
+                        damage: 20,
+                        nbAttacks: 1,
+                        cooldown: 0.3f,
+                        knockbackOwn: 0f, knockbackTarget: 0f,
+                        projDesc: GBullets.laser, sound: "laser"
+                    ),
+                    tileUnit: new CTile(2, 2) { m_textureName = "items_defenses" }
+                )
+            )
         ];
 
         System.Console.WriteLine("Plugin more-items loaded!");
