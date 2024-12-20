@@ -367,7 +367,8 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     m_anchor = CItemCell.Anchor.Everyside_Small,
                     m_displayRangeOnCells = true,
                     m_neverUnspawn = true,
-                    m_collectorDamage = 10
+                    m_collectorDamage = 10,
+                    m_electricValue = -2
                 }
             ),
             new CustomItem(name: "blueLightSticky",
@@ -409,7 +410,8 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     m_displayRangeOnCells = true,
                     m_neverUnspawn = true,
                     m_collectorDamage = 100,
-                    isBasaltCollector = true
+                    isBasaltCollector = true,
+                    m_electricValue = -5
                 }
             ),
         ];
