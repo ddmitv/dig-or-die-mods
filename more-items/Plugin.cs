@@ -143,6 +143,7 @@ public class CUnitDefense_Patches {
         int rangeDetection = Mathf.FloorToInt(self.m_item.m_attack.m_range);
         float closestDist = float.MaxValue;
         Vector2 result = Vector2.zero;
+        bool isBasaltCollector = ((CItem_Collector)self.m_item).isBasaltCollector;
 
         for (int i = self.PosCell.x - rangeDetection; i <= self.PosCell.x + rangeDetection; ++i) {
             for (int j = self.PosCell.y - rangeDetection; j <= self.PosCell.y + rangeDetection; ++j) {
@@ -152,7 +153,7 @@ public class CUnitDefense_Patches {
                 int2 relative = new int2(i, j) - self.PosCell;
 
                 if ((relative.sqrMagnitude <= rangeDetection * rangeDetection)
-                    && (content is CItem_Plant || ReferenceEquals(content, GItems.lava))
+                    && (isBasaltCollector ? ReferenceEquals(content, GItems.lava) : content is CItem_Plant)
                     && (relative.sqrMagnitude < closestDist)) {
                     closestDist = relative.sqrMagnitude;
                     result = new Vector2(i + 0.5f, j + 0.5f);
@@ -216,6 +217,7 @@ public class CItem_Collector : CItem_Defense {
     }
 
     public ushort m_collectorDamage = 0;
+    public bool isBasaltCollector = false;
 }
 
 [BepInPlugin("more-items", "More Items", "0.0.0")]
@@ -387,6 +389,27 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     hpMax: 100, mainColor: 10066329U, anchor: CItemCell.Anchor.Everywhere_Small
                 ) {
                     m_light = new Color24(20, 220, 20)
+                }
+            ),
+            new CustomItem(name: "basaltCollector",
+                item: new CItem_Collector(tile: new CustomCTile(15, 0), tileIcon: new CustomCTile(24, 0),
+                    hpMax: 100, mainColor: 8947848U, rangeDetection: 5f,
+                    angleMin: -9999f, angleMax: 9999f,
+                    attack: new CAttackDesc(
+                        range: 5.5f,
+                        damage: 0,
+                        nbAttacks: 0,
+                        cooldown: 0.5f,
+                        knockbackOwn: 0f, knockbackTarget: 0f,
+                        projDesc: null, sound: null
+                    ),
+                    tileUnit: new CustomCTile(25, 0)
+                ) {
+                    m_anchor = CItemCell.Anchor.Everyside_Small,
+                    m_displayRangeOnCells = true,
+                    m_neverUnspawn = true,
+                    m_collectorDamage = 100,
+                    isBasaltCollector = true
                 }
             ),
         ];

@@ -214,6 +214,7 @@ recipesUltimate = CreateRecipesGroup( "ULTIMATE", { "autoBuilderUltimate"}
 	, CreateRecipe( "redLightSticky", 1 )
 	, CreateRecipe( "greenLightSticky", 1 )
 	, CreateRecipe( "collector", 1 )
+	, CreateRecipe( "basaltCollector", 1 )
 );
 
 list_recipesgroups = { recipesMK1, recipesMK2, recipesMK3, recipesMK4, recipesMK5, recipesUltimate }
