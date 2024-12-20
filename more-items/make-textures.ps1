@@ -13,7 +13,10 @@ $textures = @(
     "megaExplosive.png",
     "turretParticlesMK2_icon.png",
     "turretParticlesMK2_unit.png",
-    "turretTeslaMK2.png"
+    "turretTeslaMK2.png",
+    "harvester.png",
+    "harvester_icon.png",
+    "harvester_unit.png"
 )
 
 magick $($textures.foreach({"textures/$_"})) +append "Resources/textures"

@@ -1,10 +1,12 @@
 ﻿using BepInEx;
 using HarmonyLib;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
@@ -89,7 +91,7 @@ public class CustomItem {
 }
 
 [HarmonyPatch(typeof(CUnitDefense))]
-public class SyncPatches {
+public class CUnitDefense_Patches {
     private static void PatchExplosive(CodeMatcher codeMatcher) {
         Label explosiveCond;
         codeMatcher.Start()
@@ -100,15 +102,80 @@ public class SyncPatches {
                 new CodeMatch(OpCodes.Bne_Un))
             .CreateLabelAt(codeMatcher.Pos + 4, out explosiveCond)
             .Advance(1)
-            .InsertAndAdvance(new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
+            .InsertAndAdvance(
+                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
                 new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CItem_Defense), nameof(CItem.m_codeName))),
                 new CodeInstruction(OpCodes.Ldstr, "megaExplosive"),
                 new CodeInstruction(OpCodes.Beq, explosiveCond),
                 new CodeInstruction(OpCodes.Ldarg_0));
     }
+    private static void PatchHarvester(CodeMatcher codeMatcher) {
+        void HarvesterLogic(CUnitDefense self, Vector2 targetPos) {
+            var SWorld_inst = (SWorld)(typeof(SSingleton<SWorld>).GetProperty("Inst", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null, []));
+            ref var timeRepaired = ref AccessTools.FieldRefAccess<CUnitDefense, float>(self, "m_timeRepaired");
+
+            timeRepaired += SMain.SimuDeltaTime;
+            if (timeRepaired > self.m_item.m_attack.m_cooldown) {
+
+                timeRepaired -= self.m_item.m_attack.m_cooldown;
+                SWorld_inst.DoDamageToCell(new int2(targetPos), 10, 2, true);
+            }
+        }
+        codeMatcher.Start()
+            .MatchForward(useEnd: true,
+                new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(Mathf), nameof(Mathf.MoveTowardsAngle))),
+                new CodeMatch(OpCodes.Stfld, AccessTools.Field(typeof(CUnitDefense), "m_angleDeg")))
+            .Advance(1)
+            .CreateLabel(out var skipLabel)
+            .Insert(
+                new CodeInstruction(OpCodes.Ldarg_0),
+                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
+                new CodeInstruction(OpCodes.Isinst, typeof(CItem_Harvester)),
+                new CodeInstruction(OpCodes.Ldnull),
+                new CodeInstruction(OpCodes.Beq, skipLabel),
+                new CodeInstruction(OpCodes.Ldarg_0),
+                new CodeInstruction(OpCodes.Ldloc_S, (byte)4),
+                Transpilers.EmitDelegate(HarvesterLogic),
+                new CodeInstruction(OpCodes.Ldc_I4_1),
+                new CodeInstruction(OpCodes.Stloc_2));
+    }
+    private static Vector2 GetHarvesterTargetPos(CUnitDefense self) {
+        int rangeDetection = Mathf.FloorToInt(self.m_item.m_attack.m_range);
+        float closestDist = float.MaxValue;
+        Vector2 result = Vector2.zero;
+
+        for (int i = self.PosCell.x - rangeDetection; i <= self.PosCell.x + rangeDetection; ++i) {
+            for (int j = self.PosCell.y - rangeDetection; j <= self.PosCell.y + rangeDetection; ++j) {
+                if (i == self.PosCell.x && j == self.PosCell.y) { continue; }
+
+                CItemCell content = SWorld.Grid[i, j].GetContent();
+                int2 relative = new int2(i, j) - self.PosCell;
+
+                if ((relative.sqrMagnitude <= rangeDetection * rangeDetection)
+                    && (content is CItem_Plant || ReferenceEquals(content, GItems.lava))
+                    && (relative.sqrMagnitude < closestDist)) {
+                    closestDist = relative.sqrMagnitude;
+                    result = new Vector2(i + 0.5f, j + 0.5f);
+                }
+            }
+        }
+        return result;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(CUnitDefense), "GetUnitTargetPos")]
+    private static bool CUnitDefense_GetUnitTargetPos(CUnitDefense __instance, ref Vector2 __result) {
+        if (__instance.m_item is CItem_Harvester) {
+            __result = GetHarvesterTargetPos(__instance);
+
+            return false;
+        }
+        return true;
+    }
 
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CUnitDefense), "Update")]
+    [HarmonyDebug]
     private static IEnumerable<CodeInstruction> CUnitDefense_Update(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         var codeMatcher = new CodeMatcher(instructions, generator);
         Label teslaCond;
@@ -127,7 +194,9 @@ public class SyncPatches {
                 new CodeInstruction(OpCodes.Ldstr, "turretTeslaMK2"),
                 new CodeInstruction(OpCodes.Beq, teslaCond),
                 new CodeInstruction(OpCodes.Ldarg_0));
+
         PatchExplosive(codeMatcher);
+        PatchHarvester(codeMatcher);
 
         return codeMatcher.Instructions();
     }
@@ -141,6 +210,11 @@ public class SyncPatches {
     }
 }
 
+public class CItem_Harvester : CItem_Defense {
+    public CItem_Harvester(CTile tile, CTile tileIcon, ushort hpMax, uint mainColor, float rangeDetection, float angleMin, float angleMax, CAttackDesc attack, CTile tileUnit)
+        : base(tile, tileIcon, hpMax, mainColor, rangeDetection, angleMin, angleMax, attack, tileUnit) {}
+}
+
 [BepInPlugin("more-items", "More Items", "0.0.0")]
 public class MoreItemsPlugin : BaseUnityPlugin {
     public static CustomItem[] customItems = null;
@@ -151,7 +225,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
             CustomCTile.texture.filterMode = FilterMode.Trilinear;
             CustomCTile.texture.LoadImage(ModResources.Textures);
 
-            Harmony.CreateAndPatchAll(typeof(SyncPatches));
+            Harmony.CreateAndPatchAll(typeof(CUnitDefense_Patches));
         });
         Harmony.CreateAndPatchAll(typeof(MoreItemsPlugin));
 
@@ -271,6 +345,25 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     m_light = new Color24(9724047U)
                 }
             ),
+            new CustomItem(name: "harvester",
+                item: new CItem_Harvester(tile: new CustomCTile(15, 0), tileIcon: new CustomCTile(16, 0),
+                    hpMax: 100, mainColor: 8947848U, rangeDetection: 5f,
+                    angleMin: -9999f, angleMax: 9999f,
+                    attack: new CAttackDesc(
+                        range: 5.5f,
+                        damage: 0,
+                        nbAttacks: 0,
+                        cooldown: 0.5f,
+                        knockbackOwn: 0f, knockbackTarget: 0f,
+                        projDesc: null, sound: null
+                    ),
+                    tileUnit: new CustomCTile(17, 0)
+                ) {
+                    m_anchor = CItemCell.Anchor.Everyside_Small,
+                    m_displayRangeOnCells = true,
+                    m_neverUnspawn = true
+                }
+            ),
         ];
 
         System.Console.WriteLine("Plugin more-items loaded!");
@@ -313,9 +406,4 @@ public class MoreItemsPlugin : BaseUnityPlugin {
             textureName = __instance.m_textureName;
         }
     }
-    // [HarmonyPatch(typeof(CUnitDefense), "Update")]
-    // [HarmonyPostfix]
-    // private static void CUnitDefense_Update() {
-    //     Console.WriteLine("inside CUnitDefense_Update");
-    // }
 }
