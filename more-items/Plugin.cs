@@ -95,21 +95,38 @@ public class CustomItem {
 [HarmonyPatch(typeof(CUnitDefense))]
 public class CUnitDefense_Patches {
     private static void PatchExplosive(CodeMatcher codeMatcher) {
-        Label explosiveCond;
+        void ExplosiveLogic(CUnitDefense self, Vector2 m_pos, float m_lastFireTime) {
+            var item = (CItem_Explosive)self.m_item;
+            if (!(m_lastFireTime > 0f && GVars.m_simuTimeD > (double)(m_lastFireTime + item.explosionTimer))) { return; }
+
+            var attack = item.m_attack;
+            Vector2 explosionPos = m_pos + int2.up * 0.4f;
+            SUnits.DoDamageAOE(explosionPos, attack.m_range, attack.m_damage);
+            SWorld.DoDamageAOE(explosionPos, (int)attack.m_range, attack.m_damage);
+            SParticles.common_Explosion.EmitNb(explosionPos, 100, false, 10f);
+            attack.Sound.Play(explosionPos, item.explosionSoundMultiplier);
+        }
+
         codeMatcher.Start()
             .MatchForward(useEnd: false,
                 new CodeMatch(OpCodes.Ldarg_0),
                 new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
                 new CodeMatch(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.explosive))),
                 new CodeMatch(OpCodes.Bne_Un))
-            .CreateLabelAt(codeMatcher.Pos + 4, out explosiveCond)
             .Advance(1)
-            .InsertAndAdvance(
+            .Insert(new CodeInstruction(OpCodes.Ldarg_0))
+            .CreateLabel(out var nextLabel)
+            .Insert(
                 new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
-                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CItem_Defense), nameof(CItem.m_codeName))),
-                new CodeInstruction(OpCodes.Ldstr, "megaExplosive"),
-                new CodeInstruction(OpCodes.Beq, explosiveCond),
-                new CodeInstruction(OpCodes.Ldarg_0));
+                new CodeInstruction(OpCodes.Isinst, typeof(CItem_Explosive)),
+                new CodeInstruction(OpCodes.Ldnull),
+                new CodeInstruction(OpCodes.Beq, nextLabel),
+                new CodeInstruction(OpCodes.Ldarg_0),
+                new CodeInstruction(OpCodes.Ldarg_0),
+                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CUnit), "m_pos")),
+                new CodeInstruction(OpCodes.Ldarg_0),
+                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CUnit), "m_lastFireTime")),
+                Transpilers.EmitDelegate(ExplosiveLogic));
     }
     private static void PatchCollector(CodeMatcher codeMatcher) {
         void CollectorLogic(CUnitDefense self, Vector2 targetPos) {
@@ -120,7 +137,7 @@ public class CUnitDefense_Patches {
             if (timeRepaired > self.m_item.m_attack.m_cooldown) {
 
                 timeRepaired -= self.m_item.m_attack.m_cooldown;
-                SWorld_inst.DoDamageToCell(new int2(targetPos), ((CItem_Collector)self.m_item).m_collectorDamage, 2, true);
+                SWorld_inst.DoDamageToCell(new int2(targetPos), ((CItem_Collector)self.m_item).collectorDamage, 2, true);
             }
         }
         codeMatcher.Start()
@@ -138,7 +155,7 @@ public class CUnitDefense_Patches {
                 new CodeInstruction(OpCodes.Ldarg_0),
                 new CodeInstruction(OpCodes.Ldloc_S, (byte)4),
                 Transpilers.EmitDelegate(CollectorLogic),
-                new CodeInstruction(OpCodes.Ldc_I4_1),
+                new CodeInstruction(OpCodes.Ldc_I4_1), // flag = true
                 new CodeInstruction(OpCodes.Stloc_2));
     }
     private static void PatchTeslaTurretMK2(CodeMatcher codeMatcher) {
@@ -182,7 +199,7 @@ public class CUnitDefense_Patches {
     }
 
     [HarmonyPrefix]
-    [HarmonyPatch(typeof(CUnitDefense), "GetUnitTargetPos")]
+    [HarmonyPatch("GetUnitTargetPos")]
     private static bool CUnitDefense_GetUnitTargetPos(CUnitDefense __instance, ref Vector2 __result) {
         if (__instance.m_item is CItem_Collector) {
             __result = GetCollectorTargetPos(__instance);
@@ -193,7 +210,8 @@ public class CUnitDefense_Patches {
     }
 
     [HarmonyTranspiler]
-    [HarmonyPatch(typeof(CUnitDefense), "Update")]
+    [HarmonyPatch("Update")]
+    [HarmonyDebug]
     private static IEnumerable<CodeInstruction> CUnitDefense_Update(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         var codeMatcher = new CodeMatcher(instructions, generator);
 
@@ -203,13 +221,24 @@ public class CUnitDefense_Patches {
 
         return codeMatcher.Instructions();
     }
-    [HarmonyTranspiler]
-    [HarmonyPatch(typeof(CUnitDefense), "OnActivate")]
-    [HarmonyPatch(typeof(CUnitDefense), "OnDisplayWorld")]
-    private static IEnumerable<CodeInstruction> CUnitDefense_OnActivate(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-        PatchExplosive(codeMatcher);
-        return codeMatcher.Instructions();
+    [HarmonyPostfix]
+    [HarmonyPatch("OnDisplayWorld")]
+    private static void CUnitDefense_OnDisplayWorld(CUnitDefense __instance, float ___m_lastFireTime, Vector2 ___m_pos) {
+        if (__instance.m_item is CItem_Explosive item && ___m_lastFireTime > 0f && GVars.m_simuTimeD > (double)___m_lastFireTime) {
+            CMesh<CMeshText>.Get("ITEMS").Draw(
+                text: Mathf.CeilToInt(___m_lastFireTime + item.explosionTimer - GVars.SimuTime).ToString(),
+                pos: ___m_pos + Vector2.up * 0.4f,
+                size: 0.3f,
+                color: Color.red
+            );
+        }
+    }
+    [HarmonyPostfix]
+    [HarmonyPatch("OnActivate")]
+    private static void CUnitDefense_OnActivate(CUnitDefense __instance, ref float ___m_lastFireTime) {
+        if (__instance.m_item is CItem_Explosive && ___m_lastFireTime < 0f) {
+            ___m_lastFireTime = GVars.SimuTime;
+        }
     }
 }
 
@@ -219,8 +248,15 @@ public class CItem_Collector : CItem_Defense {
         m_attack.m_damage = 0;
     }
 
-    public ushort m_collectorDamage = 0;
+    public ushort collectorDamage = 0;
     public bool isBasaltCollector = false;
+}
+public class CItem_Explosive : CItem_Defense {
+    public CItem_Explosive(CTile tile, CTile tileIcon, ushort hpMax, uint mainColor, float rangeDetection, float angleMin, float angleMax, CAttackDesc attack, CTile tileUnit)
+        : base(tile, tileIcon, hpMax, mainColor, rangeDetection, angleMin, angleMax, attack, tileUnit) {}
+
+    public float explosionTimer = 5f;
+    public float explosionSoundMultiplier = 1f;
 }
 
 [BepInPlugin("more-items", "More Items", "0.0.0")]
@@ -298,7 +334,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                 }
             ),
             new CustomItem(name: "megaExplosive",
-                item: new CItem_Defense(tile: new CustomCTile(11, 0), tileIcon: new CustomCTile(11, 0),
+                item: new CItem_Explosive(tile: new CustomCTile(11, 0), tileIcon: new CustomCTile(11, 0),
                     hpMax: 250, mainColor: 8947848U, rangeDetection: 0f, angleMin: 0f, angleMax: 360f,
                     attack: new CAttackDesc(
                         range: 15f,
@@ -313,7 +349,9 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     tileUnit: null
                 ) {
                     m_isActivable = true,
-                    m_neverUnspawn = true
+                    m_neverUnspawn = true,
+                    explosionTimer = 6f,
+                    explosionSoundMultiplier = 10f
                 }
             ),
             new CustomItem(name: "turretParticlesMK2",
@@ -370,7 +408,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     m_anchor = CItemCell.Anchor.Everyside_Small,
                     m_displayRangeOnCells = true,
                     m_neverUnspawn = true,
-                    m_collectorDamage = 10,
+                    collectorDamage = 10,
                     m_electricValue = -2
                 }
             ),
@@ -412,7 +450,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     m_anchor = CItemCell.Anchor.Everyside_Small,
                     m_displayRangeOnCells = true,
                     m_neverUnspawn = true,
-                    m_collectorDamage = 100,
+                    collectorDamage = 100,
                     isBasaltCollector = true,
                     m_electricValue = -5
                 }
