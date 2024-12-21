@@ -218,6 +218,7 @@ recipesUltimate = CreateRecipesGroup( "ULTIMATE", { "autoBuilderUltimate"}
 	, CreateRecipe( "turretLaser360", 1 )
 	, CreateRecipe( "gunMeltdown", 1 )
 	, CreateRecipe( "megaExplosive", 1 )
+	, CreateRecipe( "volcanicExplosive", 1 )
 );
 
 list_recipesgroups = { recipesMK1, recipesMK2, recipesMK3, recipesMK4, recipesMK5, recipesUltimate }

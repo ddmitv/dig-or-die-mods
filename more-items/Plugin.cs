@@ -1,5 +1,6 @@
 ﻿using BepInEx;
 using HarmonyLib;
+using Steamworks;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -94,17 +95,48 @@ public class CustomItem {
 
 [HarmonyPatch(typeof(CUnitDefense))]
 public class CUnitDefense_Patches {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Method Declaration", "Harmony003:Harmony non-ref patch parameters modified", Justification = "<Pending>")]
+    private static void ApplyInCircle(int range, int2 pos, Action<int2> fn) {
+        int sqrRange = range * range;
+        for (int i = pos.x - range; i <= pos.x + range; ++i) {
+            for (int j = pos.y - range; j <= pos.y + range; ++j) {
+                int2 relative = new int2(i, j) - pos;
+                if (relative.sqrMagnitude <= sqrRange) {
+                    fn(new int2(i, j));
+                }
+            }
+        }
+    }
+
     private static void PatchExplosive(CodeMatcher codeMatcher) {
-        void ExplosiveLogic(CUnitDefense self, Vector2 m_pos, float m_lastFireTime) {
+        void ExplosiveLogic(CUnitDefense self) {
             var item = (CItem_Explosive)self.m_item;
-            if (!(m_lastFireTime > 0f && GVars.m_simuTimeD > (double)(m_lastFireTime + item.explosionTimer))) { return; }
+            if (!(self.GetLastFireTime() > 0f
+                && GVars.m_simuTimeD > (double)(self.GetLastFireTime() + item.explosionTimer))) { return; }
 
             var attack = item.m_attack;
-            Vector2 explosionPos = m_pos + int2.up * 0.4f;
+
+            Vector2 explosionPos = self.PosCell + int2.up * 0.4f;
             SUnits.DoDamageAOE(explosionPos, attack.m_range, attack.m_damage);
             SWorld.DoDamageAOE(explosionPos, (int)attack.m_range, attack.m_damage);
             SParticles.common_Explosion.EmitNb(explosionPos, 100, false, 10f);
             attack.Sound.Play(explosionPos, item.explosionSoundMultiplier);
+
+            if (item.alwaysStartEruption && (GVars.m_eruptionTime == 0f || GVars.SimuTime > GVars.m_eruptionTime + SOutgame.Params.m_eruptionDurationTotal)) {
+                SAudio.Get("lavaEruption").Play(G.m_player.Pos, 1.5f);
+                GVars.m_eruptionStartPressure = SGame.LavaPressure;
+                GVars.m_eruptionTime = GVars.SimuTime;
+            }
+            if (item.destroyBackgroundRadius > 0) {
+                ApplyInCircle(item.destroyBackgroundRadius, self.PosCell, (int2 pos) => {
+                    SWorld.Grid[pos.x, pos.y].SetBgSurface(null);
+                });
+            }
+            if (item.explosionLavaQuantity > 0) {
+                ref var cell = ref SWorld.Grid[self.PosCell.x, self.PosCell.y];
+                cell.m_water = item.explosionLavaQuantity;
+                cell.SetFlag(CCell.Flag_IsLava, true);
+            }
         }
 
         codeMatcher.Start()
@@ -122,10 +154,6 @@ public class CUnitDefense_Patches {
                 new CodeInstruction(OpCodes.Ldnull),
                 new CodeInstruction(OpCodes.Beq, nextLabel),
                 new CodeInstruction(OpCodes.Ldarg_0),
-                new CodeInstruction(OpCodes.Ldarg_0),
-                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CUnit), "m_pos")),
-                new CodeInstruction(OpCodes.Ldarg_0),
-                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CUnit), "m_lastFireTime")),
                 Transpilers.EmitDelegate(ExplosiveLogic));
     }
     private static void PatchCollector(CodeMatcher codeMatcher) {
@@ -211,7 +239,6 @@ public class CUnitDefense_Patches {
 
     [HarmonyTranspiler]
     [HarmonyPatch("Update")]
-    [HarmonyDebug]
     private static IEnumerable<CodeInstruction> CUnitDefense_Update(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         var codeMatcher = new CodeMatcher(instructions, generator);
 
@@ -257,6 +284,9 @@ public class CItem_Explosive : CItem_Defense {
 
     public float explosionTimer = 5f;
     public float explosionSoundMultiplier = 1f;
+    public bool alwaysStartEruption = false;
+    public int destroyBackgroundRadius = 0;
+    public float explosionLavaQuantity = 0;
 }
 
 [BepInPlugin("more-items", "More Items", "0.0.0")]
@@ -337,7 +367,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                 item: new CItem_Explosive(tile: new CustomCTile(11, 0), tileIcon: new CustomCTile(11, 0),
                     hpMax: 250, mainColor: 8947848U, rangeDetection: 0f, angleMin: 0f, angleMax: 360f,
                     attack: new CAttackDesc(
-                        range: 15f,
+                        range: 10f,
                         damage: 3000,
                         nbAttacks: 0,
                         cooldown: -1f,
@@ -351,7 +381,8 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     m_isActivable = true,
                     m_neverUnspawn = true,
                     explosionTimer = 6f,
-                    explosionSoundMultiplier = 10f
+                    explosionSoundMultiplier = 5f,
+                    destroyBackgroundRadius = 3
                 }
             ),
             new CustomItem(name: "turretParticlesMK2",
@@ -494,7 +525,31 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                         sound: "plasmaSnipe"
                     )
                 )
-            )
+            ),
+            new CustomItem(name: "volcanicExplosive",
+                item: new CItem_Explosive(tile: new CustomCTile(29, 0), tileIcon: new CustomCTile(29, 0),
+                    hpMax: 500, mainColor: 8947848U, rangeDetection: 0f, angleMin: 0f, angleMax: 360f,
+                    attack: new CAttackDesc(
+                        range: 20f,
+                        damage: 5000,
+                        nbAttacks: 0,
+                        cooldown: -1f,
+                        knockbackOwn: 0f,
+                        knockbackTarget: 10f,
+                        projDesc: null,
+                        sound: "rocketExplosion"
+                    ),
+                    tileUnit: null
+                ) {
+                    m_isActivable = true,
+                    m_neverUnspawn = true,
+                    explosionTimer = 10f,
+                    explosionSoundMultiplier = 30f,
+                    alwaysStartEruption = true,
+                    destroyBackgroundRadius = 9,
+                    explosionLavaQuantity = 900f
+                }
+            ),
         ];
 
         System.Console.WriteLine("Plugin more-items loaded!");
