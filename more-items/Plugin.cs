@@ -6,9 +6,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using UnityEngine;
+using UnityEngine.VR;
 
 namespace more_items;
 
@@ -428,6 +430,31 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     ),
                     tileUnit: new CTile(2, 2) { m_textureName = "items_defenses" }
                 )
+            ),
+            new CustomItem(name: "gunMeltdown",
+                item: new CItem_Weapon(tile: new CustomCTile(27, 0), tileIcon: new CustomCTile(28, 0),
+                    heatingPerShot: 2f, isAuto: false,
+                    attackDesc: new CAttackDesc(
+                        range: 50f,
+                        damage: 1500,
+                        nbAttacks: 1,
+                        cooldown: 2.5f,
+                        knockbackOwn: 60f,
+                        knockbackTarget: 100f,
+                        projDesc: new CBulletDesc(
+                            CustomCTile.texturePath, "meltdownSnipe",
+                            radius: 0.5f, dispersionAngleRad: 0.1f,
+                            speedStart: 40f, speedEnd: 30f, light: 0xC0A57u
+                        ) {
+                            m_lavaQuantity = 40f,
+                            m_explosionRadius = 7f,
+                            m_hasTrail = true,
+                            m_hasSmoke = true,
+                            m_explosionSetFire = true,
+                        },
+                        sound: "plasmaSnipe"
+                    )
+                )
             )
         ];
 
@@ -443,6 +470,25 @@ public class MoreItemsPlugin : BaseUnityPlugin {
         }
         return true;
     }
+    [HarmonyPatch(typeof(UnityEngine.Resources), nameof(UnityEngine.Resources.LoadAll), [typeof(string), typeof(Type)])]
+    [HarmonyPrefix]
+    private static bool Resources_LoadAll(string path, ref UnityEngine.Object[] __result) {
+        Sprite CreateSprite(string name, Rect rect, Vector2 pivot) {
+            var relPivot = new Vector2(pivot.x / rect.width, pivot.y / rect.height);
+            var sprite = Sprite.Create(CustomCTile.texture, rect, relPivot, 100, 0, SpriteMeshType.FullRect);
+            sprite.name = name;
+            return sprite;
+        }
+
+        if (path == $"Textures/{CustomCTile.texturePath}") {
+            __result = [
+                CreateSprite("meltdownSnipe", rect: new Rect(0, 0, 255, 119), pivot: new Vector2(178.6f, 59.4f))
+            ];
+            return false;
+        }
+        return true;
+    }
+
     [HarmonyPatch(typeof(SItems), "OnInit")]
     [HarmonyPostfix]
     private static void SItems_OnInit() {
