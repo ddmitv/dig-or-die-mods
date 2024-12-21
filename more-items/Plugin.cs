@@ -141,6 +141,22 @@ public class CUnitDefense_Patches {
                 new CodeInstruction(OpCodes.Ldc_I4_1),
                 new CodeInstruction(OpCodes.Stloc_2));
     }
+    private static void PatchTeslaTurretMK2(CodeMatcher codeMatcher) {
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new CodeMatch(OpCodes.Ldarg_0),
+                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
+                new CodeMatch(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.turretTesla))),
+                new CodeMatch(OpCodes.Bne_Un))
+            .CreateLabelAt(codeMatcher.Pos + 4, out var teslaCond) // after bne.un
+            .Advance(1)
+            .InsertAndAdvance(
+                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
+                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CItem_Defense), nameof(CItem.m_codeName))),
+                new CodeInstruction(OpCodes.Ldstr, "turretTeslaMK2"),
+                new CodeInstruction(OpCodes.Beq, teslaCond),
+                new CodeInstruction(OpCodes.Ldarg_0));
+    }
     private static Vector2 GetCollectorTargetPos(CUnitDefense self) {
         int rangeDetection = Mathf.FloorToInt(self.m_item.m_attack.m_range);
         float closestDist = float.MaxValue;
@@ -180,23 +196,8 @@ public class CUnitDefense_Patches {
     [HarmonyPatch(typeof(CUnitDefense), "Update")]
     private static IEnumerable<CodeInstruction> CUnitDefense_Update(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         var codeMatcher = new CodeMatcher(instructions, generator);
-        Label teslaCond;
 
-        codeMatcher
-            .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Ldarg_0),
-                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
-                new CodeMatch(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.turretTesla))),
-                new CodeMatch(OpCodes.Bne_Un))
-            .CreateLabelAt(codeMatcher.Pos + 4, out teslaCond) // after bne.un
-            .Advance(1)
-            .InsertAndAdvance(
-                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
-                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CItem_Defense), nameof(CItem.m_codeName))),
-                new CodeInstruction(OpCodes.Ldstr, "turretTeslaMK2"),
-                new CodeInstruction(OpCodes.Beq, teslaCond),
-                new CodeInstruction(OpCodes.Ldarg_0));
-
+        PatchTeslaTurretMK2(codeMatcher);
         PatchExplosive(codeMatcher);
         PatchCollector(codeMatcher);
 
@@ -438,7 +439,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                         range: 50f,
                         damage: 1500,
                         nbAttacks: 1,
-                        cooldown: 2.5f,
+                        cooldown: 3f,
                         knockbackOwn: 60f,
                         knockbackTarget: 100f,
                         projDesc: new CBulletDesc(
