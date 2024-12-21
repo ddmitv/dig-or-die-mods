@@ -382,7 +382,8 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     m_neverUnspawn = true,
                     explosionTimer = 6f,
                     explosionSoundMultiplier = 5f,
-                    destroyBackgroundRadius = 3
+                    destroyBackgroundRadius = 3,
+                    m_light = new Color24(10, 240, 71)
                 }
             ),
             new CustomItem(name: "turretParticlesMK2",
@@ -419,7 +420,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     tileUnit: null
                 ) {
                     m_electricValue = -5,
-                    m_light = new Color24(9724047U)
+                    m_light = new Color24(16, 133, 235)
                 }
             ),
             new CustomItem(name: "collector",
@@ -518,9 +519,9 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                         ) {
                             m_lavaQuantity = 40f,
                             m_explosionRadius = 7f,
-                            m_hasTrail = true,
                             m_hasSmoke = true,
                             m_explosionSetFire = true,
+                            m_light = new Color24(240, 40, 40),
                         },
                         sound: "plasmaSnipe"
                     )
@@ -547,7 +548,8 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     explosionSoundMultiplier = 30f,
                     alwaysStartEruption = true,
                     destroyBackgroundRadius = 9,
-                    explosionLavaQuantity = 900f
+                    explosionLavaQuantity = 900f,
+                    m_light = new Color24(255, 38, 38),
                 }
             ),
         ];
