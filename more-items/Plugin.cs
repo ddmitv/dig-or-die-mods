@@ -74,7 +74,7 @@ public class CustomItem {
             }
         }
 
-        var SItems_inst = (SItems)(typeof(SSingleton<SItems>).GetProperty("Inst", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null, []));
+        var SItems_inst = Utils.SSingleton_Inst<SItems>();
         var itemsPluginData_field = typeof(SItems).GetField("m_itemsPluginData", BindingFlags.NonPublic | BindingFlags.Instance);
 
         var itemsPluginData = (CItem_PluginData[])itemsPluginData_field.GetValue(SItems_inst);
@@ -86,21 +86,26 @@ public class CustomItem {
     private CItem item;
 }
 
-[HarmonyPatch(typeof(CUnitDefense))]
-public class CUnitDefense_Patches {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Method Declaration", "Harmony003:Harmony non-ref patch parameters modified", Justification = "<Pending>")]
-    private static void ApplyInCircle(int range, int2 pos, Action<int2> fn) {
+public class Utils {
+    public static void ApplyInCircle(int range, int2 pos, Action<int, int> fn) {
         int sqrRange = range * range;
         for (int i = pos.x - range; i <= pos.x + range; ++i) {
             for (int j = pos.y - range; j <= pos.y + range; ++j) {
                 int2 relative = new int2(i, j) - pos;
                 if (relative.sqrMagnitude <= sqrRange) {
-                    fn(new int2(i, j));
+                    fn(i, j);
                 }
             }
         }
     }
+    public static T SSingleton_Inst<T>() where T : class, new() {
+        var inst = typeof(SSingleton<T>).GetProperty("Inst", BindingFlags.NonPublic | BindingFlags.Static);
+        return (T)inst.GetValue(null, []);
+    }
+}
 
+[HarmonyPatch(typeof(CUnitDefense))]
+public class CUnitDefense_Patches {
     private static void PatchExplosive(CodeMatcher codeMatcher) {
         void ExplosiveLogic(CUnitDefense self) {
             var item = (CItem_Explosive)self.m_item;
@@ -120,10 +125,25 @@ public class CUnitDefense_Patches {
                 GVars.m_eruptionStartPressure = SGame.LavaPressure;
                 GVars.m_eruptionTime = GVars.SimuTime;
             }
-            if (item.destroyBackgroundRadius > 0) {
-                ApplyInCircle(item.destroyBackgroundRadius, self.PosCell, (int2 pos) => {
-                    SWorld.Grid[pos.x, pos.y].SetBgSurface(null);
-                });
+            if (item.destroyBackgroundRadius > 0 || item.explosionBasaltBgRadius > 0) {
+                var range = item.destroyBackgroundRadius + item.explosionBasaltBgRadius;
+
+                for (int i = self.PosCell.x - range; i <= self.PosCell.x + range; ++i) {
+                    for (int j = self.PosCell.y - range; j <= self.PosCell.y + range; ++j) {
+                        int2 relative = new int2(i, j) - self.PosCell;
+                        if (relative.sqrMagnitude > range * range) {
+                            continue;
+                        }
+                        ref var cell = ref SWorld.Grid[i, j];
+                        if (relative.sqrMagnitude > item.destroyBackgroundRadius * item.destroyBackgroundRadius) {
+                            if (cell.GetBgSurface() != null) {
+                                cell.SetBgSurface(GSurfaces.bgLava);
+                            }
+                        } else {
+                            cell.SetBgSurface(null);
+                        }
+                    }
+                }
             }
             if (item.explosionLavaQuantity > 0) {
                 ref var cell = ref SWorld.Grid[self.PosCell.x, self.PosCell.y];
@@ -151,14 +171,23 @@ public class CUnitDefense_Patches {
     }
     private static void PatchCollector(CodeMatcher codeMatcher) {
         void CollectorLogic(CUnitDefense self, Vector2 targetPos) {
-            var SWorld_inst = (SWorld)(typeof(SSingleton<SWorld>).GetProperty("Inst", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null, []));
             ref var timeRepaired = ref AccessTools.FieldRefAccess<CUnitDefense, float>(self, "m_timeRepaired");
+
+            int particlesCount = (int)(GVars.m_simuTimeD * 15.0) - (int)((GVars.m_simuTimeD - SMain.SimuDeltaTimeD) * 15.0);
+            Utils.SSingleton_Inst<SParticles>().EmitMultiple(
+                count: particlesCount,
+                origin: new Rect(targetPos.x - 0.3f, targetPos.y - 0.3f, 0.6f, 0.6f),
+                speed: 10f,
+                color: self.m_item.m_mainColor,
+                type: SParticles.Type.Reparator,
+                paramVector: new Rect(self.PosFire.x, self.PosFire.y, 0f, 0f)
+            );
 
             timeRepaired += SMain.SimuDeltaTime;
             if (timeRepaired > self.m_item.m_attack.m_cooldown) {
 
                 timeRepaired -= self.m_item.m_attack.m_cooldown;
-                SWorld_inst.DoDamageToCell(new int2(targetPos), ((CItem_Collector)self.m_item).collectorDamage, 2, true);
+                Utils.SSingleton_Inst<SWorld>().DoDamageToCell(new int2(targetPos), ((CItem_Collector)self.m_item).collectorDamage, 2, true);
             }
         }
         codeMatcher.Start()
@@ -196,19 +225,19 @@ public class CUnitDefense_Patches {
                 new CodeInstruction(OpCodes.Ldarg_0));
     }
     private static Vector2 GetCollectorTargetPos(CUnitDefense self) {
-        int rangeDetection = Mathf.FloorToInt(self.m_item.m_attack.m_range);
+        int range = Mathf.FloorToInt(self.m_item.m_attack.m_range);
         float closestDist = float.MaxValue;
         Vector2 result = Vector2.zero;
         bool isBasaltCollector = ((CItem_Collector)self.m_item).isBasaltCollector;
 
-        for (int i = self.PosCell.x - rangeDetection; i <= self.PosCell.x + rangeDetection; ++i) {
-            for (int j = self.PosCell.y - rangeDetection; j <= self.PosCell.y + rangeDetection; ++j) {
+        for (int i = self.PosCell.x - range; i <= self.PosCell.x + range; ++i) {
+            for (int j = self.PosCell.y - range; j <= self.PosCell.y + range; ++j) {
                 if (i == self.PosCell.x && j == self.PosCell.y) { continue; }
 
                 CItemCell content = SWorld.Grid[i, j].GetContent();
                 int2 relative = new int2(i, j) - self.PosCell;
 
-                if ((relative.sqrMagnitude <= rangeDetection * rangeDetection)
+                if ((relative.sqrMagnitude <= range * range)
                     && (isBasaltCollector ? ReferenceEquals(content, GItems.lava) : content is CItem_Plant)
                     && (relative.sqrMagnitude < closestDist)) {
                     closestDist = relative.sqrMagnitude;
@@ -260,6 +289,19 @@ public class CUnitDefense_Patches {
             ___m_lastFireTime = GVars.SimuTime;
         }
     }
+    [HarmonyPatch(typeof(CBullet), "Explosion")]
+    [HarmonyPostfix]
+    private static void CBullet_Explosion(CBullet __instance) {
+        if (__instance.Desc == MoreItemsPlugin.meltdownSnipe) {
+            var range = ((CustomCBulletDesc)MoreItemsPlugin.meltdownSnipe).explosionBasaltBgRadius;
+
+            Utils.ApplyInCircle(range, new int2(__instance.m_pos), (int x, int y) => {
+                if (SWorld.Grid[x, y].GetBgSurface() != null) {
+                    SWorld.Grid[x, y].SetBgSurface(GSurfaces.bgLava);
+                }
+            });
+        }
+    }
 }
 
 public class CItem_Collector : CItem_Defense {
@@ -279,12 +321,20 @@ public class CItem_Explosive : CItem_Defense {
     public float explosionSoundMultiplier = 1f;
     public bool alwaysStartEruption = false;
     public int destroyBackgroundRadius = 0;
+    public int explosionBasaltBgRadius = 0;
     public float explosionLavaQuantity = 0;
+}
+public class CustomCBulletDesc : CBulletDesc {
+    public CustomCBulletDesc(string spriteTextureName, string spriteName, float radius, float dispersionAngleRad, float speedStart, float speedEnd, uint light = 0)
+        : base(spriteTextureName, spriteName, radius, dispersionAngleRad, speedStart, speedEnd, light) {}
+
+    public int explosionBasaltBgRadius = 0;
 }
 
 [BepInPlugin("more-items", "More Items", "0.0.0")]
 public class MoreItemsPlugin : BaseUnityPlugin {
     public static CustomItem[] customItems = null;
+    public static CBulletDesc meltdownSnipe = null;
 
     private void Awake() {
         ThreadingHelper.Instance.StartSyncInvoke(() => {
@@ -376,7 +426,8 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     m_neverUnspawn = true,
                     explosionTimer = 6f,
                     explosionSoundMultiplier = 5f,
-                    destroyBackgroundRadius = 3,
+                    destroyBackgroundRadius = 2,
+                    explosionBasaltBgRadius = 5,
                     m_light = new Color24(10, 240, 71)
                 }
             ),
@@ -506,7 +557,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                         cooldown: 3f,
                         knockbackOwn: 60f,
                         knockbackTarget: 100f,
-                        projDesc: new CBulletDesc(
+                        projDesc: (meltdownSnipe = new CustomCBulletDesc(
                             CustomCTile.texturePath, "meltdownSnipe",
                             radius: 0.5f, dispersionAngleRad: 0.1f,
                             speedStart: 40f, speedEnd: 30f, light: 0xC0A57u
@@ -516,7 +567,8 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                             m_hasSmoke = true,
                             m_explosionSetFire = true,
                             m_light = new Color24(240, 40, 40),
-                        },
+                            explosionBasaltBgRadius = 4
+                        }),
                         sound: "plasmaSnipe"
                     )
                 )
@@ -541,7 +593,8 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     explosionTimer = 10f,
                     explosionSoundMultiplier = 30f,
                     alwaysStartEruption = true,
-                    destroyBackgroundRadius = 9,
+                    destroyBackgroundRadius = 4,
+                    explosionBasaltBgRadius = 12,
                     explosionLavaQuantity = 900f,
                     m_light = new Color24(255, 38, 38),
                 }
@@ -550,6 +603,32 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                 item: new CItem_Wall(tile: new CustomCTile(30, 0), tileIcon: new CustomCTile(30, 0),
                     hpMax: 700, mainColor: 12039872U, forceResist: 11000, weight: 560f,
                     type: CItem_Wall.Type.WallBlock
+                )
+            ),
+            new CustomItem(name: "gunNukeLaunder",
+                item: new CItem_Weapon(tile: new CustomCTile(31, 0), tileIcon: new CustomCTile(32, 0),
+                    heatingPerShot: 0f, isAuto: false,
+                    attackDesc: new CAttackDesc(
+                        range: 100f,
+                        damage: 1000,
+                        nbAttacks: 1,
+                        cooldown: 0f,
+                        knockbackOwn: 100f,
+                        knockbackTarget: 200f,
+                        projDesc: new CBulletDesc(
+                            "particles/particles", "grenade",
+                            radius: 0.5f,
+                            dispersionAngleRad: 0f,
+                            speedStart: 20f,
+                            speedEnd: 15f,
+                            light: 0x005E19
+                        ) {
+                            m_grenadeYSpeed = -15f,
+                            m_explosionRadius = 15f,
+                            m_lavaQuantity = 1f
+                        },
+                        sound: "rocketFire"
+                    )
                 )
             )
         ];
