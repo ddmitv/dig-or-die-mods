@@ -1,17 +1,10 @@
 ﻿using BepInEx;
 using HarmonyLib;
-using Steamworks;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 using UnityEngine;
-using UnityEngine.VR;
 
 namespace more_items;
 
@@ -296,8 +289,9 @@ public class MoreItemsPlugin : BaseUnityPlugin {
     private void Awake() {
         ThreadingHelper.Instance.StartSyncInvoke(() => {
             CustomCTile.texture = new Texture2D(1, 1, TextureFormat.ARGB32, false);
-            CustomCTile.texture.filterMode = FilterMode.Trilinear;
             CustomCTile.texture.LoadImage(ModResources.Textures);
+            CustomCTile.texture.filterMode = FilterMode.Trilinear;
+            CustomCTile.texture.wrapMode = TextureWrapMode.Clamp;
 
             Harmony.CreateAndPatchAll(typeof(CUnitDefense_Patches));
         });
@@ -552,6 +546,12 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     m_light = new Color24(255, 38, 38),
                 }
             ),
+            new CustomItem(name: "wallCompositeReinforced",
+                item: new CItem_Wall(tile: new CustomCTile(30, 0), tileIcon: new CustomCTile(30, 0),
+                    hpMax: 700, mainColor: 12039872U, forceResist: 11000, weight: 560f,
+                    type: CItem_Wall.Type.WallBlock
+                )
+            )
         ];
 
         System.Console.WriteLine("Plugin more-items loaded!");

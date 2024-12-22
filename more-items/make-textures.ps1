@@ -28,10 +28,11 @@ $textures = @(
     "turretLaser360_icon.png",
     "gunPlasmaMegaSnipe.png",
     "gunPlasmaMegaSnipe_icon.png",
-    "volcanicExplosive.png"
+    "volcanicExplosive.png",
+    "wallCompositeReinforced.png"
 )
 $sprites = @(
     "$PSScriptRoot/textures/meltdownSnipe.png"
 )
 
-magick $($textures.foreach({"$PSScriptRoot/textures/$_"})) +append $sprites[0] -append "$PSScriptRoot/Resources/textures"
+magick -background none $($textures.foreach({"$PSScriptRoot/textures/$_"})) +append $sprites[0] -append "$PSScriptRoot/Resources/textures"
