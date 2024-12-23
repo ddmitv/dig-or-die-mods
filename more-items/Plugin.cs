@@ -597,6 +597,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     explosionBasaltBgRadius = 12,
                     explosionLavaQuantity = 900f,
                     m_light = new Color24(255, 38, 38),
+                    m_fireProof = true,
                 }
             ),
             new CustomItem(name: "wallCompositeReinforced",
