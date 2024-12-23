@@ -109,12 +109,44 @@ public class CUnitDefense_Patches {
     private static void PatchExplosive(CodeMatcher codeMatcher) {
         void ExplosiveLogic(CUnitDefense self) {
             var item = (CItem_Explosive)self.m_item;
-            if (!(self.GetLastFireTime() > 0f
-                && GVars.m_simuTimeD > (double)(self.GetLastFireTime() + item.explosionTimer))) { return; }
+            if (self.GetLastFireTime() <= 0f) {
+                return;
+            }
+            ref var current_cell = ref SWorld.Grid[self.PosCell.x, self.PosCell.y];
+
+            current_cell.m_contentHP = current_cell.GetContent().m_hpMax;
+
+            var halfExplosionTimer = item.explosionTimer / 2f;
+            if (item.explosionLavaQuantity > 0 && GVars.m_simuTimeD > (double)(self.GetLastFireTime() + halfExplosionTimer)) {
+                float halfExplosionTime = GVars.SimuTime - (self.GetLastFireTime() + halfExplosionTimer);
+
+                if (!current_cell.IsLava()) {
+                    current_cell.m_water = 0;
+                }
+                current_cell.m_water += Mathf.Pow(3f, halfExplosionTime - 0.7f) * item.explosionLavaQuantity * SMain.SimuDeltaTime;
+                current_cell.SetFlag(CCell.Flag_IsLava, true);
+
+                var fireRange = Mathf.Lerp(0f, item.m_attack.m_range * 5f, halfExplosionTime / halfExplosionTimer);
+                SWorld.SetFireAround(self.PosCell, fireRange);
+                var lightRange = Mathf.Lerp(1f, item.m_attack.m_range, halfExplosionTime / halfExplosionTimer);
+                SWorld.SetLightAround(self.PosCell, lightRange, new Color24(100, 20, 20));
+
+                var evaporationRange = Mathf.Lerp(0f, item.m_attack.m_range * 4f, halfExplosionTime / halfExplosionTimer);
+                Utils.ApplyInCircle(Mathf.CeilToInt(evaporationRange), self.PosCell, (int x, int y) => {
+                    ref var cell = ref SWorld.Grid[x, y];
+                    if (!cell.IsLava() && cell.m_water > 0) {
+                        cell.m_water = Mathf.Max(0f, cell.m_water - SMain.SimuDeltaTime * 0.6f);
+                    }
+                });
+            }
+            if (GVars.m_simuTimeD <= (double)(self.GetLastFireTime() + item.explosionTimer)) {
+                return;
+            }
 
             var attack = item.m_attack;
 
             Vector2 explosionPos = self.PosCell + int2.up * 0.4f;
+            Utils.SSingleton_Inst<SWorld>().DestroyCell(self.PosCell, 0, false, null);
             SUnits.DoDamageAOE(explosionPos, attack.m_range, attack.m_damage);
             SWorld.DoDamageAOE(explosionPos, (int)attack.m_range, attack.m_damage);
             SParticles.common_Explosion.EmitNb(explosionPos, 100, false, 10f);
@@ -144,11 +176,6 @@ public class CUnitDefense_Patches {
                         }
                     }
                 }
-            }
-            if (item.explosionLavaQuantity > 0) {
-                ref var cell = ref SWorld.Grid[self.PosCell.x, self.PosCell.y];
-                cell.m_water = item.explosionLavaQuantity;
-                cell.SetFlag(CCell.Flag_IsLava, true);
             }
         }
 
@@ -278,7 +305,7 @@ public class CUnitDefense_Patches {
                 text: Mathf.CeilToInt(___m_lastFireTime + item.explosionTimer - GVars.SimuTime).ToString(),
                 pos: ___m_pos + Vector2.up * 0.4f,
                 size: 0.3f,
-                color: Color.red
+                color: Color.red * 0.4f
             );
         }
     }
@@ -287,6 +314,11 @@ public class CUnitDefense_Patches {
     private static void CUnitDefense_OnActivate(CUnitDefense __instance, ref float ___m_lastFireTime) {
         if (__instance.m_item is CItem_Explosive && ___m_lastFireTime < 0f) {
             ___m_lastFireTime = GVars.SimuTime;
+
+            Utils.SSingleton_Inst<SWorld>().SetContent(
+                pos: __instance.PosCell - int2.up,
+                item: GItems.lavaOld
+            );
         }
     }
     [HarmonyPatch(typeof(CBullet), "Explosion")]
@@ -577,12 +609,12 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                 item: new CItem_Explosive(tile: new CustomCTile(29, 0), tileIcon: new CustomCTile(29, 0),
                     hpMax: 500, mainColor: 8947848U, rangeDetection: 0f, angleMin: 0f, angleMax: 360f,
                     attack: new CAttackDesc(
-                        range: 20f,
+                        range: 25f,
                         damage: 5000,
                         nbAttacks: 0,
                         cooldown: -1f,
                         knockbackOwn: 0f,
-                        knockbackTarget: 10f,
+                        knockbackTarget: 500f,
                         projDesc: null,
                         sound: "rocketExplosion"
                     ),
@@ -593,11 +625,12 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     explosionTimer = 10f,
                     explosionSoundMultiplier = 30f,
                     alwaysStartEruption = true,
-                    destroyBackgroundRadius = 4,
-                    explosionBasaltBgRadius = 12,
-                    explosionLavaQuantity = 900f,
-                    m_light = new Color24(255, 38, 38),
+                    destroyBackgroundRadius = 3,
+                    explosionBasaltBgRadius = 18,
+                    explosionLavaQuantity = 40f,
+                    m_light = new Color24(240, 38, 38),
                     m_fireProof = true,
+                   
                 }
             ),
             new CustomItem(name: "wallCompositeReinforced",
