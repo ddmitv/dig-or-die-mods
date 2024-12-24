@@ -5,4 +5,5 @@
 !.editorconfig
 !dependency-libs/
 !more-items/
+!friendly-fire/
 !examples/

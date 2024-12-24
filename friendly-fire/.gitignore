@@ -1,0 +1,5 @@
+*
+
+!.gitignore
+!friendly-fire.csproj
+!Plugin.cs
