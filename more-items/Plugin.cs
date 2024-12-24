@@ -664,6 +664,14 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                         sound: "rocketFire"
                     )
                 )
+            ),
+            new CustomItem(name: "generatorSunMK2",
+                item: new CItem_Machine(tile: new CustomCTile(33, 0), tileIcon: new CustomCTile(33, 0),
+                    hpMax: 200, mainColor: 10066329U,
+                    anchor: CItemCell.Anchor.Bottom_Small
+                ) {
+                    m_electricValue = 3
+                }
             )
         ];
 
