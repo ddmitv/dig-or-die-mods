@@ -8,6 +8,15 @@ using UnityEngine;
 
 namespace more_items;
 
+public static class CodeMatcherExtensions {
+    public static CodeMatcher Inject(this CodeMatcher self, OpCode opcode, object operand = null) {
+        var prevInstruction = self.Instruction.Clone();
+        self.SetAndAdvance(opcode, operand);
+        self.Insert(prevInstruction);
+        return self;
+    }
+}
+
 public class CustomCTile : CTile {
     public static string texturePath = "mod-more-items";
     public static Texture2D texture = null;
@@ -86,7 +95,7 @@ public class CustomItem {
     private CItem item;
 }
 
-public class Utils {
+public static class Utils {
     public static void ApplyInCircle(int range, int2 pos, Action<int, int> fn) {
         int sqrRange = range * range;
         for (int i = pos.x - range; i <= pos.x + range; ++i) {
@@ -672,6 +681,15 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                 ) {
                     m_electricValue = 3
                 }
+            ),
+            new CustomItem(name: "RTG",
+                item: new CItem_Machine(tile: new CustomCTile(34, 0), tileIcon: new CustomCTile(34, 0),
+                    hpMax: 200, mainColor: 10066329U,
+                    anchor: CItemCell.Anchor.Bottom_Small
+                ) {
+                    m_light = new Color24(0xED0CE9),
+                    m_electricValue = 15
+                }
             )
         ];
 
@@ -733,5 +751,23 @@ public class MoreItemsPlugin : BaseUnityPlugin {
         if (__instance.m_textureName != null) {
             textureName = __instance.m_textureName;
         }
+    }
+    [HarmonyPatch(typeof(SDrawWorld), "DrawElectricLightIFN")]
+    [HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> SDrawWorld_DrawElectricLightIFN(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new CodeMatch(OpCodes.Ldc_I4_0),
+                new CodeMatch(OpCodes.Stloc_3),
+                new CodeMatch(OpCodes.Br))
+            .Inject(OpCodes.Ldloc_0)
+            .Insert(
+                new CodeInstruction(OpCodes.Ldc_I4_S, (sbyte)5),
+                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Math), nameof(Math.Min), [typeof(int), typeof(int)])),
+                new CodeInstruction(OpCodes.Stloc_0));
+
+        return codeMatcher.Instructions();
     }
 }

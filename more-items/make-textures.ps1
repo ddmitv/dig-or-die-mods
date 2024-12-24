@@ -32,7 +32,8 @@ $textures = @(
     "wallCompositeReinforced.png",
     "gunNukeLauncher.png",
     "gunNukeLaunder_icon.png",
-    "generatorSunMK2.png"
+    "generatorSunMK2.png",
+    "RTG.png"
 )
 $sprites = @(
     "$PSScriptRoot/textures/meltdownSnipe.png"
