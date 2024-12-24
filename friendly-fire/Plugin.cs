@@ -31,6 +31,7 @@ public class Plugin : BaseUnityPlugin
     private void Awake()
     {
         Harmony.CreateAndPatchAll(typeof(Plugin));
+
         System.Console.WriteLine("Plugin \"Friendly Fire\" is loaded!");
     }
 
@@ -110,8 +111,8 @@ public class Plugin : BaseUnityPlugin
 
         var codeMatcher = new CodeMatcher(instructions, generator);
 
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+        codeMatcher.End()
+            .MatchBack(useEnd: false,
                 new CodeMatch(OpCodes.Ldarg_0),
                 new CodeMatch(OpCodes.Ldarg_1),
                 new CodeMatch(OpCodes.Ldsfld, AccessTools.Field(typeof(string), nameof(string.Empty))),
