@@ -110,6 +110,9 @@ public static class Utils {
         var inst = typeof(SSingleton<T>).GetProperty("Inst", BindingFlags.NonPublic | BindingFlags.Static);
         return (T)inst.GetValue(null, []);
     }
+    public static bool IsValidCell(int x, int y) {
+        return x >= 0 && y >= 0 && x < SWorld.Gs.x && y < SWorld.Gs.y;
+    }
 }
 
 [HarmonyPatch(typeof(CUnitDefense))]
@@ -141,6 +144,8 @@ public class CUnitDefense_Patches {
 
                 var evaporationRange = Mathf.Lerp(0f, item.m_attack.m_range * 4f, halfExplosionTime / halfExplosionTimer);
                 Utils.ApplyInCircle(Mathf.CeilToInt(evaporationRange), self.PosCell, (int x, int y) => {
+                    if (!Utils.IsValidCell(x, y)) { return; }
+
                     ref var cell = ref SWorld.Grid[x, y];
                     if (!cell.IsLava() && cell.m_water > 0) {
                         cell.m_water = Mathf.Max(0f, cell.m_water - SMain.SimuDeltaTime * 0.6f);
@@ -174,6 +179,8 @@ public class CUnitDefense_Patches {
                         if (relative.sqrMagnitude > range * range) {
                             continue;
                         }
+                        if (!Utils.IsValidCell(i, j)) { return; }
+
                         ref var cell = ref SWorld.Grid[i, j];
                         if (relative.sqrMagnitude > item.destroyBackgroundRadius * item.destroyBackgroundRadius) {
                             if (cell.GetBgSurface() != null) {
@@ -269,14 +276,17 @@ public class CUnitDefense_Patches {
             for (int j = self.PosCell.y - range; j <= self.PosCell.y + range; ++j) {
                 if (i == self.PosCell.x && j == self.PosCell.y) { continue; }
 
-                CItemCell content = SWorld.Grid[i, j].GetContent();
                 int2 relative = new int2(i, j) - self.PosCell;
 
-                if ((relative.sqrMagnitude <= range * range)
-                    && (isBasaltCollector ? ReferenceEquals(content, GItems.lava) : content is CItem_Plant)
-                    && (relative.sqrMagnitude < closestDist)) {
-                    closestDist = relative.sqrMagnitude;
-                    result = new Vector2(i + 0.5f, j + 0.5f);
+                if (relative.sqrMagnitude <= range * range) {
+                    if (!Utils.IsValidCell(i, j)) { continue; }
+
+                    CItemCell content = SWorld.Grid[i, j].GetContent();
+                    if (isBasaltCollector ? ReferenceEquals(content, GItems.lava) : content is CItem_Plant
+                        && relative.sqrMagnitude < closestDist) {
+                        closestDist = relative.sqrMagnitude;
+                        result = new Vector2(i + 0.5f, j + 0.5f);
+                    }
                 }
             }
         }
@@ -336,11 +346,40 @@ public class CUnitDefense_Patches {
             var range = ((CustomCBulletDesc)MoreItemsPlugin.meltdownSnipe).explosionBasaltBgRadius;
 
             Utils.ApplyInCircle(range, new int2(__instance.m_pos), (int x, int y) => {
+                if (!Utils.IsValidCell(x, y)) { return; }
+
                 if (SWorld.Grid[x, y].GetBgSurface() != null) {
                     SWorld.Grid[x, y].SetBgSurface(GSurfaces.bgLava);
                 }
             });
         }
+    }
+    [HarmonyPatch(typeof(CBullet), nameof(CBullet.Update))]
+    [HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> CBullet_Update(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        codeMatcher.Start()
+            .MatchForward(useEnd: true,
+                new CodeMatch(OpCodes.Ldarg_0),
+                new CodeMatch(OpCodes.Call, AccessTools.PropertyGetter(typeof(CBullet), nameof(CBullet.Desc))),
+                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CBulletDesc), nameof(CBulletDesc.m_lavaQuantity))),
+                new CodeMatch(OpCodes.Ldc_R4, 0.0f),
+                new CodeMatch(OpCodes.Ble_Un))
+            .GetOperand(out Label failLabel)
+            .Advance(1)
+            .Insert(
+                new CodeInstruction(OpCodes.Ldarg_0),
+                Transpilers.EmitDelegate((CBullet self) => {
+                    if (self.Desc is CustomCBulletDesc cbulletdesc) {
+                        return cbulletdesc.emitLavaBurstParticles;
+                    }
+                    return true;
+                }),
+                new CodeInstruction(OpCodes.Brfalse, failLabel)
+            );
+
+        return codeMatcher.Instructions();
     }
 }
 
@@ -369,6 +408,7 @@ public class CustomCBulletDesc : CBulletDesc {
         : base(spriteTextureName, spriteName, radius, dispersionAngleRad, speedStart, speedEnd, light) {}
 
     public int explosionBasaltBgRadius = 0;
+    public bool emitLavaBurstParticles = true;
 }
 
 [BepInPlugin("more-items", "More Items", "0.0.0")]
@@ -599,15 +639,16 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                         knockbackTarget: 100f,
                         projDesc: (meltdownSnipe = new CustomCBulletDesc(
                             CustomCTile.texturePath, "meltdownSnipe",
-                            radius: 0.5f, dispersionAngleRad: 0.1f,
-                            speedStart: 40f, speedEnd: 30f, light: 0xC0A57u
+                            radius: 0.7f, dispersionAngleRad: 0.1f,
+                            speedStart: 50f, speedEnd: 30f, light: 0xC0A57u
                         ) {
                             m_lavaQuantity = 40f,
-                            m_explosionRadius = 7f,
+                            m_explosionRadius = 6f,
                             m_hasSmoke = true,
                             m_explosionSetFire = true,
                             m_light = new Color24(240, 40, 40),
-                            explosionBasaltBgRadius = 4
+                            explosionBasaltBgRadius = 4,
+                            emitLavaBurstParticles = false,
                         }),
                         sound: "plasmaSnipe"
                     )
@@ -657,7 +698,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                         cooldown: 0f,
                         knockbackOwn: 100f,
                         knockbackTarget: 200f,
-                        projDesc: new CBulletDesc(
+                        projDesc: new CustomCBulletDesc(
                             "particles/particles", "grenade",
                             radius: 0.5f,
                             dispersionAngleRad: 0f,
@@ -667,7 +708,8 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                         ) {
                             m_grenadeYSpeed = -15f,
                             m_explosionRadius = 15f,
-                            m_lavaQuantity = 1f
+                            m_lavaQuantity = 1f,
+                            emitLavaBurstParticles = false,
                         },
                         sound: "rocketFire"
                     )
@@ -800,7 +842,6 @@ public class MoreItemsPlugin : BaseUnityPlugin {
 
         return codeMatcher.Instructions();
     }
-
     [HarmonyPatch(typeof(SDrawWorld), "DrawElectricLightIFN")]
     [HarmonyTranspiler]
     private static IEnumerable<CodeInstruction> SDrawWorld_DrawElectricLightIFN(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
