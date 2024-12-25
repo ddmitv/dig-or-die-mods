@@ -688,7 +688,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     type: CItem_Wall.Type.WallBlock
                 )
             ),
-            new CustomItem(name: "gunNukeLaunder",
+            new CustomItem(name: "gunNukeLauncher",
                 item: new CItem_Weapon(tile: new CustomCTile(31, 0), tileIcon: new CustomCTile(32, 0),
                     heatingPerShot: 0f, isAuto: false,
                     attackDesc: new CAttackDesc(

@@ -31,7 +31,7 @@ $textures = @(
     "volcanicExplosive.png",
     "wallCompositeReinforced.png",
     "gunNukeLauncher.png",
-    "gunNukeLaunder_icon.png",
+    "gunNukeLauncher_icon.png",
     "generatorSunMK2.png",
     "RTG.png",
     "gunPlasmaThrower.png",

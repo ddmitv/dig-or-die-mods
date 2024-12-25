@@ -220,7 +220,7 @@ recipesUltimate = CreateRecipesGroup( "ULTIMATE", { "autoBuilderUltimate"}
 	, CreateRecipe( "megaExplosive", 1 )
 	, CreateRecipe( "volcanicExplosive", 1 )
 	, CreateRecipe( "wallCompositeReinforced", 1 )
-	, CreateRecipe( "gunNukeLaunder", 1 )
+	, CreateRecipe( "gunNukeLauncher", 1 )
 	, CreateRecipe( "generatorSunMK2", 1 )
 	, CreateRecipe( "RTG", 1 )
 	, CreateRecipe( "gunPlasmaThrower", 1 )
