@@ -33,10 +33,13 @@ $textures = @(
     "gunNukeLauncher.png",
     "gunNukeLaunder_icon.png",
     "generatorSunMK2.png",
-    "RTG.png"
+    "RTG.png",
+    "gunPlasmaThrower.png",
+    "gunPlasmaThrower_icon.png"
 )
 $sprites = @(
-    "$PSScriptRoot/textures/meltdownSnipe.png"
+    "$PSScriptRoot/textures/meltdownSnipe.png",
+    "$PSScriptRoot/textures/particlePlasmaCloud.png"
 )
 
-magick -background none $($textures.foreach({"$PSScriptRoot/textures/$_"})) +append $sprites[0] -append "$PSScriptRoot/Resources/textures"
+magick -background none $($textures.foreach({"$PSScriptRoot/textures/$_"})) +append $sprites -append "$PSScriptRoot/Resources/textures"

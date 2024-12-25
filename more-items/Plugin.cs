@@ -1,10 +1,12 @@
 ﻿using BepInEx;
 using HarmonyLib;
+using Mono.Cecil;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
+using UnityEngine.Assertions.Must;
 
 namespace more_items;
 
@@ -13,6 +15,10 @@ public static class CodeMatcherExtensions {
         var prevInstruction = self.Instruction.Clone();
         self.SetAndAdvance(opcode, operand);
         self.Insert(prevInstruction);
+        return self;
+    }
+    public static CodeMatcher GetOperand<T>(this CodeMatcher self, out T result) {
+        result = (T)self.Operand;
         return self;
     }
 }
@@ -74,14 +80,7 @@ public class CustomItem {
         item.m_id = (ushort)items.Count;
         items.Add(item);
 
-        // Hack?
-        item.m_tile.CreateSprite(item.m_tile.m_textureName);
-        item.m_tileIcon.CreateSprite(item.m_tileIcon.m_textureName);
-        if (item is CItemCell) {
-            if (((CItemCell)item).m_electricValue != 0 && ((CItemCell)item).m_electricityOutletFlags == 0) {
-                ((CItemCell)item).m_electricityOutletFlags = 1;
-            }
-        }
+        item.Init();
 
         var SItems_inst = Utils.SSingleton_Inst<SItems>();
         var itemsPluginData_field = typeof(SItems).GetField("m_itemsPluginData", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -639,7 +638,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     explosionLavaQuantity = 40f,
                     m_light = new Color24(240, 38, 38),
                     m_fireProof = true,
-                   
+
                 }
             ),
             new CustomItem(name: "wallCompositeReinforced",
@@ -690,6 +689,29 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                     m_light = new Color24(0xED0CE9),
                     m_electricValue = 15
                 }
+            ),
+            new CustomItem(name: "gunPlasmaThrower",
+                item: new CItem_Weapon(tile: new CustomCTile(35, 0), tileIcon: new CustomCTile(36, 0),
+                    heatingPerShot: 0f, isAuto: true,
+                    attackDesc: new CAttackDesc(
+                        range: 16f,
+                        damage: 20,
+                        nbAttacks: 1,
+                        cooldown: 0.1f,
+                        knockbackOwn: 0f,
+                        knockbackTarget: 1f,
+                        projDesc: new CustomCBulletDesc(
+                            CustomCTile.texturePath, "particlePlasmaCloud",
+                            radius: 0.5f, dispersionAngleRad: 0.1f,
+                            speedStart: 25f, speedEnd: 15f, light: 0x770BDB
+                        ) {
+                            m_goThroughEnnemies = true,
+                            m_pierceArmor = true,
+                            m_inflame = true,
+                        },
+                        sound: null
+                    )
+                )
             )
         ];
 
@@ -708,16 +730,23 @@ public class MoreItemsPlugin : BaseUnityPlugin {
     [HarmonyPatch(typeof(UnityEngine.Resources), nameof(UnityEngine.Resources.LoadAll), [typeof(string), typeof(Type)])]
     [HarmonyPrefix]
     private static bool Resources_LoadAll(string path, ref UnityEngine.Object[] __result) {
-        Sprite CreateSprite(string name, Rect rect, Vector2 pivot) {
-            var relPivot = new Vector2(pivot.x / rect.width, pivot.y / rect.height);
-            var sprite = Sprite.Create(CustomCTile.texture, rect, relPivot, 100, 0, SpriteMeshType.FullRect);
+        Sprite CreateSprite(string name, Rect rect) {
+            var pivot = new Vector2(0.5f, 0.5f);
+
+            var spriteRect = new Rect(rect.x, CustomCTile.texture.height - rect.yMax, rect.width, rect.height);
+            var sprite = Sprite.Create(CustomCTile.texture, spriteRect, pivot, 100, 0, SpriteMeshType.FullRect);
             sprite.name = name;
             return sprite;
         }
 
         if (path == $"Textures/{CustomCTile.texturePath}") {
+            var particlePlasmaCloud = (Sprite)AccessTools.Method(typeof(Sprite), "MemberwiseClone").Invoke(GBullets.flamethrower.m_sprite.Sprite, []);
+            particlePlasmaCloud.name = "particlePlasmaCloud";
+
             __result = [
-                CreateSprite("meltdownSnipe", rect: new Rect(0, 0, 255, 119), pivot: new Vector2(178.6f, 59.4f))
+                CreateSprite("meltdownSnipe", rect: new Rect(0, 128, 255, 119)),
+                // CreateSprite("particlePlasmaCloud", rect: new Rect(0, 247, 256, 256))
+                particlePlasmaCloud
             ];
             return false;
         }
@@ -752,6 +781,26 @@ public class MoreItemsPlugin : BaseUnityPlugin {
             textureName = __instance.m_textureName;
         }
     }
+    [HarmonyPatch(typeof(CItem), nameof(CItem.Init))]
+    [HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> CItem_Init(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        codeMatcher.End()
+            .MatchBack(useEnd: true,
+                new CodeMatch(OpCodes.Ldarg_0),
+                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CItem), nameof(CItem.m_tile))),
+                new CodeMatch(OpCodes.Brfalse))
+            .GetOperand(out Label failLabel)
+            .Advance(1)
+            .Insert(
+                new CodeInstruction(OpCodes.Ldarg_0),
+                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CItem), nameof(CItem.m_tileIcon))),
+                new CodeInstruction(OpCodes.Brtrue, failLabel));
+
+        return codeMatcher.Instructions();
+    }
+
     [HarmonyPatch(typeof(SDrawWorld), "DrawElectricLightIFN")]
     [HarmonyTranspiler]
     private static IEnumerable<CodeInstruction> SDrawWorld_DrawElectricLightIFN(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
