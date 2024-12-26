@@ -1,12 +1,10 @@
 ﻿using BepInEx;
 using HarmonyLib;
-using Mono.Cecil;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
-using UnityEngine.Assertions.Must;
 
 namespace more_items;
 
@@ -113,6 +111,15 @@ public static class Utils {
     public static bool IsValidCell(int x, int y) {
         return x >= 0 && y >= 0 && x < SWorld.Gs.x && y < SWorld.Gs.y;
     }
+    public static void AddLava(ref CCell cell, float lavaQuantity) {
+        if (!cell.IsPassable()) { return; }
+
+        if (!cell.IsLava()) {
+            cell.m_water = 0;
+        }
+        cell.m_water += lavaQuantity;
+        cell.SetFlag(CCell.Flag_IsLava, true);
+    }
 }
 
 [HarmonyPatch(typeof(CUnitDefense))]
@@ -127,22 +134,26 @@ public class CUnitDefense_Patches {
 
             current_cell.m_contentHP = current_cell.GetContent().m_hpMax;
 
-            var halfExplosionTimer = item.explosionTimer / 2f;
-            if (item.explosionLavaQuantity > 0 && GVars.m_simuTimeD > (double)(self.GetLastFireTime() + halfExplosionTimer)) {
-                float halfExplosionTime = GVars.SimuTime - (self.GetLastFireTime() + halfExplosionTimer);
+            if (item.lavaReleaseTime >= 0
+                && GVars.SimuTime >= self.GetLastFireTime() + item.lavaReleaseTime
+                && GVars.SimuTime > CItem_Explosive.lastTimeMap[self.Id]
+            ) {
+                const float dt = CItem_Explosive.deltaTime;
+                CItem_Explosive.lastTimeMap[self.Id] = GVars.SimuTime + dt;
+                
+                float releaseTime = GVars.SimuTime - (self.GetLastFireTime() + item.lavaReleaseTime);
+                float completionPercentage = releaseTime / (item.explosionTime - item.lavaReleaseTime);
 
-                if (!current_cell.IsLava()) {
-                    current_cell.m_water = 0;
-                }
-                current_cell.m_water += Mathf.Pow(3f, halfExplosionTime - 0.7f) * item.explosionLavaQuantity * SMain.SimuDeltaTime;
-                current_cell.SetFlag(CCell.Flag_IsLava, true);
+                Utils.AddLava(ref current_cell,
+                    // 1/2f * dt * item.lavaQuantity * (Mathf.Pow(3f, releaseTime + dt) + Mathf.Pow(3f, releaseTime))
+                    item.lavaQuantity * Mathf.Pow(3f, releaseTime)
+                );
+                Console.WriteLine($"a: {item.lavaQuantity}, time: {releaseTime}, +: {item.lavaQuantity * Mathf.Pow(3f, releaseTime)}, lava: {current_cell.m_water}");
 
-                var fireRange = Mathf.Lerp(0f, item.m_attack.m_range * 5f, halfExplosionTime / halfExplosionTimer);
+                var fireRange = Mathf.Lerp(0f, item.m_attack.m_range * 5f, completionPercentage);
                 SWorld.SetFireAround(self.PosCell, fireRange);
-                var lightRange = Mathf.Lerp(1f, item.m_attack.m_range, halfExplosionTime / halfExplosionTimer);
-                SWorld.SetLightAround(self.PosCell, lightRange, new Color24(100, 20, 20));
 
-                var evaporationRange = Mathf.Lerp(0f, item.m_attack.m_range * 4f, halfExplosionTime / halfExplosionTimer);
+                var evaporationRange = Mathf.Lerp(0f, item.m_attack.m_range * 4f, completionPercentage);
                 Utils.ApplyInCircle(Mathf.CeilToInt(evaporationRange), self.PosCell, (int x, int y) => {
                     if (!Utils.IsValidCell(x, y)) { return; }
 
@@ -152,7 +163,7 @@ public class CUnitDefense_Patches {
                     }
                 });
             }
-            if (GVars.m_simuTimeD <= (double)(self.GetLastFireTime() + item.explosionTimer)) {
+            if (GVars.m_simuTimeD <= (double)(self.GetLastFireTime() + item.explosionTime)) {
                 return;
             }
 
@@ -192,6 +203,9 @@ public class CUnitDefense_Patches {
                     }
                 }
             }
+            if (item.lavaReleaseTime < 0) {
+                Utils.AddLava(ref current_cell, item.lavaQuantity);
+            }
         }
 
         codeMatcher.Start()
@@ -211,6 +225,7 @@ public class CUnitDefense_Patches {
                 new CodeInstruction(OpCodes.Ldarg_0),
                 Transpilers.EmitDelegate(ExplosiveLogic));
     }
+
     private static void PatchCollector(CodeMatcher codeMatcher) {
         void CollectorLogic(CUnitDefense self, Vector2 targetPos) {
             ref var timeRepaired = ref AccessTools.FieldRefAccess<CUnitDefense, float>(self, "m_timeRepaired");
@@ -320,7 +335,7 @@ public class CUnitDefense_Patches {
     private static void CUnitDefense_OnDisplayWorld(CUnitDefense __instance, float ___m_lastFireTime, Vector2 ___m_pos) {
         if (__instance.m_item is CItem_Explosive item && ___m_lastFireTime > 0f && GVars.m_simuTimeD > (double)___m_lastFireTime) {
             CMesh<CMeshText>.Get("ITEMS").Draw(
-                text: Mathf.CeilToInt(___m_lastFireTime + item.explosionTimer - GVars.SimuTime).ToString(),
+                text: Mathf.CeilToInt(___m_lastFireTime + item.explosionTime - GVars.SimuTime).ToString(),
                 pos: ___m_pos + Vector2.up * 0.4f,
                 size: 0.3f,
                 color: Color.red * 0.4f
@@ -337,6 +352,7 @@ public class CUnitDefense_Patches {
                 pos: __instance.PosCell - int2.up,
                 item: GItems.lavaOld
             );
+            CItem_Explosive.lastTimeMap[__instance.Id] = 0f;
         }
     }
     [HarmonyPatch(typeof(CBullet), "Explosion")]
@@ -396,12 +412,22 @@ public class CItem_Explosive : CItem_Defense {
     public CItem_Explosive(CTile tile, CTile tileIcon, ushort hpMax, uint mainColor, float rangeDetection, float angleMin, float angleMax, CAttackDesc attack, CTile tileUnit)
         : base(tile, tileIcon, hpMax, mainColor, rangeDetection, angleMin, angleMax, attack, tileUnit) {}
 
-    public float explosionTimer = 5f;
+    public const float deltaTime = 0.1f;
+
+    public static float CalculateLavaQuantityStep(float totalQuantity, float time) {
+        var t = Mathf.Pow(3, deltaTime);
+        return totalQuantity * (1 - t) / (1 - Mathf.Pow(t, time / deltaTime + 1));
+    }
+
+    public float explosionTime = 5f;
     public float explosionSoundMultiplier = 1f;
     public bool alwaysStartEruption = false;
     public int destroyBackgroundRadius = 0;
     public int explosionBasaltBgRadius = 0;
-    public float explosionLavaQuantity = 0;
+    public float lavaQuantity = 0;
+    public float lavaReleaseTime = -1f;
+
+    public static Dictionary<ushort, float> lastTimeMap = new Dictionary<ushort, float>();
 }
 public class CustomCBulletDesc : CBulletDesc {
     public CustomCBulletDesc(string spriteTextureName, string spriteName, float radius, float dispersionAngleRad, float speedStart, float speedEnd, uint light = 0)
@@ -504,7 +530,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                 ) {
                     m_isActivable = true,
                     m_neverUnspawn = true,
-                    explosionTimer = 6f,
+                    explosionTime = 6f,
                     explosionSoundMultiplier = 5f,
                     destroyBackgroundRadius = 2,
                     explosionBasaltBgRadius = 5,
@@ -671,15 +697,15 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                 ) {
                     m_isActivable = true,
                     m_neverUnspawn = true,
-                    explosionTimer = 10f,
+                    explosionTime = 10f,
                     explosionSoundMultiplier = 30f,
                     alwaysStartEruption = true,
                     destroyBackgroundRadius = 3,
                     explosionBasaltBgRadius = 18,
-                    explosionLavaQuantity = 40f,
+                    lavaQuantity = CItem_Explosive.CalculateLavaQuantityStep(totalQuantity: 1500f, time: 5f),
+                    lavaReleaseTime = 5f,
                     m_light = new Color24(240, 38, 38),
                     m_fireProof = true,
-
                 }
             ),
             new CustomItem(name: "wallCompositeReinforced",
