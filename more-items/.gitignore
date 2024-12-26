@@ -2,6 +2,8 @@
 
 !.gitignore
 !Plugin.cs
+!Items.cs
+!Patches.cs
 !more-items.csproj
 !ModResources.resx
 !ModResources.Designer.cs
