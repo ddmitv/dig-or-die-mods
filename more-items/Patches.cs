@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using System;
 using UnityEngine;
+using System.Diagnostics;
 
 namespace more_items;
 
@@ -30,9 +31,8 @@ public class Patches {
         }
 
         if (path == $"Textures/{CustomCTile.texturePath}") {
-            var particlePlasmaCloud = (Sprite)AccessTools.Method(typeof(Sprite), "MemberwiseClone").Invoke(GBullets.flamethrower.m_sprite.Sprite, []);
+            var particlePlasmaCloud = Utils.MakeMemberwiseClone(GBullets.flamethrower.m_sprite.Sprite);
             particlePlasmaCloud.name = "particlePlasmaCloud";
-
             __result = [
                 CreateSprite("meltdownSnipe", rect: new Rect(0, 128, 255, 119)),
                 // CreateSprite("particlePlasmaCloud", rect: new Rect(0, 247, 256, 256))
@@ -128,7 +128,6 @@ public class Patches {
                 float completionPercentage = releaseTime / (item.explosionTime - item.lavaReleaseTime);
 
                 Utils.AddLava(ref current_cell,
-                    // 1/2f * dt * item.lavaQuantity * (Mathf.Pow(3f, releaseTime + dt) + Mathf.Pow(3f, releaseTime))
                     item.lavaQuantity * Mathf.Pow(3f, releaseTime)
                 );
                 Console.WriteLine($"a: {item.lavaQuantity}, time: {releaseTime}, +: {item.lavaQuantity * Mathf.Pow(3f, releaseTime)}, lava: {current_cell.m_water}");

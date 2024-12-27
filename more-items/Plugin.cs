@@ -120,6 +120,9 @@ public static class Utils {
         cell.m_water += lavaQuantity;
         cell.SetFlag(CCell.Flag_IsLava, true);
     }
+    public static T MakeMemberwiseClone<T>(T obj) where T : class {
+        return (T)AccessTools.Method(typeof(T), "MemberwiseClone").Invoke(obj, []);
+    }
 }
 
 public class CItem_Collector : CItem_Defense {
@@ -172,7 +175,8 @@ public class MoreItemsPlugin : BaseUnityPlugin {
             CustomCTile.texture.wrapMode = TextureWrapMode.Clamp;
 
             Harmony.CreateAndPatchAll(typeof(Patches));
+
+            Items.Init();
         });
-        Items.Init();
     }
 }
