@@ -167,16 +167,14 @@ public class CustomCBulletDesc : CBulletDesc {
 
 [BepInPlugin("more-items", "More Items", "0.0.0")]
 public class MoreItemsPlugin : BaseUnityPlugin {
-    private void Awake() {
-        ThreadingHelper.Instance.StartSyncInvoke(() => {
-            CustomCTile.texture = new Texture2D(1, 1, TextureFormat.ARGB32, false);
-            CustomCTile.texture.LoadImage(ModResources.Textures);
-            CustomCTile.texture.filterMode = FilterMode.Trilinear;
-            CustomCTile.texture.wrapMode = TextureWrapMode.Clamp;
+    private void Start() {
+        CustomCTile.texture = new Texture2D(1, 1, TextureFormat.ARGB32, false);
+        CustomCTile.texture.LoadImage(ModResources.Textures);
+        CustomCTile.texture.filterMode = FilterMode.Trilinear;
+        CustomCTile.texture.wrapMode = TextureWrapMode.Clamp;
 
-            Harmony.CreateAndPatchAll(typeof(Patches));
+        Harmony.CreateAndPatchAll(typeof(Patches));
 
-            Items.Init();
-        });
+        Items.Init();
     }
 }
