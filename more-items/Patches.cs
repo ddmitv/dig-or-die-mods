@@ -31,12 +31,9 @@ public class Patches {
         }
 
         if (path == $"Textures/{CustomCTile.texturePath}") {
-            var particlePlasmaCloud = Utils.MakeMemberwiseClone(GBullets.flamethrower.m_sprite.Sprite);
-            particlePlasmaCloud.name = "particlePlasmaCloud";
             __result = [
                 CreateSprite("meltdownSnipe", rect: new Rect(0, 128, 255, 119)),
-                // CreateSprite("particlePlasmaCloud", rect: new Rect(0, 247, 256, 256))
-                particlePlasmaCloud
+                CreateSprite("particlesSnipTurretMK2", rect: new Rect(0, 128 + 119, 209, 98)),
             ];
             return false;
         }

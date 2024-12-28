@@ -39,7 +39,7 @@ $textures = @(
 )
 $sprites = @(
     "$PSScriptRoot/textures/meltdownSnipe.png",
-    "$PSScriptRoot/textures/particlePlasmaCloud.png"
+    "$PSScriptRoot/textures/particlesSnipTurretMK2.png"
 )
 
 magick -background none $($textures.foreach({"$PSScriptRoot/textures/$_"})) +append $sprites -append "$PSScriptRoot/Resources/textures"

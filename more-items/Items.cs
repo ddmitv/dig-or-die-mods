@@ -102,7 +102,11 @@ public class Items {
                         nbAttacks: 1,
                         cooldown: 0.5f,
                         knockbackOwn: 0f, knockbackTarget: 3f,
-                        projDesc: GBullets.particlesSnipTurret,
+                        projDesc: new CBulletDesc(
+                            CustomCTile.texturePath, "particlesSnipTurretMK2",
+                            radius: 0.45f, dispersionAngleRad: 0f,
+                            speedStart: 40f, speedEnd: 30f, light: 0xE10AF5
+                        ),
                         sound: "particleTurret"
                     ),
                     tileUnit: new CustomCTile(13, 0)
@@ -315,29 +319,29 @@ public class Items {
                     m_electricValue = 15
                 }
             ),
-            new CustomItem(name: "gunPlasmaThrower",
-                item: new CItem_Weapon(tile: new CustomCTile(35, 0), tileIcon: new CustomCTile(36, 0),
-                    heatingPerShot: 0f, isAuto: true,
-                    attackDesc: new CAttackDesc(
-                        range: 16f,
-                        damage: 20,
-                        nbAttacks: 1,
-                        cooldown: 0.1f,
-                        knockbackOwn: 0f,
-                        knockbackTarget: 1f,
-                        projDesc: new CustomCBulletDesc(
-                            CustomCTile.texturePath, "particlePlasmaCloud",
-                            radius: 0.5f, dispersionAngleRad: 0.1f,
-                            speedStart: 25f, speedEnd: 15f, light: 0x770BDB
-                        ) {
-                            m_goThroughEnnemies = true,
-                            m_pierceArmor = true,
-                            m_inflame = true,
-                        },
-                        sound: null
-                    )
-                )
-            )
+            // new CustomItem(name: "gunPlasmaThrower",
+            //     item: new CItem_Weapon(tile: new CustomCTile(35, 0), tileIcon: new CustomCTile(36, 0),
+            //         heatingPerShot: 0f, isAuto: true,
+            //         attackDesc: new CAttackDesc(
+            //             range: 16f,
+            //             damage: 20,
+            //             nbAttacks: 1,
+            //             cooldown: 0.1f,
+            //             knockbackOwn: 0f,
+            //             knockbackTarget: 1f,
+            //             projDesc: new CustomCBulletDesc(
+            //                 CustomCTile.texturePath, "particlePlasmaCloud",
+            //                 radius: 0.5f, dispersionAngleRad: 0.1f,
+            //                 speedStart: 25f, speedEnd: 15f, light: 0x770BDB
+            //             ) {
+            //                 m_goThroughEnnemies = true,
+            //                 m_pierceArmor = true,
+            //                 m_inflame = true,
+            //             },
+            //             sound: null
+            //         )
+            //     )
+            // )
         ];
     }
 }

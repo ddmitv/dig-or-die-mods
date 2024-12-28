@@ -223,7 +223,7 @@ recipesUltimate = CreateRecipesGroup( "ULTIMATE", { "autoBuilderUltimate"}
 	, CreateRecipe( "gunNukeLauncher", 1 )
 	, CreateRecipe( "generatorSunMK2", 1 )
 	, CreateRecipe( "RTG", 1 )
-	, CreateRecipe( "gunPlasmaThrower", 1 )
+	-- , CreateRecipe( "gunPlasmaThrower", 1 )
 );
 
 list_recipesgroups = { recipesMK1, recipesMK2, recipesMK3, recipesMK4, recipesMK5, recipesUltimate }
