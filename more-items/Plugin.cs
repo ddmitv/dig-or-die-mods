@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace more_items;
@@ -74,9 +75,9 @@ public class CustomItem {
         return itemsPluginData;
     }
 
-    public void AddToItems(List<CItem> items) {
-        item.m_id = (ushort)items.Count;
-        items.Add(item);
+    public void AddToGItems() {
+        item.m_id = (ushort)GItems.Items.Count;
+        GItems.Items.Add(item);
 
         item.Init();
 
@@ -89,7 +90,7 @@ public class CustomItem {
         itemsPluginData_field.SetValue(SItems_inst, itemsPluginData);
     }
 
-    private CItem item;
+    public CItem item{ get; private set; }
 }
 
 public static class Utils {
@@ -164,6 +165,10 @@ public class CustomCBulletDesc : CBulletDesc {
     public int explosionBasaltBgRadius = 0;
     public bool emitLavaBurstParticles = true;
 }
+public class CItem_IndestructibleMineral : CItem_Mineral {
+    public CItem_IndestructibleMineral(CTile tile, CTile tileIcon, ushort hpMax, uint mainColor, CSurface surface, bool isReplacable = false)
+        : base(tile, tileIcon, hpMax, mainColor, surface, isReplacable) {}
+}
 
 [BepInPlugin("more-items", "More Items", "0.0.0")]
 public class MoreItemsPlugin : BaseUnityPlugin {
@@ -175,6 +180,6 @@ public class MoreItemsPlugin : BaseUnityPlugin {
 
         Harmony.CreateAndPatchAll(typeof(Patches));
 
-        Items.Init();
+        RuntimeHelpers.RunClassConstructor(typeof(CustomItems).TypeHandle);
     }
 }

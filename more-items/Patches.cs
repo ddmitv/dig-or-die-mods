@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using System;
 using UnityEngine;
-using System.Diagnostics;
 
 namespace more_items;
 
@@ -43,8 +42,9 @@ public class Patches {
     [HarmonyPatch(typeof(SItems), "OnInit")]
     [HarmonyPostfix]
     private static void SItems_OnInit() {
-        foreach (var item in Items.customItems) {
-            item.AddToItems(GItems.Items);
+        foreach (var itemField in typeof(CustomItems).GetFields()) {
+            var item = (CustomItem)itemField.GetValue(null);
+            item.AddToGItems();
         }
         SLoc.ReprocessTexts();
     }
@@ -150,6 +150,8 @@ public class Patches {
 
             Vector2 explosionPos = self.PosCell + int2.up * 0.4f;
             Utils.SSingleton_Inst<SWorld>().DestroyCell(self.PosCell, 0, false, null);
+            Utils.SSingleton_Inst<SWorld>().DestroyCell(self.PosCell - int2.up, 0, false, null);
+
             SUnits.DoDamageAOE(explosionPos, attack.m_range, attack.m_damage);
             SWorld.DoDamageAOE(explosionPos, (int)attack.m_range, attack.m_damage);
             SParticles.common_Explosion.EmitNb(explosionPos, 100, false, 10f);
@@ -329,7 +331,7 @@ public class Patches {
 
             Utils.SSingleton_Inst<SWorld>().SetContent(
                 pos: __instance.PosCell - int2.up,
-                item: GItems.lavaOld
+                item: (CItemCell)CustomItems.indestructibleLavaOld.item
             );
             CItem_Explosive.lastTimeMap[__instance.Id] = 0f;
         }
@@ -378,12 +380,22 @@ public class Patches {
     [HarmonyPrefix]
     private static bool SWorld_DoDamageToCell(ref int2 cellPos, ref bool __result) {
         var content = SWorld.Grid[cellPos.x, cellPos.y].GetContent();
-        if (content is CItem_Explosive citem && citem.indestructible) {
+        if ((content is CItem_Explosive citem && citem.indestructible) || content is CItem_IndestructibleMineral) {
             __result = false;
             return false;
         }
         return true;
     }
+    [HarmonyPatch(typeof(CUnit), "Damage_Local")]
+    [HarmonyPrefix]
+    private static bool CUnit_Damage_Local(CUnit __instance) {
+        var content = SWorld.Grid[__instance.PosCell.x, __instance.PosCell.y].GetContent();
+        if (content is CItem_Explosive citem && citem.indestructible) {
+            return false;
+        }
+        return true;
+    }
+
     [HarmonyPatch(typeof(CInventory), "InventorySorting")]
     [HarmonyPrefix]
     private static bool CInventory_InventorySorting(CStack a, CStack b, ref int __result) {
