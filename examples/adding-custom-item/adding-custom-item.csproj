@@ -28,27 +28,27 @@
   
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\dependency-libs\Assembly-CSharp.dll</HintPath>
+      <HintPath>..\..\dig-or-die-libs\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Assembly-CSharp-firstpass">
-      <HintPath>..\..\dependency-libs\Assembly-CSharp-firstpass.dll</HintPath>
+      <HintPath>..\..\dig-or-die-libs\Assembly-CSharp-firstpass.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>..\..\dependency-libs\UnityEngine.dll</HintPath>
+      <HintPath>..\..\dig-or-die-libs\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.Analytics">
-      <HintPath>..\..\dependency-libs\UnityEngine.Analytics.dll</HintPath>
+      <HintPath>..\..\dig-or-die-libs\UnityEngine.Analytics.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.Networking">
-      <HintPath>..\..\dependency-libs\UnityEngine.Networking.dll</HintPath>
+      <HintPath>..\..\dig-or-die-libs\UnityEngine.Networking.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.UI">
-      <HintPath>..\..\dependency-libs\UnityEngine.UI.dll</HintPath>
+      <HintPath>..\..\dig-or-die-libs\UnityEngine.UI.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

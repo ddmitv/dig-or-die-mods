@@ -3,7 +3,7 @@
 !.gitignore
 !.gitattributes
 !.editorconfig
-!dependency-libs/
+!dig-or-die-libs/
 !more-items/
 !friendly-fire/
 !ultra-hardcore/
