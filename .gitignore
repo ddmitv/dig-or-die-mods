@@ -3,7 +3,10 @@
 !.gitignore
 !.gitattributes
 !.editorconfig
-!dig-or-die-libs/
+!DevEnv.targets.template
+!Directory.Build.props
+!NuGet.Config
+
 !more-items/
 !friendly-fire/
 !ultra-hardcore/

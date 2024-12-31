@@ -38,8 +38,9 @@ $textures = @(
     "gunPlasmaThrower_icon.png"
 )
 $sprites = @(
-    "$PSScriptRoot/textures/meltdownSnipe.png",
+    "$PSScriptRoot/textures/meltdownSnipe.png"
     "$PSScriptRoot/textures/particlesSnipTurretMK2.png"
 )
 
+[Void][System.IO.Directory]::CreateDirectory("$PSScriptRoot/Resources")
 magick -background none $($textures.foreach({"$PSScriptRoot/textures/$_"})) +append $sprites -append "$PSScriptRoot/Resources/textures"

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <DevEnvLoc>$(MSBuildThisFileDirectory)DevEnv.targets</DevEnvLoc>
+  </PropertyGroup>
+  <!-- Defines $(GameDir) -->
+  <Import Project="$(DevEnvLoc)" Condition="Exists('$(DevEnvLoc)')"/>
+  <PropertyGroup>
+    <GameDir Condition="!Exists('$(DevEnvLoc)')">$(MSBuildProgramFiles32)\Steam\steamapps\common\Dig or Die\</GameDir>
+    <GameDir>$([MSBuild]::EnsureTrailingSlash('$(GameDir)'))</GameDir>
+    
+    <GameManaged>$(GameDir)DigOrDie_Data\Managed\</GameManaged>
+    
+    <TargetFramework>net35</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+  
+  <Target Name="InstallPlugin" AfterTargets="Build">
+    <Copy
+      SourceFiles="$(TargetDir)$(AssemblyName).dll"
+      DestinationFolder="$(GameDir)BepInEx\plugins" />
+      
+    <ItemGroup>
+        <DataFolder Include="$(ProjectDir)DigOrDie_Data\**\*.*"/>
+    </ItemGroup>
+    <Copy Condition="Exists('$(ProjectDir)DigOrDie_Data')"
+      SourceFiles="@(DataFolder)"
+      DestinationFolder="$(GameDir)DigOrDie_Data\%(RecursiveDir)"
+      SkipUnchangedFiles="true" />
+  </Target>
+</Project>
