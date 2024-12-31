@@ -4,6 +4,7 @@ using HarmonyLib;
 using Mono.Cecil;
 using System.Collections.Generic;
 using System.Reflection.Emit;
+using UnityEngine;
 
 namespace ultra_hardcore;
 
@@ -29,31 +30,76 @@ public static class PermanentMistPatch {
     [HarmonyPatch(typeof(CBackground), nameof(CBackground.DrawBackgrounds))]
     [HarmonyPatch(typeof(SDrawWorld), "OnUpdate")]
     [HarmonyPatch(typeof(SWorld), "ProcessLighting_DynamicUnits")]
-    [HarmonyPatch(typeof(SWorld), "UpdateLightSunValue")]
     private static IEnumerable<CodeInstruction> AlwaysMistTranspiler(IEnumerable<CodeInstruction> instructions) {
         var codeMatcher = new CodeMatcher(instructions);
+
         codeMatcher.Start()
             .MatchForward(useEnd: true,
                 new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(SEnvironment), nameof(SEnvironment.GetEnvironmentCurrent))),
                 new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CEnvironment), nameof(CEnvironment.m_mist))),
                 new CodeMatch(OpCodes.Brfalse))
-            .ThrowIfInvalid("Match failed 1")
+            .ThrowIfInvalid("(1)")
             .SetAndAdvance(OpCodes.Pop, null)
             .MatchForward(useEnd: false,
                 new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(SEnvironment), nameof(SEnvironment.GetEnvironmentCurrent))),
                 new CodeMatch(OpCodes.Ldc_R4, 5f),
                 new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(CEnvironment), nameof(CEnvironment.GetBeginEndSmoothingValue))))
-            .ThrowIfInvalid("Match failed 2")
+            .ThrowIfInvalid("(2)")
             .SetAndAdvance(OpCodes.Ldc_R4, 1f)
             .RemoveInstructions(2);
+
         return codeMatcher.Instructions();
     }
 }
-public static class PermanentDarkPatch {
+public static class PermanentDarknessPatch {
+    // [HarmonyTranspiler]
+    // [HarmonyPatch(typeof(CBackground), nameof(CBackground.DrawBackgroundParralax))]
+    // [HarmonyPatch(typeof(CBackground), nameof(CBackground.DrawBackgrounds))]
+    // [HarmonyPatch(typeof(CParticleGroup), nameof(CParticleGroup.EmitNb))]
+    // [HarmonyPatch(typeof(SWorldDll), "ProcessLightingSquare")]
+    // private static IEnumerable<CodeInstruction> PermanentDarknessTranspiler(IEnumerable<CodeInstruction> instructions) {
+    //     var codeMatcher = new CodeMatcher(instructions);
+    // 
+    //     codeMatcher.Start()
+    //         .MatchForward(useEnd: false,
+    //             new CodeMatch(OpCodes.Ldsfld, AccessTools.Field(typeof(G), nameof(G.m_sunLight))))
+    //         .ThrowIfInvalid("(1)")
+    //         .Set(OpCodes.Ldc_R4, 0f);
+    // 
+    //     return codeMatcher.Instructions();
+    // }
     [HarmonyPostfix]
     [HarmonyPatch(typeof(SWorld), nameof(SWorld.UpdateLightSunValue))]
     private static void SWorld_UpdateLightSunValue() {
         G.m_sunLight = 0f;
+    }
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(CModeSolo), nameof(CModeSolo.CreateInitialPlayerItems))]
+    private static IEnumerable<CodeInstruction> CModeSolo_CreateInitialPlayerItems(IEnumerable<CodeInstruction> instructions) {
+        var codeMatcher = new CodeMatcher(instructions);
+
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new CodeMatch(OpCodes.Ldarg_1),
+                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CPlayer), nameof(CPlayer.m_inventory))),
+                new CodeMatch(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.gunRifle))))
+            .ThrowIfInvalid("(1)")
+            .Insert(
+                new CodeInstruction(OpCodes.Ldarg_1),
+                Transpilers.EmitDelegate((CPlayer player) => {
+                    player.m_inventory.AddToInventory(GItems.lightSun);
+                }));
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new CodeMatch(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.gunRifle))),
+                new CodeMatch(OpCodes.Ldc_R4, 1f))
+            .ThrowIfInvalid("(2)")
+            .Insert(
+                Transpilers.EmitDelegate(() => {
+                    SPickups.CreatePickup(GItems.lightSun, nb: 1f, pos: G.m_player.PosCenter + 6.5f * Vector2.right, withSpeed: false);
+                }));
+
+        return codeMatcher.Instructions();
     }
 }
 public static class NoRainPatch {
@@ -127,7 +173,7 @@ public class UltraHardcorePlugin : BaseUnityPlugin
         );
         var configPermanentDarkness = Config.Bind<bool>(
             section: "UltraHardcore", key: "PermanentDarkness", defaultValue: false,
-            description: "Makes the night permanent, but without monsters"
+            description: "Makes the night permanent, but without monsters. Adds Sun Light to the initial item list"
         );
         var configNoRain = Config.Bind<bool>(
             section: "UltraHardcore", key: "NoRain", defaultValue: false,
@@ -149,7 +195,7 @@ public class UltraHardcorePlugin : BaseUnityPlugin
             harmony.PatchAll(typeof(PermanentMistPatch));
         }
         if (configPermanentDarkness.Value) {
-            harmony.PatchAll(typeof(PermanentDarkPatch));
+            harmony.PatchAll(typeof(PermanentDarknessPatch));
         }
         if (configNoRain.Value) {
             harmony.PatchAll(typeof(NoRainPatch));
