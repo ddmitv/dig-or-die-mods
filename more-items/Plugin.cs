@@ -5,9 +5,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using UnityEngine;
-using ModUtils;
-
-namespace more_items;
 
 public class CustomCTile : CTile {
     public static string texturePath = "mod-more-items";

@@ -4,7 +4,6 @@
     <AssemblyName>more_items</AssemblyName>
     <Product>More Items</Product>
     <Version>1.0.0</Version>
-    <RootNamespace>more_items</RootNamespace>
   </PropertyGroup>
   
   <Import Project="../utils-lib/utils-lib.targets" />

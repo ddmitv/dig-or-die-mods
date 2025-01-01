@@ -3,7 +3,6 @@
     <AssemblyName>ultra_hardcore</AssemblyName>
     <Product>Ultra Hardcore</Product>
     <Version>1.0.0</Version>
-    <RootNamespace>ultra_hardcore</RootNamespace>
   </PropertyGroup>
 
   <Import Project="../utils-lib/utils-lib.targets" />

@@ -1,7 +1,5 @@
 ﻿using UnityEngine;
 
-namespace more_items;
-
 public static class CustomBullets {
     public static CBulletDesc meltdownSnipe = new CustomCBulletDesc(
         CustomCTile.texturePath, "meltdownSnipe",

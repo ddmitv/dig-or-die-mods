@@ -6,8 +6,6 @@ using System.Reflection.Emit;
 using UnityEngine;
 using ModUtils;
 
-namespace ultra_hardcore;
-
 public static class HpMaxPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CUnitPlayer.CDesc), nameof(CUnitPlayer.CDesc.GetHpMax))]

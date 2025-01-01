@@ -6,8 +6,6 @@ using System;
 using UnityEngine;
 using ModUtils;
 
-namespace more_items;
-
 public class Patches {
     [HarmonyPatch(typeof(UnityEngine.Resources), nameof(UnityEngine.Resources.Load), [typeof(string)])]
     [HarmonyPrefix]

@@ -4,6 +4,5 @@
     <AssemblyName>adding_custom_item</AssemblyName>
     <Product>Adding Custom Item</Product>
     <Version>1.0.0</Version>
-    <RootNamespace>adding_custom_item</RootNamespace>
   </PropertyGroup>
 </Project>

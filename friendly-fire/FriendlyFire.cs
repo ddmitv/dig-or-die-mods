@@ -6,8 +6,6 @@ using System.Reflection.Emit;
 using UnityEngine;
 using ModUtils;
 
-namespace friendly_fire;
-
 [BepInPlugin("friendly-fire", "Friendly Fire", "1.0.0")]
 public class FriendlyFire : BaseUnityPlugin
 {

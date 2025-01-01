@@ -4,7 +4,6 @@
     <AssemblyName>friendly_fire</AssemblyName>
     <Product>Friendly Fire</Product>
     <Version>1.0.0</Version>
-    <RootNamespace>friendly_fire</RootNamespace>
   </PropertyGroup>
 
   <Import Project="../utils-lib/utils-lib.targets"/>
