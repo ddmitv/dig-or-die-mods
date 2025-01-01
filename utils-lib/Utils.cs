@@ -1,6 +1,8 @@
 using HarmonyLib;
 using System;
+using System.IO;
 using System.Reflection;
+using UnityEngine;
 
 namespace ModUtils;
 
@@ -30,5 +32,15 @@ public static class Utils {
     }
     public static T MakeMemberwiseClone<T>(T obj) where T : class {
         return (T)AccessTools.Method(typeof(T), "MemberwiseClone").Invoke(obj, []);
+    }
+    public static byte[] ReadAllBytes(Stream stream) {
+        byte[] buffer = new byte[16 * 1024];
+        using MemoryStream ms = new MemoryStream();
+
+        int readNum;
+        while ((readNum = stream.Read(buffer, offset: 0, count: buffer.Length)) > 0) {
+            ms.Write(buffer, offset: 0, count: readNum);
+        }
+        return ms.ToArray();
     }
 }

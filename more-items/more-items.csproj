@@ -16,16 +16,6 @@
   </Target>
   
   <ItemGroup>
-    <Compile Update="ModResources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ModResources.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Update="ModResources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>ModResources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
+    <EmbeddedResource Include="textures/combined_textures.png" />
   </ItemGroup>
 </Project>

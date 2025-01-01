@@ -1,7 +1,9 @@
 ﻿using BepInEx;
 using HarmonyLib;
+using ModUtils;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using UnityEngine;
@@ -120,8 +122,10 @@ public class CItem_IndestructibleMineral : CItem_Mineral {
 [BepInPlugin("more-items", "More Items", "0.0.0")]
 public class MoreItemsPlugin : BaseUnityPlugin {
     private void Start() {
+        using var textureStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("more-items.textures.combined_textures.png");
+
         CustomCTile.texture = new Texture2D(1, 1, TextureFormat.ARGB32, false);
-        CustomCTile.texture.LoadImage(ModResources.Textures);
+        CustomCTile.texture.LoadImage(Utils.ReadAllBytes(textureStream));
         CustomCTile.texture.filterMode = FilterMode.Trilinear;
         CustomCTile.texture.wrapMode = TextureWrapMode.Clamp;
 
