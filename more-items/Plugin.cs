@@ -130,6 +130,6 @@ public class MoreItemsPlugin : BaseUnityPlugin {
 
         Harmony.CreateAndPatchAll(typeof(Patches));
 
-        RuntimeHelpers.RunClassConstructor(typeof(CustomItems).TypeHandle);
+        Utils.RunStaticConstructor(typeof(CustomItems));
     }
 }

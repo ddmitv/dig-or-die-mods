@@ -43,4 +43,7 @@ public static class Utils {
         }
         return ms.ToArray();
     }
+    public static void RunStaticConstructor(Type type) {
+        System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(type.TypeHandle);
+    }
 }
