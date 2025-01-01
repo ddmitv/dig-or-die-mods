@@ -11,8 +11,8 @@ public static class HpMaxPatch {
     [HarmonyPatch(typeof(CUnitPlayer.CDesc), nameof(CUnitPlayer.CDesc.GetHpMax))]
     private static IEnumerable<CodeInstruction> CUnitPlayer_CDesc_GetHpMax(IEnumerable<CodeInstruction> instructions) {
         return [
-            new CodeInstruction(OpCodes.Ldc_R4, UltraHardcorePlugin.configPlayerHpMax.Value), 
-            new CodeInstruction(OpCodes.Ret)
+            new(OpCodes.Ldc_R4, UltraHardcorePlugin.configPlayerHpMax.Value), 
+            new(OpCodes.Ret)
         ];
     }
 }
@@ -26,15 +26,15 @@ public static class PermanentMistPatch {
 
         codeMatcher.Start()
             .MatchForward(useEnd: true,
-                new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(SEnvironment), nameof(SEnvironment.GetEnvironmentCurrent))),
-                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CEnvironment), nameof(CEnvironment.m_mist))),
-                new CodeMatch(OpCodes.Brfalse))
+                new(OpCodes.Call, AccessTools.Method(typeof(SEnvironment), nameof(SEnvironment.GetEnvironmentCurrent))),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CEnvironment), nameof(CEnvironment.m_mist))),
+                new(OpCodes.Brfalse))
             .ThrowIfInvalid("(1)")
             .SetAndAdvance(OpCodes.Pop, null)
             .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(SEnvironment), nameof(SEnvironment.GetEnvironmentCurrent))),
-                new CodeMatch(OpCodes.Ldc_R4, 5f),
-                new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(CEnvironment), nameof(CEnvironment.GetBeginEndSmoothingValue))))
+                new(OpCodes.Call, AccessTools.Method(typeof(SEnvironment), nameof(SEnvironment.GetEnvironmentCurrent))),
+                new(OpCodes.Ldc_R4, 5f),
+                new(OpCodes.Callvirt, AccessTools.Method(typeof(CEnvironment), nameof(CEnvironment.GetBeginEndSmoothingValue))))
             .ThrowIfInvalid("(2)")
             .SetAndAdvance(OpCodes.Ldc_R4, 1f)
             .RemoveInstructions(2);
@@ -71,9 +71,9 @@ public static class PermanentDarknessPatch {
 
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Ldarg_1),
-                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CPlayer), nameof(CPlayer.m_inventory))),
-                new CodeMatch(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.gunRifle))))
+                new(OpCodes.Ldarg_1),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CPlayer), nameof(CPlayer.m_inventory))),
+                new(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.gunRifle))))
             .ThrowIfInvalid("(1)")
             .Insert(
                 new CodeInstruction(OpCodes.Ldarg_1),
@@ -82,8 +82,8 @@ public static class PermanentDarknessPatch {
                 }));
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.gunRifle))),
-                new CodeMatch(OpCodes.Ldc_R4, 1f))
+                new(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.gunRifle))),
+                new(OpCodes.Ldc_R4, 1f))
             .ThrowIfInvalid("(2)")
             .Insert(
                 Transpilers.EmitDelegate(() => {
@@ -126,9 +126,9 @@ public static class PermanentAcidWaterPatch {
         var codeMatcher = new CodeMatcher(instructions);
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(SEnvironment), nameof(SEnvironment.GetEnvironmentCurrent))),
-                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CEnvironment), nameof(CEnvironment.m_acidWater))),
-                new CodeMatch(OpCodes.Brfalse))
+                new(OpCodes.Call, AccessTools.Method(typeof(SEnvironment), nameof(SEnvironment.GetEnvironmentCurrent))),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CEnvironment), nameof(CEnvironment.m_acidWater))),
+                new(OpCodes.Brfalse))
             .ThrowIfInvalid("Match failed")
             .CollapseInstructions(3);
         return codeMatcher.Instructions();
@@ -137,8 +137,8 @@ public static class PermanentAcidWaterPatch {
     [HarmonyPatch(typeof(CEnvironment), nameof(CEnvironment.GetWaterAcidRatio))]
     private static IEnumerable<CodeInstruction> CEnvironment_GetWaterAcidRatio(IEnumerable<CodeInstruction> instructions) {
         return [
-            new CodeInstruction(OpCodes.Ldc_R4, 1f),
-            new CodeInstruction(OpCodes.Ret)
+            new(OpCodes.Ldc_R4, 1f),
+            new(OpCodes.Ret)
         ];
     }
 }
@@ -150,9 +150,9 @@ public static class NoRegenerationPatch {
 
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Ldarg_0),
-                new CodeMatch(OpCodes.Ldc_R4, 0.005f),
-                new CodeMatch(OpCodes.Stfld, AccessTools.Field(typeof(CUnit.CDesc), nameof(CUnit.CDesc.m_regenSpeed))))
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldc_R4, 0.005f),
+                new(OpCodes.Stfld, AccessTools.Field(typeof(CUnit.CDesc), nameof(CUnit.CDesc.m_regenSpeed))))
             .ThrowIfInvalid("(1)")
             .Advance(1)
             .Set(OpCodes.Ldc_R4, 0f);

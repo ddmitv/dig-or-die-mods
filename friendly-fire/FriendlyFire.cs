@@ -11,15 +11,15 @@ public class FriendlyFire : BaseUnityPlugin
 {
     private void Start()
     {
-        ConfigEntry<bool> configDamageAOE = Config.Bind<bool>(
+        var configDamageAOE = Config.Bind<bool>(
             section: "FriendlyFire", key: "DamageAOE", defaultValue: true,
             description: "Enables damage for players from explosions/lightning"
         );
-        ConfigEntry<bool> configHideNames = Config.Bind<bool>(
+        var configHideNames = Config.Bind<bool>(
             section: "FriendlyFire", key: "HideNames", defaultValue: false,
             description: "Hides other player names and chat messages above their heads"
         );
-        ConfigEntry<bool> configHideMinimapPlayers = Config.Bind<bool>(
+        var configHideMinimapPlayers = Config.Bind<bool>(
             section: "FriendlyFire", key: "HideMinimapPlayers", defaultValue: false,
             description: "Hides player icons from minimap"
         );
@@ -45,33 +45,33 @@ public class FriendlyFire : BaseUnityPlugin
 
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Call, AccessTools.PropertyGetter(typeof(Vector2), nameof(Vector2.zero))),
-                new CodeMatch(OpCodes.Stloc_S))
+                new(OpCodes.Call, AccessTools.PropertyGetter(typeof(Vector2), nameof(Vector2.zero))),
+                new(OpCodes.Stloc_S))
             .ThrowIfInvalid("friendly-fire transpiler: Failed to find `call Vector2.zero`, `stloc.s 7`")
             .CreateLabel(out var successLabel);
 
         codeMatcher.Start()
             .MatchForward(useEnd: true,
-                new CodeMatch(OpCodes.Ldarg_0),
-                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), "m_unitsHit")),
-                new CodeMatch(OpCodes.Ldloc_2),
-                new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(List<CUnit>), nameof(List<CUnit>.Contains))),
-                new CodeMatch(OpCodes.Brtrue))
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), "m_unitsHit")),
+                new(OpCodes.Ldloc_2),
+                new(OpCodes.Callvirt, AccessTools.Method(typeof(List<CUnit>), nameof(List<CUnit>.Contains))),
+                new(OpCodes.Brtrue))
             .ThrowIfInvalid("friendly-fire transpiler (1)")
             .Advance(1)
             .Inject(OpCodes.Ldarg_0)
             .CreateLabel(out var failLabel)
             .Insert(
-                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
-                new CodeInstruction(OpCodes.Isinst, typeof(CUnitPlayer)),
-                new CodeInstruction(OpCodes.Brfalse, failLabel), // `m_attacker` is not CUnitPlayer
-                new CodeInstruction(OpCodes.Ldloc_2),
-                new CodeInstruction(OpCodes.Isinst, typeof(CUnitPlayer)),
-                new CodeInstruction(OpCodes.Brfalse, failLabel), // `cunit2` is CUnitPlayer
-                new CodeInstruction(OpCodes.Ldarg_0),
-                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
-                new CodeInstruction(OpCodes.Ldloc_2),
-                new CodeInstruction(OpCodes.Bne_Un, successLabel)); // `m_attacker` != `cunit2`
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
+                new(OpCodes.Isinst, typeof(CUnitPlayer)),
+                new(OpCodes.Brfalse, failLabel), // `m_attacker` is not CUnitPlayer
+                new(OpCodes.Ldloc_2),
+                new(OpCodes.Isinst, typeof(CUnitPlayer)),
+                new(OpCodes.Brfalse, failLabel), // `cunit2` is CUnitPlayer
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
+                new(OpCodes.Ldloc_2),
+                new(OpCodes.Bne_Un, successLabel)); // `m_attacker` != `cunit2`
 
         return codeMatcher.Instructions();
     }
@@ -143,22 +143,22 @@ public static class SUnits_DoDamageAOE_Patch {
 
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Ldarg_S, (byte)8),
-                new CodeMatch(OpCodes.Ldc_R4, -3.4028235E+38f),
-                new CodeMatch(OpCodes.Beq))
+                new(OpCodes.Ldarg_S, (byte)8),
+                new(OpCodes.Ldc_R4, -3.4028235E+38f),
+                new(OpCodes.Beq))
             .ThrowIfInvalid("friendly-fire transpiler (1)")
             .CreateLabel(out var successLabel);
 
         codeMatcher.Start()
             .MatchForward(useEnd: true,
-                new CodeMatch(OpCodes.Ldarg_S, (byte)6),
-                new CodeMatch(OpCodes.Brfalse))
+                new(OpCodes.Ldarg_S, (byte)6),
+                new(OpCodes.Brfalse))
             .ThrowIfInvalid("friendly-fire transpiler (2)")
             .Advance(1)
             .Inject(OpCodes.Ldloc_2)
             .Insert(
-                new CodeInstruction(OpCodes.Isinst, typeof(CUnitPlayer)),
-                new CodeInstruction(OpCodes.Brtrue, successLabel));
+                new(OpCodes.Isinst, typeof(CUnitPlayer)),
+                new(OpCodes.Brtrue, successLabel));
 
         return codeMatcher.Instructions();
     }
@@ -173,20 +173,20 @@ public static class HidePlayerNames_Patch {
 
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Ldarg_0),
-                new CodeMatch(OpCodes.Ldc_I4_0),
-                new CodeMatch(OpCodes.Call, CMeshText_Get))
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldc_I4_0),
+                new(OpCodes.Call, CMeshText_Get))
             .ThrowIfInvalid("friendly-fire transpiler (1)")
             .SetAndAdvance(OpCodes.Nop, null)
             .RemoveInstructions(28);
         codeMatcher
             .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Ldarg_0),
-                new CodeMatch(OpCodes.Ldc_I4_0),
-                new CodeMatch(OpCodes.Call, CMeshText_Get),
-                new CodeMatch(OpCodes.Ldloc_S),
-                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CPlayer), nameof(CPlayer.m_lastChat))),
-                new CodeMatch(OpCodes.Ldloca_S))
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldc_I4_0),
+                new(OpCodes.Call, CMeshText_Get),
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CPlayer), nameof(CPlayer.m_lastChat))),
+                new(OpCodes.Ldloca_S))
             .ThrowIfInvalid("friendly-fire transpiler (2)")
             .SetAndAdvance(OpCodes.Nop, null)
             .RemoveInstructions(22);
@@ -199,9 +199,9 @@ public static class HideMinimapPlayers_Patch {
     private static void HideMinimapPlayerIcon(CodeMatcher codeMatcher) {
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Ldloc_S),
-                new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.HasUnitPlayer))),
-                new CodeMatch(OpCodes.Brtrue))
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Callvirt, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.HasUnitPlayer))),
+                new(OpCodes.Brtrue))
             .ThrowIfInvalid("(1)");
 
         codeMatcher.Clone()
@@ -212,9 +212,9 @@ public static class HideMinimapPlayers_Patch {
         codeMatcher
             .GetOperand(out LocalBuilder playerVar)
             .Insert(
-                new CodeInstruction(OpCodes.Ldloc_S, playerVar),
-                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.IsMe))),
-                new CodeInstruction(OpCodes.Brfalse, failLabel));
+                new(OpCodes.Ldloc_S, playerVar),
+                new(OpCodes.Call, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.IsMe))),
+                new(OpCodes.Brfalse, failLabel));
     }
     private static void HideLiveViewPixels(CodeMatcher codeMatcher) {
         codeMatcher.Start()
@@ -225,9 +225,9 @@ public static class HideMinimapPlayers_Patch {
             .CreateLabel(out Label skipLabel)
             .Advance(-13)
             .Insert(
-                new CodeInstruction(OpCodes.Ldloc_1),
-                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.IsMe))),
-                new CodeInstruction(OpCodes.Brfalse, skipLabel));
+                new(OpCodes.Ldloc_1),
+                new(OpCodes.Call, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.IsMe))),
+                new(OpCodes.Brfalse, skipLabel));
     }
 
     [HarmonyTranspiler]

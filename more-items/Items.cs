@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 
 public static class CustomBullets {
-    public static CBulletDesc meltdownSnipe = new CustomCBulletDesc(
+    public static CustomCBulletDesc meltdownSnipe = new(
         CustomCTile.texturePath, "meltdownSnipe",
         radius: 0.7f, dispersionAngleRad: 0.1f,
         speedStart: 50f, speedEnd: 30f, light: 0xC0A57u
@@ -17,46 +17,46 @@ public static class CustomBullets {
 }
 
 public static class CustomItems {
-    public static CustomItem flashLightMK3 = new CustomItem(name: "flashLightMK3",
+    public static CustomItem flashLightMK3 = new(name: "flashLightMK3",
         item: new CItem_Device(tile: new CustomCTile(0, 0), tileIcon: new CustomCTile(0, 0),
             groupId: "FlashLight", type: CItem_Device.Type.Passive, customValue: 10f
         )
     );
-    public static CustomItem miniaturizorMK6 = new CustomItem(name: "miniaturizorMK6",
+    public static CustomItem miniaturizorMK6 = new(name: "miniaturizorMK6",
         item: new CItem_Device(tile: new CustomCTile(2, 0), tileIcon: new CustomCTile(1, 0),
             groupId: "Miniaturizor", type: CItem_Device.Type.None, customValue: 999f
         // Above 999 the miniaturizor would break Ancient Basalt (oldLava)
         ) { m_pickupDuration = -1 }
     );
-    public static CustomItem betterPotionHpRegen = new CustomItem(name: "betterPotionHpRegen",
+    public static CustomItem betterPotionHpRegen = new(name: "betterPotionHpRegen",
         item: new CItem_Device(tile: new CustomCTile(3, 0), tileIcon: new CustomCTile(3, 0),
             // "potionHpRegen" has 1.5f customValue
             groupId: "potionHpRegen", type: CItem_Device.Type.Consumable, customValue: 3f
         ) { m_cooldown = 120f, m_duration = 60f }
     );
-    public static CustomItem defenseShieldMK2 = new CustomItem(name: "defenseShieldMK2",
+    public static CustomItem defenseShieldMK2 = new(name: "defenseShieldMK2",
         item: new CItem_Device(tile: new CustomCTile(4, 0), tileIcon: new CustomCTile(4, 0),
             // "defenseShield" has 0.5f customValue
             groupId: "Shield", type: CItem_Device.Type.Passive, customValue: 1f
         )
     );
-    public static CustomItem waterBreatherMK2 = new CustomItem(name: "waterBreatherMK2",
+    public static CustomItem waterBreatherMK2 = new(name: "waterBreatherMK2",
         item: new CItem_Device(tile: new CustomCTile(5, 0), tileIcon: new CustomCTile(5, 0),
             // "waterBreather" has 3f customValue
             groupId: "WaterBreather", type: CItem_Device.Type.Passive, customValue: 7f
         )
     );
-    public static CustomItem jetpackMK2 = new CustomItem(name: "jetpackMK2",
+    public static CustomItem jetpackMK2 = new(name: "jetpackMK2",
         item: new CItem_Device(tile: new CustomCTile(6, 0), tileIcon: new CustomCTile(6, 0),
             groupId: "Jetpack", type: CItem_Device.Type.Passive, customValue: 1f
         )
     );
-    public static CustomItem antiGravityWall = new CustomItem(name: "antiGravityWall",
+    public static CustomItem antiGravityWall = new(name: "antiGravityWall",
         item: new CItem_Wall(tile: new CustomCTile(7, 0), tileIcon: new CustomCTile(7, 0),
             hpMax: 100, mainColor: 12173251U, forceResist: int.MaxValue - 10000, weight: 1000f, type: CItem_Wall.Type.WallBlock
         )
     );
-    public static CustomItem turretReparatorMK3 = new CustomItem(name: "turretReparatorMK3",
+    public static CustomItem turretReparatorMK3 = new(name: "turretReparatorMK3",
         item: new CItem_Defense(tile: new CustomCTile(10, 0), tileIcon: new CustomCTile(9, 0),
             hpMax: 200, mainColor: 8947848U, rangeDetection: 8.5f,
             angleMin: -9999f, angleMax: 9999f,
@@ -76,7 +76,7 @@ public static class CustomItems {
             m_neverUnspawn = true
         }
     );
-    public static CustomItem megaExplosive = new CustomItem(name: "megaExplosive",
+    public static CustomItem megaExplosive = new(name: "megaExplosive",
         item: new CItem_Explosive(tile: new CustomCTile(11, 0), tileIcon: new CustomCTile(11, 0),
             hpMax: 250, mainColor: 8947848U, rangeDetection: 0f, angleMin: 0f, angleMax: 360f,
             attack: new CAttackDesc(
@@ -100,7 +100,7 @@ public static class CustomItems {
             m_light = new Color24(10, 240, 71)
         }
     );
-    public static CustomItem turretParticlesMK2 = new CustomItem(name: "turretParticlesMK2",
+    public static CustomItem turretParticlesMK2 = new(name: "turretParticlesMK2",
         item: new CItem_Defense(tile: new CTile(0, 0) { m_textureName = "items_defenses" }, tileIcon: new CustomCTile(12, 0),
             hpMax: 350, mainColor: 8947848U, rangeDetection: 10f,
             angleMin: -9999f, angleMax: 9999f,
@@ -122,7 +122,7 @@ public static class CustomItems {
             m_anchor = CItemCell.Anchor.Everyside_Small
         }
     );
-    public static CustomItem turretTeslaMK2 = new CustomItem(name: "turretTeslaMK2",
+    public static CustomItem turretTeslaMK2 = new(name: "turretTeslaMK2",
         item: new CItem_Defense(tile: new CustomCTile(14, 0), tileIcon: new CustomCTile(14, 0),
             hpMax: 350, mainColor: 8947848U, rangeDetection: 12.5f,
             angleMin: -9999f, angleMax: 9999f,
@@ -141,7 +141,7 @@ public static class CustomItems {
             m_light = new Color24(16, 133, 235)
         }
     );
-    public static CustomItem collector = new CustomItem(name: "collector",
+    public static CustomItem collector = new(name: "collector",
         item: new CItem_Collector(tile: new CustomCTile(15, 0), tileIcon: new CustomCTile(16, 0),
             hpMax: 100, mainColor: 8947848U, rangeDetection: 5f,
             angleMin: -9999f, angleMax: 9999f,
@@ -162,21 +162,21 @@ public static class CustomItems {
             m_electricValue = -2
         }
     );
-    public static CustomItem blueLightSticky = new CustomItem(name: "blueLightSticky",
+    public static CustomItem blueLightSticky = new(name: "blueLightSticky",
         item: new CItem_Machine(tile: new CustomCTile(18, 0), tileIcon: new CustomCTile(18, 0),
             hpMax: 100, mainColor: 10066329U, anchor: CItemCell.Anchor.Everywhere_Small
         ) {
             m_light = new Color24(20, 20, 220)
         }
     );
-    public static CustomItem redLightSticky = new CustomItem(name: "redLightSticky",
+    public static CustomItem redLightSticky = new(name: "redLightSticky",
         item: new CItem_Machine(tile: new CustomCTile(20, 0), tileIcon: new CustomCTile(20, 0),
             hpMax: 100, mainColor: 10066329U, anchor: CItemCell.Anchor.Everywhere_Small
         ) {
             m_light = new Color24(220, 20, 20)
         }
     );
-    public static CustomItem greenLightSticky = new CustomItem(name: "greenLightSticky",
+    public static CustomItem greenLightSticky = new(name: "greenLightSticky",
         item: new CItem_Machine(tile: new CustomCTile(22, 0), tileIcon: new CustomCTile(22, 0),
             hpMax: 100, mainColor: 10066329U, anchor: CItemCell.Anchor.Everywhere_Small
         ) {
@@ -205,7 +205,7 @@ public static class CustomItems {
             m_electricValue = -5
         }
     );
-    public static CustomItem turretLaser360 = new CustomItem(name: "turretLaser360",
+    public static CustomItem turretLaser360 = new(name: "turretLaser360",
         item: new CItem_Defense(tile: new CTile(0, 0) { m_textureName = "items_defenses" }, tileIcon: new CustomCTile(26, 0),
             hpMax: 250, mainColor: 8947848U, rangeDetection: 10f,
             angleMin: -9999f, angleMax: 9999f,
@@ -220,7 +220,7 @@ public static class CustomItems {
             tileUnit: new CTile(2, 2) { m_textureName = "items_defenses" }
         )
     );
-    public static CustomItem gunMeltdown = new CustomItem(name: "gunMeltdown",
+    public static CustomItem gunMeltdown = new(name: "gunMeltdown",
         item: new CItem_Weapon(tile: new CustomCTile(27, 0), tileIcon: new CustomCTile(28, 0),
             heatingPerShot: 2f, isAuto: false,
             attackDesc: new CAttackDesc(
@@ -235,7 +235,7 @@ public static class CustomItems {
             )
         )
     );
-    public static CustomItem volcanicExplosive = new CustomItem(name: "volcanicExplosive",
+    public static CustomItem volcanicExplosive = new(name: "volcanicExplosive",
         item: new CItem_Explosive(tile: new CustomCTile(29, 0), tileIcon: new CustomCTile(29, 0),
             hpMax: 500, mainColor: 8947848U, rangeDetection: 0f, angleMin: 0f, angleMax: 360f,
             attack: new CAttackDesc(
@@ -265,13 +265,13 @@ public static class CustomItems {
             m_fireProof = true,
         }
     );
-    public static CustomItem wallCompositeReinforced = new CustomItem(name: "wallCompositeReinforced",
+    public static CustomItem wallCompositeReinforced = new(name: "wallCompositeReinforced",
         item: new CItem_Wall(tile: new CustomCTile(30, 0), tileIcon: new CustomCTile(30, 0),
             hpMax: 700, mainColor: 12039872U, forceResist: 11000, weight: 560f,
             type: CItem_Wall.Type.WallBlock
         )
     );
-    public static CustomItem gunNukeLauncher = new CustomItem(name: "gunNukeLauncher",
+    public static CustomItem gunNukeLauncher = new(name: "gunNukeLauncher",
         item: new CItem_Weapon(tile: new CustomCTile(31, 0), tileIcon: new CustomCTile(32, 0),
             heatingPerShot: 0f, isAuto: false,
             attackDesc: new CAttackDesc(
@@ -298,7 +298,7 @@ public static class CustomItems {
             )
         )
     );
-    public static CustomItem generatorSunMK2 = new CustomItem(name: "generatorSunMK2",
+    public static CustomItem generatorSunMK2 = new(name: "generatorSunMK2",
         item: new CItem_Machine(tile: new CustomCTile(33, 0), tileIcon: new CustomCTile(33, 0),
             hpMax: 200, mainColor: 10066329U,
             anchor: CItemCell.Anchor.Bottom_Small
@@ -306,7 +306,7 @@ public static class CustomItems {
             m_electricValue = 3
         }
     );
-    public static CustomItem RTG = new CustomItem(name: "RTG",
+    public static CustomItem RTG = new(name: "RTG",
         item: new CItem_Machine(tile: new CustomCTile(34, 0), tileIcon: new CustomCTile(34, 0),
             hpMax: 200, mainColor: 10066329U,
             anchor: CItemCell.Anchor.Bottom_Small
@@ -315,7 +315,7 @@ public static class CustomItems {
             m_electricValue = 15
         }
     );
-    public static CustomItem indestructibleLavaOld = new CustomItem(name: "indestructibleLavaOld",
+    public static CustomItem indestructibleLavaOld = new(name: "indestructibleLavaOld",
         item: new CItem_IndestructibleMineral(tile: null, tileIcon: new CTile(3, 5),
             hpMax: 1000, mainColor: 6118492U, surface: GSurfaces.lavaOld, isReplacable: false
         )

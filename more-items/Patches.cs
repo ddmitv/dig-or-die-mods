@@ -74,15 +74,15 @@ public class Patches {
 
         codeMatcher.End()
             .MatchBack(useEnd: true,
-                new CodeMatch(OpCodes.Ldarg_0),
-                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CItem), nameof(CItem.m_tile))),
-                new CodeMatch(OpCodes.Brfalse))
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CItem), nameof(CItem.m_tile))),
+                new(OpCodes.Brfalse))
             .GetOperand(out Label failLabel)
             .Advance(1)
             .Insert(
-                new CodeInstruction(OpCodes.Ldarg_0),
-                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CItem), nameof(CItem.m_tileIcon))),
-                new CodeInstruction(OpCodes.Brtrue, failLabel));
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CItem), nameof(CItem.m_tileIcon))),
+                new(OpCodes.Brtrue, failLabel));
 
         return codeMatcher.Instructions();
     }
@@ -93,14 +93,14 @@ public class Patches {
 
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Ldc_I4_0),
-                new CodeMatch(OpCodes.Stloc_3),
-                new CodeMatch(OpCodes.Br))
+                new(OpCodes.Ldc_I4_0),
+                new(OpCodes.Stloc_3),
+                new(OpCodes.Br))
             .Inject(OpCodes.Ldloc_0)
             .Insert(
-                new CodeInstruction(OpCodes.Ldc_I4_S, (sbyte)5),
-                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Math), nameof(Math.Min), [typeof(int), typeof(int)])),
-                new CodeInstruction(OpCodes.Stloc_0));
+                new(OpCodes.Ldc_I4_S, (sbyte)5),
+                new(OpCodes.Call, AccessTools.Method(typeof(Math), nameof(Math.Min), [typeof(int), typeof(int)])),
+                new(OpCodes.Stloc_0));
 
         return codeMatcher.Instructions();
     }
@@ -126,7 +126,7 @@ public class Patches {
                 Utils.AddLava(ref current_cell,
                     item.lavaQuantity * Mathf.Pow(3f, releaseTime)
                 );
-                Console.WriteLine($"a: {item.lavaQuantity}, time: {releaseTime}, +: {item.lavaQuantity * Mathf.Pow(3f, releaseTime)}, lava: {current_cell.m_water}");
+                // Console.WriteLine($"a: {item.lavaQuantity}, time: {releaseTime}, +: {item.lavaQuantity * Mathf.Pow(3f, releaseTime)}, lava: {current_cell.m_water}");
 
                 var fireRange = Mathf.Lerp(0f, item.m_attack.m_range * 5f, completionPercentage);
                 SWorld.SetFireAround(self.PosCell, fireRange);
@@ -191,26 +191,24 @@ public class Patches {
 
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Ldarg_0),
-                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
-                new CodeMatch(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.explosive))),
-                new CodeMatch(OpCodes.Bne_Un))
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
+                new(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.explosive))),
+                new(OpCodes.Bne_Un))
             .Advance(1)
             .Insert(new CodeInstruction(OpCodes.Ldarg_0))
             .CreateLabel(out var nextLabel)
             .Insert(
-                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
-                new CodeInstruction(OpCodes.Isinst, typeof(CItem_Explosive)),
-                new CodeInstruction(OpCodes.Ldnull),
-                new CodeInstruction(OpCodes.Beq, nextLabel),
-                new CodeInstruction(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
+                new(OpCodes.Isinst, typeof(CItem_Explosive)),
+                new(OpCodes.Ldnull),
+                new(OpCodes.Beq, nextLabel),
+                new(OpCodes.Ldarg_0),
                 Transpilers.EmitDelegate(ExplosiveLogic));
     }
 
     private static void PatchCollector(CodeMatcher codeMatcher) {
         void CollectorLogic(CUnitDefense self, Vector2 targetPos) {
-            ref var timeRepaired = ref AccessTools.FieldRefAccess<CUnitDefense, float>(self, "m_timeRepaired");
-
             int particlesCount = (int)(GVars.m_simuTimeD * 15.0) - (int)((GVars.m_simuTimeD - SMain.SimuDeltaTimeD) * 15.0);
             SSingleton<SParticles>.Inst.EmitMultiple(
                 count: particlesCount,
@@ -221,46 +219,46 @@ public class Patches {
                 paramVector: new Rect(self.PosFire.x, self.PosFire.y, 0f, 0f)
             );
 
-            timeRepaired += SMain.SimuDeltaTime;
-            if (timeRepaired > self.m_item.m_attack.m_cooldown) {
+            self.m_timeRepaired += SMain.SimuDeltaTime;
+            if (self.m_timeRepaired > self.m_item.m_attack.m_cooldown) {
 
-                timeRepaired -= self.m_item.m_attack.m_cooldown;
+                self.m_timeRepaired -= self.m_item.m_attack.m_cooldown;
                 SSingleton<SWorld>.Inst.DoDamageToCell(new int2(targetPos), ((CItem_Collector)self.m_item).collectorDamage, 2, true);
             }
         }
         codeMatcher.Start()
             .MatchForward(useEnd: true,
-                new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(Mathf), nameof(Mathf.MoveTowardsAngle))),
-                new CodeMatch(OpCodes.Stfld, AccessTools.Field(typeof(CUnitDefense), "m_angleDeg")))
+                new(OpCodes.Call, AccessTools.Method(typeof(Mathf), nameof(Mathf.MoveTowardsAngle))),
+                new(OpCodes.Stfld, AccessTools.Field(typeof(CUnitDefense), "m_angleDeg")))
             .Advance(1)
             .CreateLabel(out var skipLabel)
             .Insert(
-                new CodeInstruction(OpCodes.Ldarg_0),
-                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
-                new CodeInstruction(OpCodes.Isinst, typeof(CItem_Collector)),
-                new CodeInstruction(OpCodes.Ldnull),
-                new CodeInstruction(OpCodes.Beq, skipLabel),
-                new CodeInstruction(OpCodes.Ldarg_0),
-                new CodeInstruction(OpCodes.Ldloc_S, (byte)4),
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
+                new(OpCodes.Isinst, typeof(CItem_Collector)),
+                new(OpCodes.Ldnull),
+                new(OpCodes.Beq, skipLabel),
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldloc_S, (byte)4),
                 Transpilers.EmitDelegate(CollectorLogic),
-                new CodeInstruction(OpCodes.Ldc_I4_1), // flag = true
-                new CodeInstruction(OpCodes.Stloc_2));
+                new(OpCodes.Ldc_I4_1), // flag = true
+                new(OpCodes.Stloc_2));
     }
     private static void PatchTeslaTurretMK2(CodeMatcher codeMatcher) {
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Ldarg_0),
-                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
-                new CodeMatch(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.turretTesla))),
-                new CodeMatch(OpCodes.Bne_Un))
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
+                new(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.turretTesla))),
+                new(OpCodes.Bne_Un))
             .CreateLabelAt(codeMatcher.Pos + 4, out var teslaCond) // after bne.un
             .Advance(1)
             .InsertAndAdvance(
-                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
-                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CItem_Defense), nameof(CItem.m_codeName))),
-                new CodeInstruction(OpCodes.Ldstr, "turretTeslaMK2"),
-                new CodeInstruction(OpCodes.Beq, teslaCond),
-                new CodeInstruction(OpCodes.Ldarg_0));
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CItem_Defense), nameof(CItem.m_codeName))),
+                new(OpCodes.Ldstr, "turretTeslaMK2"),
+                new(OpCodes.Beq, teslaCond),
+                new(OpCodes.Ldarg_0));
     }
     private static Vector2 GetCollectorTargetPos(CUnitDefense self) {
         int range = Mathf.FloorToInt(self.m_item.m_attack.m_range);
@@ -356,22 +354,22 @@ public class Patches {
 
         codeMatcher.Start()
             .MatchForward(useEnd: true,
-                new CodeMatch(OpCodes.Ldarg_0),
-                new CodeMatch(OpCodes.Call, AccessTools.PropertyGetter(typeof(CBullet), nameof(CBullet.Desc))),
-                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CBulletDesc), nameof(CBulletDesc.m_lavaQuantity))),
-                new CodeMatch(OpCodes.Ldc_R4, 0.0f),
-                new CodeMatch(OpCodes.Ble_Un))
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Call, AccessTools.PropertyGetter(typeof(CBullet), nameof(CBullet.Desc))),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBulletDesc), nameof(CBulletDesc.m_lavaQuantity))),
+                new(OpCodes.Ldc_R4, 0.0f),
+                new(OpCodes.Ble_Un))
             .GetOperand(out Label failLabel)
             .Advance(1)
             .Insert(
-                new CodeInstruction(OpCodes.Ldarg_0),
+                new(OpCodes.Ldarg_0),
                 Transpilers.EmitDelegate((CBullet self) => {
                     if (self.Desc is CustomCBulletDesc cbulletdesc) {
                         return cbulletdesc.emitLavaBurstParticles;
                     }
                     return true;
                 }),
-                new CodeInstruction(OpCodes.Brfalse, failLabel)
+                new(OpCodes.Brfalse, failLabel)
             );
 
         return codeMatcher.Instructions();
