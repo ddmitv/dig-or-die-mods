@@ -6,30 +6,15 @@
     <Version>1.0.0</Version>
     <RootNamespace>more_items</RootNamespace>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
-    <PackageReference Include="BepInEx.Core" Version="5.*" />
-    <PackageReference Include="BepInEx.PluginInfoProps" Version="2.*" />
-    <PackageReference Include="UnityEngine.Modules" Version="5.4.1" IncludeAssets="compile" />
-  </ItemGroup>
   
-  <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
-  </ItemGroup>
+  <Import Project="../utils-lib/utils-lib.targets" />
   
   <Target Name="MakeTextures" BeforeTargets="PrepareForBuild">
     <Exec
       Command="%WINDIR%\System32\WindowsPowerShell\v1.0\powershell.exe -NonInteractive -executionpolicy Unrestricted .\make-textures.ps1"
       LogStandardErrorAsError="True" ContinueOnError="False" WorkingDirectory="$(MSBuildProjectDirectory)"/>
+    <Message Text="Creating sprite sheet (make-textures.ps1)" Importance="high" />
   </Target>
-  
-  <ItemGroup>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>$(GameManaged)Assembly-CSharp.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-  </ItemGroup>
   
   <ItemGroup>
     <Compile Update="ModResources.Designer.cs">

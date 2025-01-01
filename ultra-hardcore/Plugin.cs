@@ -1,19 +1,12 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
-using Mono.Cecil;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
+using ModUtils;
 
 namespace ultra_hardcore;
-
-public static class CodeMatcherExtensions {
-    public static CodeMatcher GetLabels(this CodeMatcher self, out List<Label> labels) {
-        labels = self.Labels;
-        return self;
-    }
-}
 
 public static class HpMaxPatch {
     [HarmonyTranspiler]
@@ -28,8 +21,8 @@ public static class HpMaxPatch {
 public static class PermanentMistPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CBackground), nameof(CBackground.DrawBackgrounds))]
-    [HarmonyPatch(typeof(SDrawWorld), "OnUpdate")]
-    [HarmonyPatch(typeof(SWorld), "ProcessLighting_DynamicUnits")]
+    [HarmonyPatch(typeof(SDrawWorld), nameof(SDrawWorld.OnUpdate))]
+    [HarmonyPatch(typeof(SWorld), nameof(SWorld.ProcessLighting_DynamicUnits))]
     private static IEnumerable<CodeInstruction> AlwaysMistTranspiler(IEnumerable<CodeInstruction> instructions) {
         var codeMatcher = new CodeMatcher(instructions);
 
@@ -104,7 +97,7 @@ public static class PermanentDarknessPatch {
 }
 public static class NoRainPatch {
     [HarmonyTranspiler]
-    [HarmonyPatch(typeof(SWorld), "OnUpdateSimu")]
+    [HarmonyPatch(typeof(SWorld), nameof(SWorld.OnUpdateSimu))]
     private static IEnumerable<CodeInstruction> SWorld_OnUpdateSimu(IEnumerable<CodeInstruction> instructions) {
         var codeMatcher = new CodeMatcher(instructions);
         codeMatcher.Start()
@@ -130,7 +123,7 @@ public static class InverseNightPatch {
 }
 public static class PermanentAcidWaterPatch {
     [HarmonyTranspiler]
-    [HarmonyPatch(typeof(CUnit), "Update")]
+    [HarmonyPatch(typeof(CUnit), nameof(CUnit.Update))]
     private static IEnumerable<CodeInstruction> CUnit_Update(IEnumerable<CodeInstruction> instructions) {
         var codeMatcher = new CodeMatcher(instructions);
         codeMatcher.Start()
@@ -139,9 +132,7 @@ public static class PermanentAcidWaterPatch {
                 new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(CEnvironment), nameof(CEnvironment.m_acidWater))),
                 new CodeMatch(OpCodes.Brfalse))
             .ThrowIfInvalid("Match failed")
-            .GetLabels(out List<Label> labels)
-            .RemoveInstructions(3)
-            .AddLabels(labels);
+            .CollapseInstructions(3);
         return codeMatcher.Instructions();
     }
     [HarmonyTranspiler]
@@ -151,6 +142,24 @@ public static class PermanentAcidWaterPatch {
             new CodeInstruction(OpCodes.Ldc_R4, 1f),
             new CodeInstruction(OpCodes.Ret)
         ];
+    }
+}
+public static class NoRegenerationPatch {
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(CUnitPlayer.CDesc), MethodType.Constructor, typeof(float), typeof(Vector2), typeof(int), typeof(CTile), typeof(CTile), typeof(CTile), typeof(CTile))]
+    private static IEnumerable<CodeInstruction> CUnitPlayer_CDesc_Constructor(IEnumerable<CodeInstruction> instructions) {
+        var codeMatcher = new CodeMatcher(instructions);
+
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new CodeMatch(OpCodes.Ldarg_0),
+                new CodeMatch(OpCodes.Ldc_R4, 0.005f),
+                new CodeMatch(OpCodes.Stfld, AccessTools.Field(typeof(CUnit.CDesc), nameof(CUnit.CDesc.m_regenSpeed))))
+            .ThrowIfInvalid("(1)")
+            .Advance(1)
+            .Set(OpCodes.Ldc_R4, 0f);
+
+        return codeMatcher.Instructions();
     }
 }
 
@@ -187,6 +196,10 @@ public class UltraHardcorePlugin : BaseUnityPlugin
             section: "UltraHardcore", key: "PermanentAcidWater", defaultValue: false,
             description: "Makes event 'ACIDIC WATERS' always active"
         );
+        var configNoRegeneration = Config.Bind<bool>(
+            section: "UltraHardcore", key: "NoRegeneration", defaultValue: false,
+            description: "Removes regeneration from the player, so you can only gain health with potions"
+        );
 
         var harmony = new Harmony("ultra-hardcore");
 
@@ -205,6 +218,9 @@ public class UltraHardcorePlugin : BaseUnityPlugin
         }
         if (configPermanentAcidWater.Value) {
             harmony.PatchAll(typeof(PermanentAcidWaterPatch));
+        }
+        if (configNoRegeneration.Value) {
+            harmony.PatchAll(typeof(NoRegenerationPatch));
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using System;
 using UnityEngine;
+using ModUtils;
 
 namespace more_items;
 
@@ -39,7 +40,7 @@ public class Patches {
         return true;
     }
 
-    [HarmonyPatch(typeof(SItems), "OnInit")]
+    [HarmonyPatch(typeof(SItems), nameof(SItems.OnInit))]
     [HarmonyPostfix]
     private static void SItems_OnInit() {
         foreach (var itemField in typeof(CustomItems).GetFields()) {
@@ -87,7 +88,7 @@ public class Patches {
 
         return codeMatcher.Instructions();
     }
-    [HarmonyPatch(typeof(SDrawWorld), "DrawElectricLightIFN")]
+    [HarmonyPatch(typeof(SDrawWorld), nameof(SDrawWorld.DrawElectricLightIFN))]
     [HarmonyTranspiler]
     private static IEnumerable<CodeInstruction> SDrawWorld_DrawElectricLightIFN(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         var codeMatcher = new CodeMatcher(instructions, generator);
@@ -149,8 +150,9 @@ public class Patches {
             var attack = item.m_attack;
 
             Vector2 explosionPos = self.PosCell + int2.up * 0.4f;
-            Utils.SSingleton_Inst<SWorld>().DestroyCell(self.PosCell, 0, false, null);
-            Utils.SSingleton_Inst<SWorld>().DestroyCell(self.PosCell - int2.up, 0, false, null);
+
+            SSingleton<SWorld>.Inst.DestroyCell(self.PosCell, 0, false, null);
+            SSingleton<SWorld>.Inst.DestroyCell(self.PosCell - int2.up, 0, false, null);
 
             SUnits.DoDamageAOE(explosionPos, attack.m_range, attack.m_damage);
             SWorld.DoDamageAOE(explosionPos, (int)attack.m_range, attack.m_damage);
@@ -212,7 +214,7 @@ public class Patches {
             ref var timeRepaired = ref AccessTools.FieldRefAccess<CUnitDefense, float>(self, "m_timeRepaired");
 
             int particlesCount = (int)(GVars.m_simuTimeD * 15.0) - (int)((GVars.m_simuTimeD - SMain.SimuDeltaTimeD) * 15.0);
-            Utils.SSingleton_Inst<SParticles>().EmitMultiple(
+            SSingleton<SParticles>.Inst.EmitMultiple(
                 count: particlesCount,
                 origin: new Rect(targetPos.x - 0.3f, targetPos.y - 0.3f, 0.6f, 0.6f),
                 speed: 10f,
@@ -225,7 +227,7 @@ public class Patches {
             if (timeRepaired > self.m_item.m_attack.m_cooldown) {
 
                 timeRepaired -= self.m_item.m_attack.m_cooldown;
-                Utils.SSingleton_Inst<SWorld>().DoDamageToCell(new int2(targetPos), ((CItem_Collector)self.m_item).collectorDamage, 2, true);
+                SSingleton<SWorld>.Inst.DoDamageToCell(new int2(targetPos), ((CItem_Collector)self.m_item).collectorDamage, 2, true);
             }
         }
         codeMatcher.Start()
@@ -290,7 +292,7 @@ public class Patches {
     }
 
     [HarmonyPrefix]
-    [HarmonyPatch(typeof(CUnitDefense), "GetUnitTargetPos")]
+    [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.GetUnitTargetPos))]
     private static bool CUnitDefense_GetUnitTargetPos(CUnitDefense __instance, ref Vector2 __result) {
         if (__instance.m_item is CItem_Collector) {
             __result = GetCollectorTargetPos(__instance);
@@ -301,7 +303,7 @@ public class Patches {
     }
 
     [HarmonyTranspiler]
-    [HarmonyPatch(typeof(CUnitDefense), "Update")]
+    [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.Update))]
     private static IEnumerable<CodeInstruction> CUnitDefense_Update(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         var codeMatcher = new CodeMatcher(instructions, generator);
 
@@ -312,7 +314,7 @@ public class Patches {
         return codeMatcher.Instructions();
     }
     [HarmonyPostfix]
-    [HarmonyPatch(typeof(CUnitDefense), "OnDisplayWorld")]
+    [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.OnDisplayWorld))]
     private static void CUnitDefense_OnDisplayWorld(CUnitDefense __instance, float ___m_lastFireTime, Vector2 ___m_pos) {
         if (__instance.m_item is CItem_Explosive item && ___m_lastFireTime > 0f && GVars.m_simuTimeD > (double)___m_lastFireTime) {
             CMesh<CMeshText>.Get("ITEMS").Draw(
@@ -324,12 +326,12 @@ public class Patches {
         }
     }
     [HarmonyPostfix]
-    [HarmonyPatch(typeof(CUnitDefense), "OnActivate")]
+    [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.OnActivate))]
     private static void CUnitDefense_OnActivate(CUnitDefense __instance, ref float ___m_lastFireTime) {
         if (__instance.m_item is CItem_Explosive && ___m_lastFireTime < 0f) {
             ___m_lastFireTime = GVars.SimuTime;
 
-            Utils.SSingleton_Inst<SWorld>().SetContent(
+            SSingleton<SWorld>.Inst.SetContent(
                 pos: __instance.PosCell - int2.up,
                 item: (CItemCell)CustomItems.indestructibleLavaOld.item
             );
@@ -337,7 +339,7 @@ public class Patches {
         }
     }
     [HarmonyPostfix]
-    [HarmonyPatch(typeof(CBullet), "Explosion")]
+    [HarmonyPatch(typeof(CBullet), nameof(CBullet.Explosion))]
     private static void CBullet_Explosion(CBullet __instance) {
         if (__instance.Desc is CustomCBulletDesc cbulletdesc && cbulletdesc.explosionBasaltBgRadius > 0) {
             Utils.ApplyInCircle(cbulletdesc.explosionBasaltBgRadius, new int2(__instance.m_pos), (int x, int y) => {
@@ -386,7 +388,7 @@ public class Patches {
         }
         return true;
     }
-    [HarmonyPatch(typeof(CUnit), "Damage_Local")]
+    [HarmonyPatch(typeof(CUnit), nameof(CUnit.Damage_Local))]
     [HarmonyPrefix]
     private static bool CUnit_Damage_Local(CUnit __instance) {
         var content = SWorld.Grid[__instance.PosCell.x, __instance.PosCell.y].GetContent();

@@ -3,24 +3,11 @@ using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using UnityEngine;
+using ModUtils;
 
 namespace more_items;
-
-public static class CodeMatcherExtensions {
-    public static CodeMatcher Inject(this CodeMatcher self, OpCode opcode, object operand = null) {
-        var prevInstruction = self.Instruction.Clone();
-        self.SetAndAdvance(opcode, operand);
-        self.Insert(prevInstruction);
-        return self;
-    }
-    public static CodeMatcher GetOperand<T>(this CodeMatcher self, out T result) {
-        result = (T)self.Operand;
-        return self;
-    }
-}
 
 public class CustomCTile : CTile {
     public static string texturePath = "mod-more-items";
@@ -81,49 +68,12 @@ public class CustomItem {
 
         item.Init();
 
-        var SItems_inst = Utils.SSingleton_Inst<SItems>();
-        var itemsPluginData_field = typeof(SItems).GetField("m_itemsPluginData", BindingFlags.NonPublic | BindingFlags.Instance);
-
-        var itemsPluginData = (CItem_PluginData[])itemsPluginData_field.GetValue(SItems_inst);
+        ref var itemsPluginData = ref SSingleton<SItems>.Inst.m_itemsPluginData;
         Array.Resize(ref itemsPluginData, itemsPluginData.Length + 1);
         itemsPluginData[itemsPluginData.Length - 1] = MakeItemsPluginData(item);
-        itemsPluginData_field.SetValue(SItems_inst, itemsPluginData);
     }
 
     public CItem item{ get; private set; }
-}
-
-public static class Utils {
-    public static void ApplyInCircle(int range, int2 pos, Action<int, int> fn) {
-        int sqrRange = range * range;
-        for (int i = pos.x - range; i <= pos.x + range; ++i) {
-            for (int j = pos.y - range; j <= pos.y + range; ++j) {
-                int2 relative = new int2(i, j) - pos;
-                if (relative.sqrMagnitude <= sqrRange) {
-                    fn(i, j);
-                }
-            }
-        }
-    }
-    public static T SSingleton_Inst<T>() where T : class, new() {
-        var inst = typeof(SSingleton<T>).GetProperty("Inst", BindingFlags.NonPublic | BindingFlags.Static);
-        return (T)inst.GetValue(null, []);
-    }
-    public static bool IsValidCell(int x, int y) {
-        return x >= 0 && y >= 0 && x < SWorld.Gs.x && y < SWorld.Gs.y;
-    }
-    public static void AddLava(ref CCell cell, float lavaQuantity) {
-        if (!cell.IsPassable()) { return; }
-
-        if (!cell.IsLava()) {
-            cell.m_water = 0;
-        }
-        cell.m_water += lavaQuantity;
-        cell.SetFlag(CCell.Flag_IsLava, true);
-    }
-    public static T MakeMemberwiseClone<T>(T obj) where T : class {
-        return (T)AccessTools.Method(typeof(T), "MemberwiseClone").Invoke(obj, []);
-    }
 }
 
 public class CItem_Collector : CItem_Defense {

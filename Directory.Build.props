@@ -20,10 +20,25 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
+    <PackageReference Include="BepInEx.Core" Version="5.*" />
+    <PackageReference Include="BepInEx.PluginInfoProps" Version="2.*" />
+    <PackageReference Include="UnityEngine.Modules" Version="5.4.1" IncludeAssets="compile" />
+    <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" PrivateAssets="all" />
+    
+    <Reference Include="Assembly-CSharp" HintPath="$(GameManaged)Assembly-CSharp.dll" Publicize="true" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
+  </ItemGroup>
+  
   <Target Name="InstallPlugin" AfterTargets="Build">
     <Copy
       SourceFiles="$(TargetDir)$(AssemblyName).dll"
       DestinationFolder="$(GameDir)BepInEx\plugins" />
+    <Message Text="Copying plugin assembly &quot;$(TargetDir)$(AssemblyName).dll&quot; to &quot;$(GameDir)BepInEx\plugins\$(AssemblyName).dll&quot;" Importance="high" />
       
     <ItemGroup>
         <DataFolder Include="$(ProjectDir)DigOrDie_Data\**\*.*"/>
@@ -32,5 +47,7 @@
       SourceFiles="@(DataFolder)"
       DestinationFolder="$(GameDir)DigOrDie_Data\%(RecursiveDir)"
       SkipUnchangedFiles="true" />
+    <Message Condition="Exists('$(ProjectDir)DigOrDie_Data')" Importance="high"
+      Text="Copying game's data &quot;$(ProjectDir)DigOrDie_Data&quot; to &quot;$(GameDir)DigOrDie_Data&quot;" />
   </Target>
 </Project>

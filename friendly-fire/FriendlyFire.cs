@@ -2,27 +2,11 @@
 using BepInEx.Configuration;
 using HarmonyLib;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
+using ModUtils;
 
 namespace friendly_fire;
-
-public static class CodeMatcherExtensions {
-    public static CodeMatcher Inject(this CodeMatcher self, OpCode opcode, object operand = null) {
-        var prevInstruction = self.Instruction.Clone();
-        self.SetAndAdvance(opcode, operand);
-        self.Insert(prevInstruction);
-        return self;
-    }
-}
-
-public static class Utils {
-    public static T SSingleton_Inst<T>() where T : class, new() {
-        var inst = typeof(SSingleton<T>).GetProperty("Inst", BindingFlags.NonPublic | BindingFlags.Static);
-        return (T)inst.GetValue(null, []);
-    }
-}
 
 [BepInPlugin("friendly-fire", "Friendly Fire", "1.0.0")]
 public class FriendlyFire : BaseUnityPlugin
@@ -37,18 +21,27 @@ public class FriendlyFire : BaseUnityPlugin
             section: "FriendlyFire", key: "HideNames", defaultValue: false,
             description: "Hides other player names and chat messages above their heads"
         );
+        ConfigEntry<bool> configHideMinimapPlayers = Config.Bind<bool>(
+            section: "FriendlyFire", key: "HideMinimapPlayers", defaultValue: false,
+            description: "Hides player icons from minimap"
+        );
 
-        Harmony.CreateAndPatchAll(typeof(FriendlyFire));
+        var harmony = new Harmony("friendly-fire");
+        harmony.PatchAll(typeof(FriendlyFire));
         if (configDamageAOE.Value) {
-            Harmony.CreateAndPatchAll(typeof(SUnits_DoDamageAOE_Patch));
+            harmony.PatchAll(typeof(SUnits_DoDamageAOE_Patch));
         }
         if (configHideNames.Value) {
-            Harmony.CreateAndPatchAll(typeof(HidePlayerNames_Patch));
+            harmony.PatchAll(typeof(HidePlayerNames_Patch));
         }
+        if (configHideMinimapPlayers.Value) {
+            harmony.PatchAll(typeof(HideMinimapPlayers_Patch));
+        }
+        
     }
 
     [HarmonyTranspiler]
-    [HarmonyPatch(typeof(CBullet), "CheckColWithUnits")]
+    [HarmonyPatch(typeof(CBullet), nameof(CBullet.CheckColWithUnits))]
     private static IEnumerable<CodeInstruction> CBullet_CheckColWithUnits(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         var codeMatcher = new CodeMatcher(instructions, generator);
 
@@ -175,7 +168,7 @@ public static class SUnits_DoDamageAOE_Patch {
 
 public static class HidePlayerNames_Patch {
     [HarmonyTranspiler]
-    [HarmonyPatch(typeof(SScreenHudWorld), "OnUpdate")]
+    [HarmonyPatch(typeof(SScreenHudWorld), nameof(SScreenHudWorld.OnUpdate))]
     private static IEnumerable<CodeInstruction> SScreenHudWorld_OnUpdate(IEnumerable<CodeInstruction> instructions) {
         var codeMatcher = new CodeMatcher(instructions);
         var CMeshText_Get = AccessTools.Method(typeof(CMesh<CMeshText>), nameof(CMesh<CMeshText>.Get), [typeof(SScreen), typeof(bool)]);
@@ -203,3 +196,51 @@ public static class HidePlayerNames_Patch {
         return codeMatcher.Instructions();
     }
 }
+
+public static class HideMinimapPlayers_Patch {
+    private static void HideMinimapPlayerIcon(CodeMatcher codeMatcher) {
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new CodeMatch(OpCodes.Ldloc_S),
+                new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.HasUnitPlayer))),
+                new CodeMatch(OpCodes.Brtrue))
+            .ThrowIfInvalid("(1)");
+
+        codeMatcher.Clone()
+            .MatchForward(useEnd: false, new CodeMatch(OpCodes.Br))
+            .ThrowIfInvalid("(2)")
+            .GetOperand(out Label failLabel);
+
+        codeMatcher
+            .GetOperand(out LocalBuilder playerVar)
+            .Insert(
+                new CodeInstruction(OpCodes.Ldloc_S, playerVar),
+                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.IsMe))),
+                new CodeInstruction(OpCodes.Brfalse, failLabel));
+    }
+    private static void HideLiveViewPixels(CodeMatcher codeMatcher) {
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Texture2D), nameof(Texture2D.SetPixels32), [typeof(int), typeof(int), typeof(int), typeof(int), typeof(Color32[])])))
+            .ThrowIfInvalid("(3)")
+            .Advance(1)
+            .CreateLabel(out Label skipLabel)
+            .Advance(-13)
+            .Insert(
+                new CodeInstruction(OpCodes.Ldloc_1),
+                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.IsMe))),
+                new CodeInstruction(OpCodes.Brfalse, skipLabel));
+    }
+
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(SMinimap), nameof(SMinimap.OnUpdate))]
+    private static IEnumerable<CodeInstruction> SMinimap_OnUpdate(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        HideMinimapPlayerIcon(codeMatcher);
+        HideLiveViewPixels(codeMatcher);
+
+        return codeMatcher.Instructions();
+    }
+}
+
