@@ -160,6 +160,16 @@ public static class NoRegenerationPatch {
         return codeMatcher.Instructions();
     }
 }
+public static class NoQuickSavesPatch {
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(SGameStartEnd), nameof(SGameStartEnd.SaveGame))]
+    private static bool SGameStartEnd_SaveGame(SDataSave.SaveType saveType) {
+        if (saveType == SDataSave.SaveType.QuickSave) {
+            return false;
+        }
+        return true;
+    }
+}
 
 [BepInPlugin("ultra-hardcore", "Ultra Hardcore", "0.0.0")]
 public class UltraHardcorePlugin : BaseUnityPlugin
@@ -198,6 +208,10 @@ public class UltraHardcorePlugin : BaseUnityPlugin
             section: "UltraHardcore", key: "NoRegeneration", defaultValue: false,
             description: "Removes regeneration from the player, so you can only gain health with potions"
         );
+        var configNoQuickSaves = Config.Bind<bool>(
+            section: "UltraHardcore", key: "NoQuickSaves", defaultValue: false,
+            description: "Removes ability to quick save"
+        );
 
         var harmony = new Harmony("ultra-hardcore");
 
@@ -219,6 +233,9 @@ public class UltraHardcorePlugin : BaseUnityPlugin
         }
         if (configNoRegeneration.Value) {
             harmony.PatchAll(typeof(NoRegenerationPatch));
+        }
+        if (configNoQuickSaves.Value) {
+            harmony.PatchAll(typeof(NoQuickSavesPatch));
         }
     }
 }
