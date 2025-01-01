@@ -15,7 +15,6 @@ public class CustomCTile : CTile {
     public CustomCTile(int i, int j, int images = 1, int sizeX = 128, int sizeY = 128)
         : base(i, j, images, sizeX, sizeY) {
         base.m_textureName = texturePath;
-        base.m_textureSize = 1500;
     }
 }
 
