@@ -16,39 +16,63 @@ public static class CustomBullets {
     };
 }
 
+public static class CItemDeviceGroupIds {
+    public static readonly string miniaturizor = "Miniaturizor";
+    public static readonly string potionHP = "PotionHP";
+    public static readonly string potionHPRegen = "PotionHPRegen";
+    public static readonly string potionArmor = "PotionArmor";
+    public static readonly string potionPheromones = "PotionPheromones";
+    public static readonly string potionCritics = "PotionCritics";
+    public static readonly string potionInvisibility = "PotionInvisibility";
+    public static readonly string potionSpeed = "PotionSpeed";
+    public static readonly string armor = "Armor";
+    public static readonly string shield = "Shield";
+    public static readonly string drone = "Drone";
+    public static readonly string flashLight = "FlashLight";
+    public static readonly string minimapper = "Minimapper";
+    public static readonly string effeilGlasses = "EffeilGlasses";
+    public static readonly string metalDetector = "MetalDetector";
+    public static readonly string waterDetector = "WaterDetector";
+    public static readonly string waterBreather = "WaterBreather";
+    public static readonly string jetpack = "Jetpack";
+    public static readonly string invisibility = "Invisibility";
+    public static readonly string brush = "Brush";
+}
+
 public static class CustomItems {
+
     public static CustomItem flashLightMK3 = new(name: "flashLightMK3",
         item: new CItem_Device(tile: new CustomCTile(0, 0), tileIcon: new CustomCTile(0, 0),
-            groupId: "FlashLight", type: CItem_Device.Type.Passive, customValue: 10f
+            groupId: CItemDeviceGroupIds.flashLight, type: CItem_Device.Type.Passive, customValue: 10f
         )
     );
     public static CustomItem miniaturizorMK6 = new(name: "miniaturizorMK6",
         item: new CItem_Device(tile: new CustomCTile(2, 0), tileIcon: new CustomCTile(1, 0),
-            groupId: "Miniaturizor", type: CItem_Device.Type.None, customValue: 999f
+            groupId: CItemDeviceGroupIds.miniaturizor, type: CItem_Device.Type.None, customValue: 999f
         // Above 999 the miniaturizor would break Ancient Basalt (oldLava)
         ) { m_pickupDuration = -1 }
     );
     public static CustomItem betterPotionHpRegen = new(name: "betterPotionHpRegen",
         item: new CItem_Device(tile: new CustomCTile(3, 0), tileIcon: new CustomCTile(3, 0),
             // "potionHpRegen" has 1.5f customValue
-            groupId: "PotionHPRegen", type: CItem_Device.Type.Consumable, customValue: 3f
+            groupId: CItemDeviceGroupIds.potionHPRegen, type: CItem_Device.Type.Consumable, customValue: 3f
         ) { m_cooldown = 120f, m_duration = 60f }
     );
     public static CustomItem defenseShieldMK2 = new(name: "defenseShieldMK2",
         item: new CItem_Device(tile: new CustomCTile(4, 0), tileIcon: new CustomCTile(4, 0),
             // "defenseShield" has 0.5f customValue
-            groupId: "Shield", type: CItem_Device.Type.Passive, customValue: 1f
+            groupId: CItemDeviceGroupIds.shield, type: CItem_Device.Type.Passive, customValue: 1f
         )
     );
     public static CustomItem waterBreatherMK2 = new(name: "waterBreatherMK2",
         item: new CItem_Device(tile: new CustomCTile(5, 0), tileIcon: new CustomCTile(5, 0),
             // "waterBreather" has 3f customValue
-            groupId: "WaterBreather", type: CItem_Device.Type.Passive, customValue: 7f
+            groupId: CItemDeviceGroupIds.waterBreather, type: CItem_Device.Type.Passive, customValue: 7f
         )
     );
     public static CustomItem jetpackMK2 = new(name: "jetpackMK2",
         item: new CItem_Device(tile: new CustomCTile(6, 0), tileIcon: new CustomCTile(6, 0),
-            groupId: "Jetpack", type: CItem_Device.Type.Passive, customValue: 1f
+            groupId: CItemDeviceGroupIds.jetpack, type: CItem_Device.Type.Passive, customValue: 1f
         )
     );
     public static CustomItem antiGravityWall = new(name: "antiGravityWall",
@@ -344,3 +368,4 @@ public static class CustomItems {
     //     )
     // );
 }
+
