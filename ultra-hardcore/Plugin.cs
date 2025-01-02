@@ -170,11 +170,65 @@ public static class NoQuickSavesPatch {
         return true;
     }
 }
+public static class ContinuousEventsPatch {
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(SEnvironment), nameof(SEnvironment.OnUpdateSimu))]
+    [HarmonyDebug]
+    private static IEnumerable<CodeInstruction> SEnvironment_OnUpdateSimu(IEnumerable<CodeInstruction> instructions) {
+        static void RemoveImpossibleEvents(List<CEnvironment> events) {
+            bool hasPermanentMist = UltraHardcorePlugin.configPermanentMist.Value;
+            bool hasPermanentAcidWater = UltraHardcorePlugin.configPermanentAcidWater.Value;
+            events.RemoveAll(evnt => {
+                if (hasPermanentMist && evnt.m_id == "mist") { return true; }
+                if (hasPermanentAcidWater && evnt.m_id == "acidWater") { return true; }
+
+                if (evnt.m_isDayEnv && SGame.IsNight()) {
+                    return true;
+                }
+                if (evnt.m_isNightEnv && !SGame.IsNight()) {
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        var codeMatcher = new CodeMatcher(instructions);
+        codeMatcher.Start()
+            // list[global::UnityEngine.Random.Range(0, list.Count)];
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Ldc_I4_0),
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Callvirt, AccessTools.PropertyGetter(typeof(List<CEnvironment>), nameof(List<CEnvironment>.Count))),
+                new(OpCodes.Call),
+                new(OpCodes.Callvirt),
+                new(OpCodes.Stfld))
+            .GetOperandAtOffset(1, out LocalBuilder listVar)
+            .Inject(OpCodes.Ldloc, listVar)
+            .Insert(Transpilers.EmitDelegate(RemoveImpossibleEvents));
+
+        codeMatcher
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Ldfld),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CEnvironment), nameof(CEnvironment.m_isNightEnv))),
+                new(OpCodes.Brfalse))
+            .RemoveInstructions(51)
+            .Insert(
+                new(OpCodes.Call, AccessTools.PropertyGetter(typeof(GVars), nameof(GVars.SimuTime))),
+                new(OpCodes.Stsfld, AccessTools.Field(typeof(GVars), nameof(GVars.m_eventStartTime))));
+
+        return codeMatcher.Instructions();
+    }
+}
 
 [BepInPlugin("ultra-hardcore", "Ultra Hardcore", "0.0.0")]
 public class UltraHardcorePlugin : BaseUnityPlugin
 {
     public static ConfigEntry<float> configPlayerHpMax;
+    public static ConfigEntry<bool> configPermanentMist;
+    public static ConfigEntry<bool> configPermanentAcidWater;
 
     private void Start() {
         configPlayerHpMax = Config.Bind<float>(
@@ -184,7 +238,7 @@ public class UltraHardcorePlugin : BaseUnityPlugin
                 new AcceptableValueRange<float>(0, float.MaxValue)
             )
         );
-        var configPermanentMist = Config.Bind<bool>(
+        configPermanentMist = Config.Bind<bool>(
             section: "UltraHardcore", key: "PermanentMist", defaultValue: false,
             description: "Makes the mist permanent, regardless of the current events"
         );
@@ -200,7 +254,7 @@ public class UltraHardcorePlugin : BaseUnityPlugin
             section: "UltraHardcore", key: "InverseNight", defaultValue: false,
             description: "Monsters attack during the day, but stop at night"
         );
-        var configPermanentAcidWater = Config.Bind<bool>(
+        configPermanentAcidWater = Config.Bind<bool>(
             section: "UltraHardcore", key: "PermanentAcidWater", defaultValue: false,
             description: "Makes event 'ACIDIC WATERS' always active"
         );
@@ -211,6 +265,10 @@ public class UltraHardcorePlugin : BaseUnityPlugin
         var configNoQuickSaves = Config.Bind<bool>(
             section: "UltraHardcore", key: "NoQuickSaves", defaultValue: false,
             description: "Removes ability to quick save"
+        );
+        var configContinuousEvents = Config.Bind<bool>(
+            section: "UltraHardcore", key: "ContinuousEvents", defaultValue: false,
+            description: ""
         );
 
         var harmony = new Harmony("ultra-hardcore");
@@ -236,6 +294,9 @@ public class UltraHardcorePlugin : BaseUnityPlugin
         }
         if (configNoQuickSaves.Value) {
             harmony.PatchAll(typeof(NoQuickSavesPatch));
+        }
+        if (configContinuousEvents.Value) {
+            harmony.PatchAll(typeof(ContinuousEventsPatch));
         }
     }
 }
