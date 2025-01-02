@@ -31,7 +31,7 @@ public static class CustomItems {
     public static CustomItem betterPotionHpRegen = new(name: "betterPotionHpRegen",
         item: new CItem_Device(tile: new CustomCTile(3, 0), tileIcon: new CustomCTile(3, 0),
             // "potionHpRegen" has 1.5f customValue
-            groupId: "potionHpRegen", type: CItem_Device.Type.Consumable, customValue: 3f
+            groupId: "PotionHPRegen", type: CItem_Device.Type.Consumable, customValue: 3f
         ) { m_cooldown = 120f, m_duration = 60f }
     );
     public static CustomItem defenseShieldMK2 = new(name: "defenseShieldMK2",
