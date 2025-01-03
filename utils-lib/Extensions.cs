@@ -6,7 +6,7 @@ using System.Reflection.Emit;
 namespace ModUtils;
 
 public static class CodeMatcherExtensions {
-    public static CodeMatcher Inject(this CodeMatcher self, OpCode opcode, object operand = null) {
+    public static CodeMatcher InjectAndAdvance(this CodeMatcher self, OpCode opcode, object operand = null) {
         var prevInstruction = self.Instruction.Clone();
         self.SetAndAdvance(opcode, operand);
         self.Insert(prevInstruction);

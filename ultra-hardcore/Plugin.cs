@@ -204,7 +204,7 @@ public static class ContinuousEventsPatch {
                 new(OpCodes.Callvirt),
                 new(OpCodes.Stfld))
             .GetOperandAtOffset(1, out LocalBuilder listVar)
-            .Inject(OpCodes.Ldloc, listVar)
+            .InjectAndAdvance(OpCodes.Ldloc, listVar)
             .Insert(Transpilers.EmitDelegate(RemoveImpossibleEvents));
 
         codeMatcher

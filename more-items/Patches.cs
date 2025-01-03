@@ -96,7 +96,7 @@ public class Patches {
                 new(OpCodes.Ldc_I4_0),
                 new(OpCodes.Stloc_3),
                 new(OpCodes.Br))
-            .Inject(OpCodes.Ldloc_0)
+            .InjectAndAdvance(OpCodes.Ldloc_0)
             .Insert(
                 new(OpCodes.Ldc_I4_S, (sbyte)5),
                 new(OpCodes.Call, AccessTools.Method(typeof(Math), nameof(Math.Min), [typeof(int), typeof(int)])),

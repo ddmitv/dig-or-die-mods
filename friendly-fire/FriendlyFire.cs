@@ -60,7 +60,7 @@ public class FriendlyFire : BaseUnityPlugin
                 new(OpCodes.Brtrue))
             .ThrowIfInvalid("friendly-fire transpiler (1)")
             .Advance(1)
-            .Inject(OpCodes.Ldarg_0)
+            .InjectAndAdvance(OpCodes.Ldarg_0)
             .CreateLabel(out var failLabel)
             .Insert(
                 new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
@@ -156,7 +156,7 @@ public static class SUnits_DoDamageAOE_Patch {
                 new(OpCodes.Brfalse))
             .ThrowIfInvalid("friendly-fire transpiler (2)")
             .Advance(1)
-            .Inject(OpCodes.Ldloc_2)
+            .InjectAndAdvance(OpCodes.Ldloc_2)
             .Insert(
                 new(OpCodes.Isinst, typeof(CUnitPlayer)),
                 new(OpCodes.Brtrue, successLabel));
