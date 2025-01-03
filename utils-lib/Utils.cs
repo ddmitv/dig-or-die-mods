@@ -2,6 +2,7 @@ using BepInEx;
 using HarmonyLib;
 using System;
 using System.IO;
+using System.Net;
 using System.Reflection;
 using UnityEngine;
 
@@ -67,5 +68,9 @@ public static class Utils {
         if (versionBuild <= 1000) {
             versionBuild += 124629556;
         }
+    }
+    public static void ArrayAppend<T>(ref T[] array, T value) {
+        Array.Resize(ref array, array.Length + 1);
+        array[array.Length - 1] = value;
     }
 }

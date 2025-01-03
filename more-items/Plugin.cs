@@ -26,38 +26,36 @@ public class CustomItem {
         this.item = item;
     }
 
-    static private CItem_PluginData MakeItemsPluginData(CItem item) {
-        // Copied from SItems_OnInit
-        CItem_PluginData itemsPluginData = default(CItem_PluginData);
+    static private CItem_PluginData MakeItemPluginData(CItem item) {
+        // Copied from SItems.OnInit
+        CItem_PluginData itemPluginData = default;
         CItemCell citemCell = item as CItemCell;
-        if (citemCell == null) { return itemsPluginData; }
+        if (citemCell == null) { return itemPluginData; }
 
-        var conditions_field = typeof(CItem_Plant).GetField("m_conditions", BindingFlags.NonPublic | BindingFlags.Instance);
-
-        itemsPluginData.m_weight = ((!(citemCell is CItem_Wall)) ? 0f : (citemCell as CItem_Wall).m_weight);
-        itemsPluginData.m_electricValue = citemCell.m_electricValue;
-        itemsPluginData.m_electricOutletFlags = citemCell.m_electricityOutletFlags;
-        itemsPluginData.m_elecSwitchType = ((citemCell != GItems.elecCross) ? ((citemCell != GItems.elecSwitchRelay) ? ((citemCell != GItems.elecSwitch) ? ((citemCell != GItems.elecSwitchPush) ? 0 : 4) : 3) : 2) : 1);
-        itemsPluginData.m_elecVariablePower = ((!citemCell.m_electricVariablePower) ? 0 : 1);
-        itemsPluginData.m_anchor = (int)citemCell.m_anchor;
-        itemsPluginData.m_light = citemCell.m_light;
-        itemsPluginData.m_isBlock = ((!citemCell.IsBlock()) ? 0 : 1);
-        itemsPluginData.m_isBlockDoor = ((!citemCell.IsBlockDoor()) ? 0 : 1);
-        itemsPluginData.m_isReceivingForces = ((!citemCell.IsReceivingForces()) ? 0 : 1);
-        itemsPluginData.m_isMineral = ((!(citemCell is CItem_Mineral)) ? 0 : 1);
-        itemsPluginData.m_isDirt = ((!(citemCell is CItem_MineralDirt)) ? 0 : 1);
-        itemsPluginData.m_isPlant = ((!(citemCell is CItem_Plant)) ? 0 : 1);
-        itemsPluginData.m_isFireProof = ((!citemCell.m_fireProof && (!(citemCell is CItem_Plant) || !((CLifeConditions)conditions_field.GetValue(citemCell as CItem_Plant)).m_isFireProof)) ? 0 : 1);
-        itemsPluginData.m_isWaterGenerator = ((citemCell != GItems.generatorWater) ? 0 : 1);
-        itemsPluginData.m_isWaterPump = ((citemCell != GItems.waterPump) ? 0 : 1);
-        itemsPluginData.m_isLightGenerator = ((citemCell != GItems.generatorSun) ? 0 : 1);
-        itemsPluginData.m_isBasalt = ((citemCell != GItems.lava) ? 0 : 1);
-        itemsPluginData.m_isLightonium = ((citemCell != GItems.lightonium) ? 0 : 1);
-        itemsPluginData.m_isOrganicHeart = ((citemCell != GItems.organicRockHeart) ? 0 : 1);
-        itemsPluginData.m_isSunLamp = ((citemCell != GItems.lightSun) ? 0 : 1);
-        itemsPluginData.m_isAutobuilder = ((!(citemCell is CItem_MachineAutoBuilder)) ? 0 : 1);
-        itemsPluginData.m_customValue = ((!(citemCell is CItem_Machine)) ? 0f : (citemCell as CItem_Machine).m_customValue);
-        return itemsPluginData;
+        itemPluginData.m_weight = ((!(citemCell is CItem_Wall)) ? 0f : (citemCell as CItem_Wall).m_weight);
+        itemPluginData.m_electricValue = citemCell.m_electricValue;
+        itemPluginData.m_electricOutletFlags = citemCell.m_electricityOutletFlags;
+        itemPluginData.m_elecSwitchType = ((citemCell != GItems.elecCross) ? ((citemCell != GItems.elecSwitchRelay) ? ((citemCell != GItems.elecSwitch) ? ((citemCell != GItems.elecSwitchPush) ? 0 : 4) : 3) : 2) : 1);
+        itemPluginData.m_elecVariablePower = ((!citemCell.m_electricVariablePower) ? 0 : 1);
+        itemPluginData.m_anchor = (int)citemCell.m_anchor;
+        itemPluginData.m_light = citemCell.m_light;
+        itemPluginData.m_isBlock = ((!citemCell.IsBlock()) ? 0 : 1);
+        itemPluginData.m_isBlockDoor = ((!citemCell.IsBlockDoor()) ? 0 : 1);
+        itemPluginData.m_isReceivingForces = ((!citemCell.IsReceivingForces()) ? 0 : 1);
+        itemPluginData.m_isMineral = ((!(citemCell is CItem_Mineral)) ? 0 : 1);
+        itemPluginData.m_isDirt = ((!(citemCell is CItem_MineralDirt)) ? 0 : 1);
+        itemPluginData.m_isPlant = ((!(citemCell is CItem_Plant)) ? 0 : 1);
+        itemPluginData.m_isFireProof = ((!citemCell.m_fireProof && (!(citemCell is CItem_Plant) || !(citemCell as CItem_Plant).m_conditions.m_isFireProof)) ? 0 : 1);
+        itemPluginData.m_isWaterGenerator = ((citemCell != GItems.generatorWater) ? 0 : 1);
+        itemPluginData.m_isWaterPump = ((citemCell != GItems.waterPump) ? 0 : 1);
+        itemPluginData.m_isLightGenerator = ((citemCell != GItems.generatorSun) ? 0 : 1);
+        itemPluginData.m_isBasalt = ((citemCell != GItems.lava) ? 0 : 1);
+        itemPluginData.m_isLightonium = ((citemCell != GItems.lightonium) ? 0 : 1);
+        itemPluginData.m_isOrganicHeart = ((citemCell != GItems.organicRockHeart) ? 0 : 1);
+        itemPluginData.m_isSunLamp = ((citemCell != GItems.lightSun) ? 0 : 1);
+        itemPluginData.m_isAutobuilder = ((!(citemCell is CItem_MachineAutoBuilder)) ? 0 : 1);
+        itemPluginData.m_customValue = ((!(citemCell is CItem_Machine)) ? 0f : (citemCell as CItem_Machine).m_customValue);
+        return itemPluginData;
     }
 
     public void AddToGItems() {
@@ -67,8 +65,7 @@ public class CustomItem {
         item.Init();
 
         ref var itemsPluginData = ref SSingleton<SItems>.Inst.m_itemsPluginData;
-        Array.Resize(ref itemsPluginData, itemsPluginData.Length + 1);
-        itemsPluginData[itemsPluginData.Length - 1] = MakeItemsPluginData(item);
+        Utils.ArrayAppend(ref itemsPluginData, MakeItemPluginData(item));
     }
 
     public CItem item{ get; private set; }
