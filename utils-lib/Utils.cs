@@ -1,3 +1,4 @@
+using BepInEx;
 using HarmonyLib;
 using System;
 using System.IO;
@@ -45,5 +46,26 @@ public static class Utils {
     }
     public static void RunStaticConstructor(Type type) {
         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(type.TypeHandle);
+    }
+    public static int HashCombine(int first, int second) {
+        unchecked {
+            uint x = (uint)first + 0x9e3779b9 + (uint)second;
+            x ^= x >> 16;
+            x *= 0x21F0AAAD;
+            x ^= x >> 15;
+            x *= 0x735A2D97;
+            x ^= x >> 15;
+            return (int)x;
+        }
+    }
+    public static int GetPluginHash(BaseUnityPlugin plugin) {
+        var metadata = MetadataHelper.GetMetadata(plugin);
+        return HashCombine(metadata.GUID.GetHashCode(), metadata.Version.GetHashCode());
+    }
+    public static void UniqualizeVersionBuild(ref int versionBuild, BaseUnityPlugin plugin) {
+        versionBuild = Utils.HashCombine(versionBuild, Utils.GetPluginHash(plugin));
+        if (versionBuild <= 1000) {
+            versionBuild += 124629556;
+        }
     }
 }

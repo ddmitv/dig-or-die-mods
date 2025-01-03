@@ -9,8 +9,9 @@ using ModUtils;
 [BepInPlugin("friendly-fire", "Friendly Fire", "1.0.0")]
 public class FriendlyFire : BaseUnityPlugin
 {
-    private void Start()
-    {
+    private void Start() {
+        Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
+
         var configDamageAOE = Config.Bind<bool>(
             section: "FriendlyFire", key: "DamageAOE", defaultValue: true,
             description: "Enables damage for players from explosions/lightning"

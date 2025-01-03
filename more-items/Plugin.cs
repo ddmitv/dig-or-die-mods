@@ -121,6 +121,8 @@ public class CItem_IndestructibleMineral : CItem_Mineral {
 [BepInPlugin("more-items", "More Items", "0.0.0")]
 public class MoreItemsPlugin : BaseUnityPlugin {
     private void Start() {
+        Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
+
         using var textureStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("more-items.textures.combined_textures.png");
 
         CustomCTile.texture = new Texture2D(1, 1, TextureFormat.ARGB32, false);

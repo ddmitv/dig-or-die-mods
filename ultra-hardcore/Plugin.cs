@@ -173,7 +173,6 @@ public static class NoQuickSavesPatch {
 public static class ContinuousEventsPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SEnvironment), nameof(SEnvironment.OnUpdateSimu))]
-    [HarmonyDebug]
     private static IEnumerable<CodeInstruction> SEnvironment_OnUpdateSimu(IEnumerable<CodeInstruction> instructions) {
         static void RemoveImpossibleEvents(List<CEnvironment> events) {
             bool hasPermanentMist = UltraHardcorePlugin.configPermanentMist.Value;
@@ -231,10 +230,12 @@ public class UltraHardcorePlugin : BaseUnityPlugin
     public static ConfigEntry<bool> configPermanentAcidWater;
 
     private void Start() {
+        Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
+
         configPlayerHpMax = Config.Bind<float>(
-            section: "UltraHardcore", key: "HpMax", defaultValue: 1f,
+            section: "UltraHardcore", key: "HpMax", defaultValue: 0f,
             configDescription: new ConfigDescription(
-                "Maximum health for the player",
+                "Maximum health for the player. '0' for default maximum health",
                 new AcceptableValueRange<float>(0, float.MaxValue)
             )
         );
@@ -268,12 +269,14 @@ public class UltraHardcorePlugin : BaseUnityPlugin
         );
         var configContinuousEvents = Config.Bind<bool>(
             section: "UltraHardcore", key: "ContinuousEvents", defaultValue: false,
-            description: ""
+            description: "Makes events always active. Note that day-only and night-only events will appear only at corresponding time of day"
         );
 
         var harmony = new Harmony("ultra-hardcore");
 
-        harmony.PatchAll(typeof(HpMaxPatch));
+        if (configPlayerHpMax.Value != 0f) {
+            harmony.PatchAll(typeof(HpMaxPatch));
+        }
         if (configPermanentMist.Value) {
             harmony.PatchAll(typeof(PermanentMistPatch));
         }
