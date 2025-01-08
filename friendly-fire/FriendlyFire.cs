@@ -24,6 +24,10 @@ public class FriendlyFire : BaseUnityPlugin
             section: "FriendlyFire", key: "HideMinimapPlayers", defaultValue: false,
             description: "Hides player icons from minimap"
         );
+        var configPlayerDamageToGround = Config.Bind<bool>(
+            section: "FriendlyFire", key: "PlayerDamageToGround", defaultValue: false,
+            description: "Allows players to do damage to tiles"
+        );
 
         var harmony = new Harmony("friendly-fire");
         harmony.PatchAll(typeof(FriendlyFire));
@@ -36,7 +40,9 @@ public class FriendlyFire : BaseUnityPlugin
         if (configHideMinimapPlayers.Value) {
             harmony.PatchAll(typeof(HideMinimapPlayers_Patch));
         }
-        
+        if (configPlayerDamageToGround.Value) {
+            harmony.PatchAll(typeof(PlayerDamageToGround_Patch));
+        }
     }
 
     [HarmonyTranspiler]
@@ -243,3 +249,25 @@ public static class HideMinimapPlayers_Patch {
     }
 }
 
+public static class PlayerDamageToGround_Patch {
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(CBullet), nameof(CBullet.CheckColWithGround))]
+    private static IEnumerable<CodeInstruction> CBullet_CheckColWithGround(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
+                new(OpCodes.Isinst, typeof(CUnitMonster)),
+                new(OpCodes.Brfalse))
+            .CreateLabelAtOffset(4, out Label successLabel)
+            .InjectAndAdvance(OpCodes.Ldarg_0)
+            .Insert(
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
+                new(OpCodes.Isinst, typeof(CUnitPlayer)),
+                new(OpCodes.Brtrue, successLabel));
+
+        return codeMatcher.Instructions();
+    }
+}

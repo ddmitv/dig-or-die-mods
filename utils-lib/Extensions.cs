@@ -34,4 +34,8 @@ public static class CodeMatcherExtensions {
 
         return self;
     }
+    public static CodeMatcher CreateLabelAtOffset(this CodeMatcher self, uint offset, out Label label) {
+        self.CreateLabelAt(self.Pos + (int)offset, out label);
+        return self;
+    }
 }
