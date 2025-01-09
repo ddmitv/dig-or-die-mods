@@ -1,10 +1,180 @@
 ﻿using BepInEx;
-using BepInEx.Configuration;
 using HarmonyLib;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
 using ModUtils;
+
+public static class PlayersDamagePlayersPatch {
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(CBullet), nameof(CBullet.CheckColWithUnits))]
+    private static IEnumerable<CodeInstruction> CBullet_CheckColWithUnits(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new(OpCodes.Call, AccessTools.PropertyGetter(typeof(Vector2), nameof(Vector2.zero))),
+                new(OpCodes.Stloc_S))
+            .ThrowIfInvalid("(1)")
+            .CreateLabel(out var successLabel);
+
+        codeMatcher.Start()
+            .MatchForward(useEnd: true,
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), "m_unitsHit")),
+                new(OpCodes.Ldloc_2),
+                new(OpCodes.Callvirt, AccessTools.Method(typeof(List<CUnit>), nameof(List<CUnit>.Contains))),
+                new(OpCodes.Brtrue))
+            .ThrowIfInvalid("(2)")
+            .Advance(1)
+            .InjectAndAdvance(OpCodes.Ldarg_0)
+            .CreateLabel(out var failLabel)
+            .Insert(
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
+                new(OpCodes.Isinst, typeof(CUnitPlayer)),
+                new(OpCodes.Brfalse, failLabel), // `m_attacker` is not CUnitPlayer
+                new(OpCodes.Ldloc_2),
+                new(OpCodes.Isinst, typeof(CUnitPlayer)),
+                new(OpCodes.Brfalse, failLabel), // `cunit2` is CUnitPlayer
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
+                new(OpCodes.Ldloc_2),
+                new(OpCodes.Bne_Un, successLabel)); // `m_attacker` != `cunit2`
+
+        return codeMatcher.Instructions();
+    }
+}
+
+public static class DoDamageAOEToPlayers {
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(SUnits), nameof(SUnits.DoDamageAOE))]
+    private static IEnumerable<CodeInstruction> SUnits_DoDamageAOE(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldarg_S, (byte)8),
+                new(OpCodes.Ldc_R4, -3.4028235E+38f),
+                new(OpCodes.Beq))
+            .ThrowIfInvalid("(1)")
+            .CreateLabel(out var successLabel);
+
+        codeMatcher.Start()
+            .MatchForward(useEnd: true,
+                new(OpCodes.Ldarg_S, (byte)6),
+                new(OpCodes.Brfalse))
+            .ThrowIfInvalid("(2)")
+            .Advance(1)
+            .InjectAndAdvance(OpCodes.Ldloc_2)
+            .Insert(
+                new(OpCodes.Isinst, typeof(CUnitPlayer)),
+                new(OpCodes.Brtrue, successLabel));
+
+        return codeMatcher.Instructions();
+    }
+}
+
+public static class HidePlayerNamesPatch {
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(SScreenHudWorld), nameof(SScreenHudWorld.OnUpdate))]
+    private static IEnumerable<CodeInstruction> SScreenHudWorld_OnUpdate(IEnumerable<CodeInstruction> instructions) {
+        var codeMatcher = new CodeMatcher(instructions);
+        var CMeshText_Get = AccessTools.Method(typeof(CMesh<CMeshText>), nameof(CMesh<CMeshText>.Get), [typeof(SScreen), typeof(bool)]);
+
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldc_I4_0),
+                new(OpCodes.Call, CMeshText_Get))
+            .ThrowIfInvalid("(1)")
+            .SetAndAdvance(OpCodes.Nop, null)
+            .RemoveInstructions(28);
+        codeMatcher
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldc_I4_0),
+                new(OpCodes.Call, CMeshText_Get),
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CPlayer), nameof(CPlayer.m_lastChat))),
+                new(OpCodes.Ldloca_S))
+            .ThrowIfInvalid("(2)")
+            .SetAndAdvance(OpCodes.Nop, null)
+            .RemoveInstructions(22);
+
+        return codeMatcher.Instructions();
+    }
+}
+
+public static class HideMinimapPlayers_Patch {
+    private static void HideMinimapPlayerIcon(CodeMatcher codeMatcher) {
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Callvirt, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.HasUnitPlayer))),
+                new(OpCodes.Brtrue))
+            .ThrowIfInvalid("(1)");
+
+        codeMatcher.Clone()
+            .MatchForward(useEnd: false, new CodeMatch(OpCodes.Br))
+            .ThrowIfInvalid("(2)")
+            .GetOperand(out Label failLabel);
+
+        codeMatcher
+            .GetOperand(out LocalBuilder playerVar)
+            .Insert(
+                new(OpCodes.Ldloc_S, playerVar),
+                new(OpCodes.Call, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.IsMe))),
+                new(OpCodes.Brfalse, failLabel));
+    }
+    private static void HideLiveViewPixels(CodeMatcher codeMatcher) {
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Texture2D), nameof(Texture2D.SetPixels32), [typeof(int), typeof(int), typeof(int), typeof(int), typeof(Color32[])])))
+            .ThrowIfInvalid("(3)")
+            .Advance(1)
+            .CreateLabel(out Label skipLabel)
+            .Advance(-13)
+            .Insert(
+                new(OpCodes.Ldloc_1),
+                new(OpCodes.Call, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.IsMe))),
+                new(OpCodes.Brfalse, skipLabel));
+    }
+
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(SMinimap), nameof(SMinimap.OnUpdate))]
+    private static IEnumerable<CodeInstruction> SMinimap_OnUpdate(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        HideMinimapPlayerIcon(codeMatcher);
+        HideLiveViewPixels(codeMatcher);
+
+        return codeMatcher.Instructions();
+    }
+}
+
+public static class PlayerDamageToGroundPatch {
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(CBullet), nameof(CBullet.CheckColWithGround))]
+    private static IEnumerable<CodeInstruction> CBullet_CheckColWithGround(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
+                new(OpCodes.Isinst, typeof(CUnitMonster)),
+                new(OpCodes.Brfalse))
+            .CreateLabelAtOffset(4, out Label successLabel)
+            .InjectAndAdvance(OpCodes.Ldarg_0)
+            .Insert(
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
+                new(OpCodes.Isinst, typeof(CUnitPlayer)),
+                new(OpCodes.Brtrue, successLabel));
+
+        return codeMatcher.Instructions();
+    }
+}
+
 
 [BepInPlugin("friendly-fire", "Friendly Fire", "1.0.0")]
 public class FriendlyFire : BaseUnityPlugin
@@ -30,57 +200,21 @@ public class FriendlyFire : BaseUnityPlugin
         );
 
         var harmony = new Harmony("friendly-fire");
-        harmony.PatchAll(typeof(FriendlyFire));
+
+        harmony.PatchAll(typeof(PlayersDamagePlayersPatch));
+
         if (configDamageAOE.Value) {
-            harmony.PatchAll(typeof(SUnits_DoDamageAOE_Patch));
+            harmony.PatchAll(typeof(DoDamageAOEToPlayers));
         }
         if (configHideNames.Value) {
-            harmony.PatchAll(typeof(HidePlayerNames_Patch));
+            harmony.PatchAll(typeof(HidePlayerNamesPatch));
         }
         if (configHideMinimapPlayers.Value) {
             harmony.PatchAll(typeof(HideMinimapPlayers_Patch));
         }
         if (configPlayerDamageToGround.Value) {
-            harmony.PatchAll(typeof(PlayerDamageToGround_Patch));
+            harmony.PatchAll(typeof(PlayerDamageToGroundPatch));
         }
-    }
-
-    [HarmonyTranspiler]
-    [HarmonyPatch(typeof(CBullet), nameof(CBullet.CheckColWithUnits))]
-    private static IEnumerable<CodeInstruction> CBullet_CheckColWithUnits(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
-                new(OpCodes.Call, AccessTools.PropertyGetter(typeof(Vector2), nameof(Vector2.zero))),
-                new(OpCodes.Stloc_S))
-            .ThrowIfInvalid("friendly-fire transpiler: Failed to find `call Vector2.zero`, `stloc.s 7`")
-            .CreateLabel(out var successLabel);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: true,
-                new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), "m_unitsHit")),
-                new(OpCodes.Ldloc_2),
-                new(OpCodes.Callvirt, AccessTools.Method(typeof(List<CUnit>), nameof(List<CUnit>.Contains))),
-                new(OpCodes.Brtrue))
-            .ThrowIfInvalid("friendly-fire transpiler (1)")
-            .Advance(1)
-            .InjectAndAdvance(OpCodes.Ldarg_0)
-            .CreateLabel(out var failLabel)
-            .Insert(
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
-                new(OpCodes.Isinst, typeof(CUnitPlayer)),
-                new(OpCodes.Brfalse, failLabel), // `m_attacker` is not CUnitPlayer
-                new(OpCodes.Ldloc_2),
-                new(OpCodes.Isinst, typeof(CUnitPlayer)),
-                new(OpCodes.Brfalse, failLabel), // `cunit2` is CUnitPlayer
-                new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
-                new(OpCodes.Ldloc_2),
-                new(OpCodes.Bne_Un, successLabel)); // `m_attacker` != `cunit2`
-
-        return codeMatcher.Instructions();
     }
 
     // [HarmonyTranspiler]
@@ -142,132 +276,3 @@ public class FriendlyFire : BaseUnityPlugin
     // }
 }
 
-public static class SUnits_DoDamageAOE_Patch {
-    [HarmonyTranspiler]
-    [HarmonyPatch(typeof(SUnits), nameof(SUnits.DoDamageAOE))]
-    private static IEnumerable<CodeInstruction> SUnits_DoDamageAOE(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
-                new(OpCodes.Ldarg_S, (byte)8),
-                new(OpCodes.Ldc_R4, -3.4028235E+38f),
-                new(OpCodes.Beq))
-            .ThrowIfInvalid("friendly-fire transpiler (1)")
-            .CreateLabel(out var successLabel);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: true,
-                new(OpCodes.Ldarg_S, (byte)6),
-                new(OpCodes.Brfalse))
-            .ThrowIfInvalid("friendly-fire transpiler (2)")
-            .Advance(1)
-            .InjectAndAdvance(OpCodes.Ldloc_2)
-            .Insert(
-                new(OpCodes.Isinst, typeof(CUnitPlayer)),
-                new(OpCodes.Brtrue, successLabel));
-
-        return codeMatcher.Instructions();
-    }
-}
-
-public static class HidePlayerNames_Patch {
-    [HarmonyTranspiler]
-    [HarmonyPatch(typeof(SScreenHudWorld), nameof(SScreenHudWorld.OnUpdate))]
-    private static IEnumerable<CodeInstruction> SScreenHudWorld_OnUpdate(IEnumerable<CodeInstruction> instructions) {
-        var codeMatcher = new CodeMatcher(instructions);
-        var CMeshText_Get = AccessTools.Method(typeof(CMesh<CMeshText>), nameof(CMesh<CMeshText>.Get), [typeof(SScreen), typeof(bool)]);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
-                new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldc_I4_0),
-                new(OpCodes.Call, CMeshText_Get))
-            .ThrowIfInvalid("friendly-fire transpiler (1)")
-            .SetAndAdvance(OpCodes.Nop, null)
-            .RemoveInstructions(28);
-        codeMatcher
-            .MatchForward(useEnd: false,
-                new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldc_I4_0),
-                new(OpCodes.Call, CMeshText_Get),
-                new(OpCodes.Ldloc_S),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CPlayer), nameof(CPlayer.m_lastChat))),
-                new(OpCodes.Ldloca_S))
-            .ThrowIfInvalid("friendly-fire transpiler (2)")
-            .SetAndAdvance(OpCodes.Nop, null)
-            .RemoveInstructions(22);
-
-        return codeMatcher.Instructions();
-    }
-}
-
-public static class HideMinimapPlayers_Patch {
-    private static void HideMinimapPlayerIcon(CodeMatcher codeMatcher) {
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
-                new(OpCodes.Ldloc_S),
-                new(OpCodes.Callvirt, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.HasUnitPlayer))),
-                new(OpCodes.Brtrue))
-            .ThrowIfInvalid("(1)");
-
-        codeMatcher.Clone()
-            .MatchForward(useEnd: false, new CodeMatch(OpCodes.Br))
-            .ThrowIfInvalid("(2)")
-            .GetOperand(out Label failLabel);
-
-        codeMatcher
-            .GetOperand(out LocalBuilder playerVar)
-            .Insert(
-                new(OpCodes.Ldloc_S, playerVar),
-                new(OpCodes.Call, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.IsMe))),
-                new(OpCodes.Brfalse, failLabel));
-    }
-    private static void HideLiveViewPixels(CodeMatcher codeMatcher) {
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Texture2D), nameof(Texture2D.SetPixels32), [typeof(int), typeof(int), typeof(int), typeof(int), typeof(Color32[])])))
-            .ThrowIfInvalid("(3)")
-            .Advance(1)
-            .CreateLabel(out Label skipLabel)
-            .Advance(-13)
-            .Insert(
-                new(OpCodes.Ldloc_1),
-                new(OpCodes.Call, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.IsMe))),
-                new(OpCodes.Brfalse, skipLabel));
-    }
-
-    [HarmonyTranspiler]
-    [HarmonyPatch(typeof(SMinimap), nameof(SMinimap.OnUpdate))]
-    private static IEnumerable<CodeInstruction> SMinimap_OnUpdate(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
-        HideMinimapPlayerIcon(codeMatcher);
-        HideLiveViewPixels(codeMatcher);
-
-        return codeMatcher.Instructions();
-    }
-}
-
-public static class PlayerDamageToGround_Patch {
-    [HarmonyTranspiler]
-    [HarmonyPatch(typeof(CBullet), nameof(CBullet.CheckColWithGround))]
-    private static IEnumerable<CodeInstruction> CBullet_CheckColWithGround(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
-                new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
-                new(OpCodes.Isinst, typeof(CUnitMonster)),
-                new(OpCodes.Brfalse))
-            .CreateLabelAtOffset(4, out Label successLabel)
-            .InjectAndAdvance(OpCodes.Ldarg_0)
-            .Insert(
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
-                new(OpCodes.Isinst, typeof(CUnitPlayer)),
-                new(OpCodes.Brtrue, successLabel));
-
-        return codeMatcher.Instructions();
-    }
-}
