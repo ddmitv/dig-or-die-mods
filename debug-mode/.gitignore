@@ -1,0 +1,5 @@
+*
+
+!.gitignore
+!debug-mode.csproj
+!DebugMode.cs

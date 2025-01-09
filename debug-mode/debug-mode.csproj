@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>debug_mode</AssemblyName>
+    <Product>Debug Mode</Product>
+    <Version>0.0.0</Version>
+  </PropertyGroup>
+
+  <Import Project="../utils-lib/utils-lib.targets"/>
+</Project>
