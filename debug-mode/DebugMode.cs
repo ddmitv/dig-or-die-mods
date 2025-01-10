@@ -2,8 +2,6 @@
 using BepInEx.Configuration;
 using HarmonyLib;
 using ModUtils;
-using Mono.Cecil;
-using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
