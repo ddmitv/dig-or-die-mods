@@ -6,6 +6,7 @@
 !DevEnv.targets.template
 !Directory.Build.props
 !NuGet.Config
+!dod-save.hexpat
 
 !more-items/
 !friendly-fire/
