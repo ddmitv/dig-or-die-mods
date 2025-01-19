@@ -1,4 +1,3 @@
-
 import type.magic;
 import type.byte;
 import std.sys;
@@ -11,7 +10,7 @@ s32 save_build_id = null;
 fn assert_valid_enum(auto pattern) {
     std::assert(std::core::is_valid_enum(pattern),
         std::format("Invalid enum value: '{}'", s128(pattern))
-    );  
+    );
 };
 
 fn read_7_bit_encoded_int(u128 address) {
@@ -27,7 +26,7 @@ fn read_7_bit_encoded_int(u128 address) {
         }
     }
     read_count = i;
-    return num;    
+    return num;
 };
 
 struct EncodedInt7Bit {
@@ -48,12 +47,12 @@ fn format_string(ref auto value) {
     return value.data;
 };
 fn transform_string(ref auto value) {
-    return value.data;  
+    return value.data;
 };
 
 struct MagicString<auto Expected> {
     String string;
-    
+
     std::assert(string == Expected, std::format(
         "Invalid magic value! Expected \"{}\", got \"{}\" at position 0x{:X}", type::escape_bytes(Expected), type::escape_bytes(string), $ - std::string::length(Expected))
     );
@@ -80,11 +79,11 @@ fn format_vector2(ref auto x) { return std::format("({}, {})", x.x, x.y); };
 
 struct SaveDataHeader {
     float version;
-    
+
     s32 build;
     std::assert_warn(build >= 481, std::format("build '{}' is not compatible with the game version", build));
     save_build_id = build;
-    
+
     String game_name;
     MagicString<"Header">;
 };
@@ -100,9 +99,9 @@ struct BinaryHeader {
 struct GameParamsData {
     String field_name;
     BinaryHeader binary_header;
-   
+
     u8 unknown[std::mem::find_string_in_range(0, $, builtin::std::mem::size(), "\x10Game Params Data") - $];
-    
+
     MagicString<"Game Params Data">;
 };
 
@@ -115,7 +114,7 @@ struct Pickup {
 struct ItemsData {
     s32 count [[comment("Number of all items in the game. Note that this also includes 0th 'null' item")]];
     String code_names[count - 1] [[single_color]];
-    
+
     s32 pickups_actives_count;
     Pickup pickups[pickups_actives_count] [[single_color]];
     MagicString<"Items Data">;
@@ -135,10 +134,10 @@ fn format_bar_item(ref auto x) { return std::format("id: {}", x.id); };
 struct PlayerInventory {
     s32 items_count;
     Item items[items_count];
-    
+
     s32 bar_items_count;
     BarItem bar_items[bar_items_count];
-    
+
     u16 item_selected_id;
 };
 
@@ -226,7 +225,7 @@ struct Unit {
     u16 id;
     float hp;
     float air;
-    
+
     bool is_monster = is_monster_id(code_name) [[export]];
     if (is_monster) {
         bool is_night_spawn;
@@ -248,7 +247,7 @@ struct UnitsData {
     Unit units[units_count];
     s32 species_killed_count;
     SpecieKilled species_killed[species_killed_count];
-    
+
     MagicString<"Units Data">;
 };
 
