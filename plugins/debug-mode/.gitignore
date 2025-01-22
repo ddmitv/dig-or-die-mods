@@ -3,3 +3,4 @@
 !.gitignore
 !debug-mode.csproj
 !DebugMode.cs
+!README.md
