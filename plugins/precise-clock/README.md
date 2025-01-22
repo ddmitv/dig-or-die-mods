@@ -15,6 +15,9 @@ that represents a value between 0 and 1 (`GVars.m_clock`) to a 24-hour diapason.
 
 This plugin should work with custom night and day durations, even if they are changed in the middle of the game.
 
+> [!IMPORTANT]
+> This is client-only plugin. It doesn't require installation on host/everybody in the lobby.
+
 ## Configuration
 
 ### `Color`
