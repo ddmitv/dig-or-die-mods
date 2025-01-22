@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>precise_clock</AssemblyName>
+    <Product>Precise Clock</Product>
+    <Version>0.0.0</Version>
+  </PropertyGroup>
+
+  <Import Project="../utils-lib/utils-lib.targets"/>
+</Project>
