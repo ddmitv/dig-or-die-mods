@@ -8,9 +8,5 @@
 !NuGet.Config
 !dod-save.hexpat
 
-!more-items/
-!friendly-fire/
-!ultra-hardcore/
-!debug-mode/
-!utils-lib/
+!plugins/
 !examples/

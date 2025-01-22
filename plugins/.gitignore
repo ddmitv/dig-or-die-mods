@@ -1,0 +1,8 @@
+*
+
+!.gitignore
+!debug-mode/
+!friendly-fire/
+!more-items/
+!ultra-hardcore/
+!utils-lib/
