@@ -86,8 +86,6 @@ public class DebugMode : BaseUnityPlugin
     }
 
     private void Start() {
-        Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
-
         var harmony = new Harmony("debug-mode");
 
         harmony.PatchAll(typeof(EnableDebugModePatch));
