@@ -3,3 +3,7 @@
 !.gitignore
 !precise-clock.csproj
 !PreciseClock.cs
+!precise-clock-event-end.png
+!precise-clock-event-start.png
+!precise-clock-showcase.png
+!README.md
