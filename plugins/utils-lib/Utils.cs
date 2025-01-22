@@ -70,4 +70,7 @@ public static class Utils {
         Array.Resize(ref array, array.Length + 1);
         array[array.Length - 1] = value;
     }
+    public static int CeilDiv(int x, int y) {
+        return (x + y - 1) / y;
+    }
 }
