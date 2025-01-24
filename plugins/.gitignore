@@ -1,6 +1,7 @@
 *
 
 !.gitignore
+!Directory.Build.props
 !debug-mode/
 !friendly-fire/
 !more-items/

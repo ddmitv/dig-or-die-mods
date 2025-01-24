@@ -1,0 +1,5 @@
+*
+
+!.gitignore
+!save-tool/
+!Directory.Build.props
