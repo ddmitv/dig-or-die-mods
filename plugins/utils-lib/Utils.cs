@@ -2,6 +2,7 @@ using BepInEx;
 using HarmonyLib;
 using System;
 using System.IO;
+using System.Reflection;
 
 namespace ModUtils;
 
@@ -72,5 +73,8 @@ public static class Utils {
     }
     public static int CeilDiv(int x, int y) {
         return (x + y - 1) / y;
+    }
+    public static FieldInfo StaticField(Type type, string fieldName) {
+        return type.GetField(fieldName, BindingFlags.Instance | BindingFlags.Public);
     }
 }
