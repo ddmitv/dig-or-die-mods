@@ -14,6 +14,17 @@ public static class CustomBullets {
         explosionBasaltBgRadius = 4,
         emitLavaBurstParticles = false,
     };
+
+    public static CBulletDesc zf0shotgunBullet = new(
+        "particles/particles", "bullet",
+        radius: 0.15f,
+        dispersionAngleRad: 0.65f,
+        speedStart: 35f, speedEnd: 25f,
+        light: 13619151U
+    ) {
+        m_hasTrail = true,
+        m_pierceArmor = true
+    };
 }
 
 public static class CItemDeviceGroupIds {
@@ -342,6 +353,64 @@ public static class CustomItems {
     public static CustomItem indestructibleLavaOld = new(name: "indestructibleLavaOld",
         item: new CItem_IndestructibleMineral(tile: null, tileIcon: new CTile(3, 5),
             hpMax: 1000, mainColor: 6118492U, surface: GSurfaces.lavaOld, isReplacable: false
+        )
+    );
+    public static CustomItem gunRocketGatling = new(name: "gunRocketGatling",
+        item: new CItem_Weapon(tile: new CTile(2, 1) { m_textureName = "items_weapons" }, tileIcon: new CTile(6, 3) { m_textureName = "items_icons" },
+            heatingPerShot: 0.1f, isAuto: true,
+            attackDesc: new CAttackDesc(
+                range: 20f, damage: 40, nbAttacks: 1, cooldown: 0.15f,
+                knockbackOwn: 3f,
+                knockbackTarget: 25f,
+                projDesc: GBullets.rocket,
+                sound: "rocketFire"
+            )
+        )
+    );
+    public static CustomItem gunRailgun = new(name: "gunRailgun",
+        item: new CItem_Weapon(tile: new CTile(3, 0) { m_textureName = "items_weapons" }, tileIcon: new CTile(3, 3) { m_textureName = "items_icons" },
+            heatingPerShot: 1f, isAuto: false,
+            attackDesc: new CAttackDesc(
+                range: 200f, damage: 100, nbAttacks: 1, cooldown: 1f,
+                knockbackOwn: 60f,
+                knockbackTarget: 2000f,
+                projDesc: new CBulletDesc(
+                    "particles/particles", "plasmaBig",
+                    radius: 0.5f, dispersionAngleRad: 0f,
+                    speedStart: 5000f, speedEnd: 4000f,
+                    light: 11358926U
+                ),
+                sound: "plasmaSnipe"
+            )
+        )
+    );
+    public static CustomItem gunBeamLaser = new(name: "gunBeamLaser",
+        item: new CItem_Weapon(tile: new CTile(0, 1) { m_textureName = "items_weapons" }, tileIcon: new CTile(4, 3) { m_textureName = "items_icons" },
+            heatingPerShot: 0f, isAuto: true,
+            attackDesc: new CAttackDesc(
+                range: 10f, damage: 1, nbAttacks: 1, cooldown: 0f,
+                knockbackOwn: 0f, knockbackTarget: 0f,
+                projDesc: new CBulletDesc(
+                    "particles/particles", "laser",
+                    radius: 0.15f, dispersionAngleRad: 0f,
+                    speedStart: 250f, speedEnd: 250f,
+                    light: 16733782U
+                ) {
+                    m_goThroughEnnemies = true,
+                    m_criticsRate = 0f,
+                }
+            )
+        )
+    );
+    public static CustomItem gunZF0Shotgun = new(name: "gunZF0Shotgun",
+        item: new CItem_Weapon(tile: new CTile(3, 1) { m_textureName = "items_weapons" }, tileIcon: new CTile(7, 3) { m_textureName = "items_icons" },
+            heatingPerShot: 0.4f, isAuto: false,
+            attackDesc: new CAttackDesc(
+                range: 20f, damage: 8, nbAttacks: 10, cooldown: 0.25f,
+                knockbackOwn: 11f, knockbackTarget: 2f,
+                projDesc: CustomBullets.zf0shotgunBullet,
+                sound: "shotgun"
+            )
         )
     );
     // public static CustomItem gunPlasmaThrower = new CustomItem(name: "gunPlasmaThrower",

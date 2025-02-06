@@ -140,6 +140,8 @@ public class Patches {
                         cell.m_water = Mathf.Max(0f, cell.m_water - SMain.SimuDeltaTime * 0.6f);
                     }
                 });
+                var destructionRange = Mathf.CeilToInt(Mathf.Lerp(0f, item.m_attack.m_range / 3f, completionPercentage));
+                SWorld.DoDamageAOE(self.Pos, destructionRange, Utils.CeilDiv(item.m_attack.m_damage, 20));
             }
             if (GVars.m_simuTimeD <= (double)(self.GetLastFireTime() + item.explosionTime)) {
                 return;
@@ -359,6 +361,7 @@ public class Patches {
                 new(OpCodes.Ldfld, AccessTools.Field(typeof(CBulletDesc), nameof(CBulletDesc.m_lavaQuantity))),
                 new(OpCodes.Ldc_R4, 0.0f),
                 new(OpCodes.Ble_Un))
+            .ThrowIfInvalid("(1)")
             .GetOperand(out Label failLabel)
             .Advance(1)
             .Insert(
@@ -371,6 +374,8 @@ public class Patches {
                 }),
                 new(OpCodes.Brfalse, failLabel)
             );
+
+        PatchZF0Bullet(codeMatcher.Start(), "(2)");
 
         return codeMatcher.Instructions();
     }
@@ -423,5 +428,70 @@ public class Patches {
             return false;
         }
         return true;
+    }
+
+    [HarmonyPatch(typeof(CUnit), nameof(CUnit.Update))]
+    [HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> UnclampUnitSpeed(IEnumerable<CodeInstruction> instructions) {
+        var codeMatcher = new CodeMatcher(instructions);
+
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldflda, AccessTools.Field(typeof(CUnit), nameof(CUnit.m_speed))),
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldflda, AccessTools.Field(typeof(CUnit), nameof(CUnit.m_speed))),
+                new(OpCodes.Ldfld, AccessTools.Field(typeof(Vector2), nameof(Vector2.x))),
+                new(OpCodes.Ldc_R4, -30f),
+                new(OpCodes.Ldc_R4, 30f),
+                new(OpCodes.Call, AccessTools.Method(typeof(Mathf), nameof(Mathf.Clamp), [typeof(float), typeof(float), typeof(float)])),
+                new(OpCodes.Stfld, AccessTools.Field(typeof(Vector2), nameof(Vector2.x))))
+            .ThrowIfInvalid("(1)")
+            .RemoveInstructions(18);
+
+        return codeMatcher.Instructions();
+    }
+
+    private static void PatchZF0Bullet(CodeMatcher codeMatcher, string explanation) {
+        codeMatcher
+            .MatchForward(useEnd: true,
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Call, AccessTools.PropertyGetter(typeof(CBullet), nameof(CBullet.Desc))),
+                new(OpCodes.Ldsfld, AccessTools.Field(typeof(GBullets), nameof(GBullets.zf0bullet))),
+                new(OpCodes.Bne_Un))
+            .ThrowIfInvalid(explanation)
+            .Advance(1)
+            .CreateLabel(out Label successLabel)
+            .Advance(-4)
+            .InjectAndAdvance(OpCodes.Ldarg_0)
+            .InsertAndAdvance(
+                new(OpCodes.Call, AccessTools.PropertyGetter(typeof(CBullet), nameof(CBullet.Desc))),
+                new(OpCodes.Ldsfld, AccessTools.Field(typeof(CustomBullets), nameof(CustomBullets.zf0shotgunBullet))),
+                new(OpCodes.Beq, successLabel))
+            .Advance(4);
+    }
+
+    [HarmonyPatch(typeof(CBullet), nameof(CBullet.CheckColWithUnits))]
+    [HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> CBullet_CheckColWithUnits(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        PatchZF0Bullet(codeMatcher, "(1)");
+        PatchZF0Bullet(codeMatcher, "(2)");
+        PatchZF0Bullet(codeMatcher, "(3)");
+
+        return codeMatcher.Instructions();
+    }
+
+    [HarmonyPatch(typeof(CItem_Weapon), nameof(CItem_Weapon.Use_Local))]
+    [HarmonyPostfix]
+    private static void CItem_Weapon_Use_Local_Postfix(CItem_Weapon __instance, CPlayer player, Vector2 worldPos, bool isShift) {
+        if (__instance == CustomItems.gunZF0Shotgun.item
+            && SWorld.GridRectCam.Contains(worldPos)
+            && isShift) {
+            CItemVars vars = GItems.gunZF0.GetVars(player);
+            vars.ZF0TargetLastTimeHit = float.MinValue;
+            vars.ZF0TargetId = ushort.MaxValue;
+        }
     }
 }
