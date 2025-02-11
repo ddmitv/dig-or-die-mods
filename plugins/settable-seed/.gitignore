@@ -3,3 +3,4 @@
 !.gitignore
 !settable-seed.csproj
 !SettableSeed.cs
+!README.md
