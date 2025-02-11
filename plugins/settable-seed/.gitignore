@@ -1,0 +1,5 @@
+*
+
+!.gitignore
+!settable-seed.csproj
+!SettableSeed.cs
