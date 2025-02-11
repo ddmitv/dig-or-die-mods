@@ -18,7 +18,7 @@ public static class InputSeedPatch {
     [HarmonyPostfix]
     private static void SScreenChooseMultiOptions_OnInit(SScreenChooseMultiOptions __instance) {
         multiGuiSeed = new CGuiOptionInput(__instance, __instance.m_guiRoot, EAnchor.Center, x: 750, y: 200,
-            labelTextId: "OPTIONS_SEED", labelWidth: 120, controlWidth: 300
+            labelTextId: "SETTABLE_SEED_OPTIONS_SEED", labelWidth: 120, controlWidth: 300
         );
     }
     [HarmonyPatch(typeof(SScreenChooseMultiOptions), nameof(SScreenChooseMultiOptions.Refresh))]
@@ -60,7 +60,7 @@ public static class InputSeedPatch {
     [HarmonyPostfix]
     private static void SScreenChooseDifficulty_OnInit(SScreenChooseDifficulty __instance) {
         singleGuiSeed = new CGuiOptionInput(__instance, __instance.m_guiRoot, EAnchor.Center, x: 0, y: 400,
-            labelTextId: "OPTIONS_SEED", labelWidth: 400, controlWidth: 400
+            labelTextId: "SETTABLE_SEED_OPTIONS_SEED", labelWidth: 400, controlWidth: 400
         );
     }
     [HarmonyPatch(typeof(SScreenChooseDifficulty), nameof(SScreenChooseDifficulty.Refresh))]
@@ -144,7 +144,7 @@ public class SettableSeed : BaseUnityPlugin
             new ConfigDescription("", new AcceptableValueRange<int>(0, int.MaxValue))
         );
 
-        AddLocText("OPTIONS_SEED", "Seed:");
+        AddLocText("SETTABLE_SEED_OPTIONS_SEED", "Seed:");
 
         var harmony = new Harmony("settable-seed");
         harmony.PatchAll(typeof(InputSeedPatch));
