@@ -398,12 +398,12 @@ public static class CustomItems {
                 knockbackOwn: 0f, knockbackTarget: 0f,
                 projDesc: new CBulletDesc(
                     "particles/particles", "laser",
-                    radius: 0.15f, dispersionAngleRad: 0f,
-                    speedStart: 250f, speedEnd: 250f,
+                    radius: 0.36f, dispersionAngleRad: 0f,
+                    speedStart: 90f, speedEnd: 225f,
                     light: 16733782U
                 ) {
                     m_goThroughEnnemies = true,
-                    m_criticsRate = 0f,
+                    m_criticsRate = 0f
                 }
             )
         )
