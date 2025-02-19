@@ -101,6 +101,7 @@ public class PreciseClock : BaseUnityPlugin
     public static ConfigEntry<ClockPosition> configClockPosition = null;
 
     public static string ToTimeString(float clock) {
+        if (clock < 0f) { clock += 1f; }
         var hour = clock * 24f;
         return $"{(int)hour}:{(int)((hour % 1f) * 60f):00}";
     }
