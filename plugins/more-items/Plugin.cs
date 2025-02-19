@@ -100,6 +100,9 @@ public class CItem_Explosive : CItem_Defense {
     public float lavaReleaseTime = -1f;
     public bool indestructible = false;
     public Color timerColor = Color.red;
+    public float shockWaveRange = 0f;
+    public float shockWaveKnockback = 0f;
+    public float shockWaveDamage = 0f;
 
     public static Dictionary<ushort, float> lastTimeMap = new Dictionary<ushort, float>();
 }
@@ -109,6 +112,9 @@ public class CustomCBulletDesc : CBulletDesc {
 
     public int explosionBasaltBgRadius = 0;
     public bool emitLavaBurstParticles = true;
+    public float shockWaveRange = 0f;
+    public float shockWaveKnockback = 0f;
+    public float shockWaveDamage = 0f;
 }
 public class CItem_IndestructibleMineral : CItem_Mineral {
     public CItem_IndestructibleMineral(CTile tile, CTile tileIcon, ushort hpMax, uint mainColor, CSurface surface, bool isReplacable = false)

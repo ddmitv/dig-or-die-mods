@@ -159,6 +159,10 @@ public class Patches {
             SParticles.common_Explosion.EmitNb(explosionPos, 100, false, 10f);
             attack.Sound.Play(explosionPos, item.explosionSoundMultiplier);
 
+            if (item.shockWaveRange > 0f) {
+                Utils.DoShockWave(explosionPos, item.shockWaveRange, item.shockWaveDamage, item.shockWaveKnockback);
+            }
+
             if (item.alwaysStartEruption && (GVars.m_eruptionTime == 0f || GVars.SimuTime > GVars.m_eruptionTime + SOutgame.Params.m_eruptionDurationTotal)) {
                 SAudio.Get("lavaEruption").Play(G.m_player.Pos, 1.5f);
                 GVars.m_eruptionStartPressure = SGame.LavaPressure;
@@ -339,7 +343,9 @@ public class Patches {
     [HarmonyPostfix]
     [HarmonyPatch(typeof(CBullet), nameof(CBullet.Explosion))]
     private static void CBullet_Explosion(CBullet __instance) {
-        if (__instance.Desc is CustomCBulletDesc cbulletdesc && cbulletdesc.explosionBasaltBgRadius > 0) {
+        if (__instance.Desc is not CustomCBulletDesc cbulletdesc) { return; }
+
+        if (cbulletdesc.explosionBasaltBgRadius > 0) {
             Utils.ApplyInCircle(cbulletdesc.explosionBasaltBgRadius, new int2(__instance.m_pos), (int x, int y) => {
                 if (!Utils.IsValidCell(x, y)) { return; }
 
@@ -347,6 +353,9 @@ public class Patches {
                     SWorld.Grid[x, y].SetBgSurface(GSurfaces.bgLava);
                 }
             });
+        }
+        if (cbulletdesc.shockWaveRange > 0) {
+            Utils.DoShockWave(__instance.m_pos, cbulletdesc.shockWaveRange, cbulletdesc.shockWaveDamage, cbulletdesc.shockWaveKnockback);
         }
     }
     [HarmonyTranspiler]

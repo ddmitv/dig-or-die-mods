@@ -13,6 +13,9 @@ public static class CustomBullets {
         m_light = new Color24(240, 40, 40),
         explosionBasaltBgRadius = 4,
         emitLavaBurstParticles = false,
+        shockWaveRange = 20f,
+        shockWaveKnockback = 10f,
+        shockWaveDamage = 15f,
     };
 
     public static CBulletDesc zf0shotgunBullet = new(
@@ -298,6 +301,9 @@ public static class CustomItems {
             timerColor = Color.red * 0.3f,
             m_light = new Color24(240, 38, 38),
             m_fireProof = true,
+            shockWaveDamage = 30f,
+            shockWaveKnockback = 30f,
+            shockWaveRange = 50f,
         }
     );
     public static CustomItem wallCompositeReinforced = new(name: "wallCompositeReinforced",
