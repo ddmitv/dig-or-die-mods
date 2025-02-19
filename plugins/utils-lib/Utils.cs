@@ -3,6 +3,7 @@ using HarmonyLib;
 using System;
 using System.IO;
 using System.Reflection;
+using UnityEngine;
 
 namespace ModUtils;
 
@@ -76,5 +77,18 @@ public static class Utils {
     }
     public static FieldInfo StaticField(Type type, string fieldName) {
         return type.GetField(fieldName, BindingFlags.Instance | BindingFlags.Public);
+    }
+    public static void DoShockWave(Vector2 center, float radius, float damage, float knockbackTarget) {
+        float radiusSqr = radius * radius;
+        foreach (CUnit unit in SUnits.Units) {
+            if (unit == null || !unit.IsAlive()) { continue; }
+            if ((unit.PosCenter - center).sqrMagnitude > radiusSqr) { continue; }
+
+            var distanceFactor = Mathf.Clamp01(1f - Mathf.Pow((unit.PosCenter - center).magnitude / radius, 2f));
+
+            var appliedDamage = Mathf.Max(1f, damage * distanceFactor * unit.GetArmorMult() - unit.GetArmor());
+            unit.Damage(appliedDamage, attacker: null, showDamage: true, damageCause: "");
+            unit.Push((unit.PosCenter - center).normalized * knockbackTarget * distanceFactor);
+        }
     }
 }
