@@ -1,0 +1,5 @@
+*
+
+!.gitignore
+!enable-asserts.csproj
+!EnableAsserts.cs
