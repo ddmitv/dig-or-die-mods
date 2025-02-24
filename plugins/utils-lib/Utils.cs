@@ -91,4 +91,34 @@ public static class Utils {
             unit.Push((unit.PosCenter - center).normalized * knockbackTarget * distanceFactor);
         }
     }
+    public static bool IsInWorld(int i, int j) {
+        return i >= 0 && j >= 0 && i < SWorld.Gs.x && j < SWorld.Gs.y;
+    }
+    public static void AddChatMessageLocal(string msg) {
+        SSingletonScreen<SScreenHudChat>.Inst.AddChatMessage_Local(null, msg);
+    }
+    public static void AddChatMessageLocalNL(string rawMsg) {
+        foreach (var msg in rawMsg.Split('\n')) {
+            SSingletonScreen<SScreenHudChat>.Inst.AddChatMessage_Local(null, msg);
+        }
+    }
+    public static int Clamp(int val, int min, int max) {
+        return (val < min) ? min : (val > max) ? max : val;
+    }
+    public static void RawSetContent(int i, int j, CItemCell cell) {
+        ref CCell selectedCell = ref SWorld.Grid[i, j];
+        CItemCell prevContent = selectedCell.GetContent();
+        selectedCell.m_contentId = cell.m_id;
+        selectedCell.m_contentHP = cell.m_hpMax;
+        selectedCell.m_flags &= CCell.Flag_BackWall_0 | CCell.Flag_BgSurface_0 | CCell.Flag_BgSurface_1 | CCell.Flag_BgSurface_2;
+        selectedCell.m_forceX = 0;
+        selectedCell.m_forceY = 0;
+        selectedCell.m_water = 0f;
+        selectedCell.m_light = new Color24(0, 0, 0);
+        selectedCell.m_elecProd = 0;
+        selectedCell.m_elecCons = 0;
+        selectedCell.m_temp = new Color24(0, 0, 0);
+
+        SWorldNetwork.OnSetContent(i, j, true, prevContent);
+    }
 }
