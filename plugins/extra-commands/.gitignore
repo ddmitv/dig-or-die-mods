@@ -1,0 +1,5 @@
+*
+
+!.gitignore
+!extra-commands.csproj
+!ExtraCommands.cs
