@@ -2,6 +2,7 @@ using BepInEx;
 using HarmonyLib;
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
@@ -105,20 +106,28 @@ public static class Utils {
     public static int Clamp(int val, int min, int max) {
         return (val < min) ? min : (val > max) ? max : val;
     }
-    public static void RawSetContent(int i, int j, CItemCell cell) {
-        ref CCell selectedCell = ref SWorld.Grid[i, j];
-        CItemCell prevContent = selectedCell.GetContent();
-        selectedCell.m_contentId = cell.m_id;
-        selectedCell.m_contentHP = cell.m_hpMax;
-        selectedCell.m_flags &= CCell.Flag_BackWall_0 | CCell.Flag_BgSurface_0 | CCell.Flag_BgSurface_1 | CCell.Flag_BgSurface_2;
-        selectedCell.m_forceX = 0;
-        selectedCell.m_forceY = 0;
-        selectedCell.m_water = 0f;
-        selectedCell.m_light = new Color24(0, 0, 0);
-        selectedCell.m_elecProd = 0;
-        selectedCell.m_elecCons = 0;
-        selectedCell.m_temp = new Color24(0, 0, 0);
 
-        SWorldNetwork.OnSetContent(i, j, true, prevContent);
+    public static bool ParseBool(string str) {
+        if (str is null) { throw new ArgumentNullException(nameof(str)); }
+        return str switch {
+            "true" => true,
+            "True" => true,
+            "1" => true,
+            "false" => false,
+            "False" => false,
+            "0" => false,
+            _ => throw new FormatException("Failed to parse bool")
+        };
+    }
+    public static void SetFlag(ref uint flags, uint flag, bool value) {
+        flags = (!value) ? (flags & ~flag) : (flags | flag);
+    }
+    public static Color24 ParseColor24(string str) {
+        string[] valuesStr = str.Split(':');
+        if (valuesStr.Length == 1) {
+            return new Color24(uint.Parse(str));
+        }
+        if (valuesStr.Length != 3) { throw new FormatException("Expected exact 3 values for Color24"); }
+        return new Color24(byte.Parse(valuesStr[0]), byte.Parse(valuesStr[1]), byte.Parse(valuesStr[2]));
     }
 }
