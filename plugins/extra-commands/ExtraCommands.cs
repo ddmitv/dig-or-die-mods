@@ -2,6 +2,7 @@
 using BepInEx.Configuration;
 using HarmonyLib;
 using ModUtils;
+using Mono.Cecil;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -157,7 +158,7 @@ public class ExtraCommands : BaseUnityPlugin
             return GItems.Items[(int)itemId];
         }
         if (codeName == nothingCell.m_codeName) {
-            return null;
+            return nothingCell;
         }
         var item = GItems.Items.Skip(1).FirstOrDefault(x => x.m_codeName == codeName);
         if (item is null) {
@@ -165,6 +166,114 @@ public class ExtraCommands : BaseUnityPlugin
         }
         return item;
     }
+    public class SetCellArgs {
+        public uint flags = 0;
+        public bool replaceBackground = false;
+        public ushort hp = ushort.MaxValue;
+        public short forceX = 0;
+        public short forceY = 0;
+        public float water = 0f;
+        public Color24 light = default;
+        public byte elecProd = 0;
+        public byte elecCons = 0;
+        public Color24 temp = default;
+    }
+    public static void SetCell(int i, int j, CItemCell cell, SetCellArgs args = null) {
+        args ??= new();
+
+        ref CCell selectedCell = ref SWorld.Grid[i, j];
+        CItemCell prevContent = selectedCell.GetContent();
+        selectedCell.m_contentId = cell.m_id;
+        selectedCell.m_contentHP = args.hp == ushort.MaxValue ? cell.m_hpMax : args.hp;
+
+        if (args.replaceBackground) {
+            selectedCell.m_flags &= (CCell.Flag_BackWall_0 | CCell.Flag_BgSurface_0 | CCell.Flag_BgSurface_1 | CCell.Flag_BgSurface_2);
+            selectedCell.m_flags |= args.flags;
+        } else {
+            selectedCell.m_flags = args.flags;
+        }
+        selectedCell.m_forceX = args.forceX;
+        selectedCell.m_forceY = args.forceY;
+        selectedCell.m_water = args.water;
+        selectedCell.m_light = args.light;
+        selectedCell.m_elecProd = args.elecProd;
+        selectedCell.m_elecCons = args.elecCons;
+        selectedCell.m_temp = args.temp;
+
+        SWorldNetwork.OnSetContent(i, j, true, prevContent);
+    }
+
+    private class ParseCellResult {
+        public CItemCell item;
+        public SetCellArgs parameters = new();
+    }
+
+    private static ParseCellResult ParseCellParameters(string str) {
+        int codeNameEnd = str.IndexOf('{');
+        string codeName = str.Substring(0, codeNameEnd == -1 ? str.Length : codeNameEnd);
+
+        CItem item = ParseItem(codeName);
+        if (item is null) {
+            throw new FormatException("Unknown item code name");
+        }
+        if (item is not CItemCell itemCell) {
+            throw new FormatException("Expected item cell, not regular item");
+        }
+        var result = new ParseCellResult() { item = itemCell };
+        result.parameters.hp = itemCell.m_hpMax;
+
+        if (codeNameEnd == -1) {
+            return result;
+        }
+        if (str[str.Length - 1] != '}') {
+            throw new FormatException("Unmatched '}'");
+        }
+        var cellParamsStr = str.Remove(str.Length - 1).Substring(codeNameEnd + 1).Split(',').Select(x => x.Trim());
+        var parameters = result.parameters;
+
+        void SetFlag(uint flag, string val) {
+            Utils.SetFlag(ref parameters.flags, flag, Utils.ParseBool(val));
+        }
+        foreach (var cellParamStr in cellParamsStr) {
+            string[] paramNameAndValue = cellParamStr.Split('=');
+            if (paramNameAndValue.Length != 2) {
+                throw new FormatException("There must be only one '='");
+            }
+            string paramName = paramNameAndValue[0];
+            string paramValue = paramNameAndValue[1];
+            
+            switch (paramName.ToLower()) {
+            case "hp": parameters.hp = ushort.Parse(paramValue); break;
+            case "forcex": parameters.forceX = short.Parse(paramValue); break;
+            case "forcey": parameters.forceY = short.Parse(paramValue); break;
+            case "water": parameters.water = float.Parse(paramValue); break;
+            case "elecprod": parameters.elecProd = byte.Parse(paramValue); break;
+            case "eleccons": parameters.elecCons = byte.Parse(paramValue); break;
+            case "data0": SetFlag(CCell.Flag_CustomData0, paramValue); break;
+            case "data1": SetFlag(CCell.Flag_CustomData1, paramValue); break;
+            case "data2": SetFlag(CCell.Flag_CustomData2, paramValue); break;
+            case "burning": SetFlag(CCell.Flag_IsBurning, paramValue); break;
+            case "mapped": SetFlag(CCell.Flag_IsMapped, paramValue); break;
+            case "backwall": SetFlag(CCell.Flag_BackWall_0, paramValue); break;
+            case "bg0": SetFlag(CCell.Flag_BgSurface_0, paramValue); parameters.replaceBackground = true; break;
+            case "bg1": SetFlag(CCell.Flag_BgSurface_1, paramValue); parameters.replaceBackground = true; break;
+            case "bg2": SetFlag(CCell.Flag_BgSurface_2, paramValue); parameters.replaceBackground = true; break;
+            case "waterfall": SetFlag(CCell.Flag_WaterFall, paramValue); break;
+            case "streamlfast": SetFlag(CCell.Flag_StreamLFast, paramValue); break;
+            case "streamrfast": SetFlag(CCell.Flag_StreamRFast, paramValue); break;
+            case "lava": SetFlag(CCell.Flag_IsLava, paramValue); break;
+            case "haswireright": SetFlag(CCell.Flag_HasWireRight, paramValue); break;
+            case "haswiretop": SetFlag(CCell.Flag_HasWireTop, paramValue); break;
+            case "electricalgostate": SetFlag(CCell.Flag_ElectricAlgoState, paramValue); break;
+            case "powered": SetFlag(CCell.Flag_IsPowered, paramValue); break;
+            case "light": parameters.light = Utils.ParseColor24(paramValue); break;
+            case "temp": parameters.temp = Utils.ParseColor24(paramValue); break;
+            default: throw new FormatException($"Unknown cell parameter '{paramName}'");
+            }
+        }
+        return result;
+    }
+
     private static List<string> GetListOfCCellItemNames() {
         return GItems.Items.Skip(1).Where(x => x is CItemCell).Select(x => x.m_codeName).ToList();
     }
@@ -308,14 +417,11 @@ public class ExtraCommands : BaseUnityPlugin
             if (args.Length == 0) {
                 throw new InvalidCommandArgument("Expected item cell code name", 1);
             }
-            CItem selectedItem;
+            ParseCellResult selectedCell;
             try {
-                selectedItem = ParseItem(args[0]) ?? nothingCell;
-            } catch (FormatException formatException) {
-                throw new InvalidCommandArgument(formatException.Message, 1);
-            }
-            if (selectedItem is not CItemCell selectedCell) {
-                throw new InvalidCommandArgument("Expected item cell, not regular item", 1);
+                selectedCell = ParseCellParameters(args[0]);
+            } catch (Exception ex) when (ex is FormatException || ex is OverflowException) {
+                throw new InvalidCommandArgument(ex.Message, 1);
             }
             var playerPos = player.m_unitPlayer.PosCell;
             var mousePos = SGame.MouseWorldPosInt;
@@ -329,8 +435,8 @@ public class ExtraCommands : BaseUnityPlugin
             if (!Utils.IsInWorld(posI, posJ)) {
                 throw new InvalidCommandArgument("The cell position is out of the world");
             }
-            Utils.AddChatMessageLocal($"Replaced cell at ({posI}, {posJ}) with {selectedCell.Name}");
-            Utils.RawSetContent(posI, posJ, selectedCell);
+            Utils.AddChatMessageLocal($"Replaced cell at ({posI}, {posJ}) with {selectedCell.item.Name}");
+            SetCell(posI, posJ, selectedCell.item, selectedCell.parameters);
         }, tabCommandFn: (int argIndex) => {
             return GetListOfCCellItemNames();
         }, helpString:
@@ -340,14 +446,11 @@ public class ExtraCommands : BaseUnityPlugin
             if (args.Length == 0) {
                 throw new InvalidCommandArgument("Expected item cell code name", 1);
             }
-            CItem selectedItem;
+            ParseCellResult selectedCell;
             try {
-                selectedItem = ParseItem(args[0]) ?? nothingCell;
+                selectedCell = ParseCellParameters(args[0]);
             } catch (FormatException formatException) {
                 throw new InvalidCommandArgument(formatException.Message, 1);
-            }
-            if (selectedItem is not CItemCell selectedCell) {
-                throw new InvalidCommandArgument("Expected item cell, not regular item", 1);
             }
 
             var playerPos = player.m_unitPlayer.PosCell;
@@ -374,12 +477,12 @@ public class ExtraCommands : BaseUnityPlugin
             int replacedCellsNum = Math.Max(0, toX - fromX + 1) * Math.Max(0, toY - fromY + 1);
 
             Utils.AddChatMessageLocal(
-                $"Filled cells from ({fromX}, {fromY}) to ({toX}, {toY}) with {selectedCell.Name}. " +
+                $"Filled cells from ({fromX}, {fromY}) to ({toX}, {toY}) with {selectedCell.item.Name}. " +
                 $"Total replaced cells: {replacedCellsNum}"
             );
             for (int x = fromX; x <= toX; ++x) {
                 for (int y = fromY; y <= toY; ++y) {
-                    Utils.RawSetContent(x, y, selectedCell);
+                    SetCell(x, y, selectedCell.item, selectedCell.parameters);
                 }
             }
         }, tabCommandFn: (int argIndex) => {
