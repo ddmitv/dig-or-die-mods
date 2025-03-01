@@ -72,16 +72,18 @@ public static class CustomCommands {
         public byte elecProd = 0;
         public byte elecCons = 0;
         public Color24 temp = default;
+
+        public static readonly SetCellArgs Default = new();
     }
     private static void SetCell(int i, int j, CItemCell cell, SetCellArgs args = null) {
-        args ??= new();
+        args ??= SetCellArgs.Default;
 
         ref CCell selectedCell = ref SWorld.Grid[i, j];
         CItemCell prevContent = selectedCell.GetContent();
         selectedCell.m_contentId = cell.m_id;
         selectedCell.m_contentHP = args.hp == ushort.MaxValue ? cell.m_hpMax : args.hp;
 
-        if (args.replaceBackground) {
+        if (!args.replaceBackground) {
             selectedCell.m_flags &= (CCell.Flag_BackWall_0 | CCell.Flag_BgSurface_0 | CCell.Flag_BgSurface_1 | CCell.Flag_BgSurface_2);
             selectedCell.m_flags |= args.flags;
         } else {
@@ -96,6 +98,9 @@ public static class CustomCommands {
         selectedCell.m_temp = args.temp;
 
         SWorldNetwork.OnSetContent(i, j, true, prevContent);
+    }
+    private static void SetCell(int2 pos, CItemCell cell, SetCellArgs args = null) {
+        SetCell(pos.x, pos.y, cell, args);
     }
 
     private class ParseCellResult {
@@ -189,7 +194,7 @@ public static class CustomCommands {
         }
         return unit;
     }
-    private static bool ParseRelativeCoordinate(string input, int playerPos, int playerCursorPos, out int result) {
+    private static bool ParseCoordinate(string input, int playerPos, int playerCursorPos, out int result) {
         int num = 0;
         result = 0;
         if (input.StartsWith("~")) {
@@ -215,7 +220,7 @@ public static class CustomCommands {
             return false;
         }
     }
-    private static bool ParseRelativeCoordinate(string input, float playerPos, float playerCursorPos, out float result) {
+    private static bool ParseCoordinate(string input, float playerPos, float playerCursorPos, out float result) {
         float num = 0;
         result = 0;
         if (input.StartsWith("~")) {
@@ -241,6 +246,36 @@ public static class CustomCommands {
             return false;
         }
     }
+    private static Vector2 ArgParseXYCoordinate(string[] args, int argXIndex, int argYIndex, CPlayer player) {
+        if (args.Length <= argXIndex) {
+            throw new InvalidCommandArgument($"Expected X coordinate (number)", argXIndex + 1);
+        }
+        if (!ParseCoordinate(args[argXIndex], player.m_unitPlayer.Pos.x, SGame.MouseWorldPos.x, out float coordX)) {
+            throw new InvalidCommandArgument($"Invalid X coordinate (number)", argXIndex + 1);
+        }
+        if (args.Length <= argYIndex) {
+            throw new InvalidCommandArgument($"Expected Y coordinate (number)", argYIndex + 1);
+        }
+        if (!ParseCoordinate(args[argYIndex], player.m_unitPlayer.Pos.y, SGame.MouseWorldPos.y, out float coordY)) {
+            throw new InvalidCommandArgument($"Invalid Y coordinate (number)", argYIndex + 1);
+        }
+        return new Vector2(coordX, coordY);
+    }
+    private static int2 ArgParseXYCoordinateInt(string[] args, int argXIndex, int argYIndex, CPlayer player) {
+        if (args.Length <= argXIndex) {
+            throw new InvalidCommandArgument($"Expected X coordinate (number)", argXIndex + 1);
+        }
+        if (!ParseCoordinate(args[argXIndex], player.m_unitPlayer.PosCell.x, SGame.MouseWorldPosInt.x, out int coordX)) {
+            throw new InvalidCommandArgument($"Invalid X coordinate (number)", argXIndex + 1);
+        }
+        if (args.Length <= argYIndex) {
+            throw new InvalidCommandArgument($"Expected Y coordinate (integer)", argYIndex + 1);
+        }
+        if (!ParseCoordinate(args[argYIndex], player.m_unitPlayer.PosCell.y, SGame.MouseWorldPosInt.y, out int coordY)) {
+            throw new InvalidCommandArgument($"Invalid Y coordinate (integer)", argYIndex + 1);
+        }
+        return new int2(coordX, coordY);
+    }
 
     static public void AddCustomCommands() {
         AddCommand("/tp", (string[] args, CPlayer player) => {
@@ -255,21 +290,12 @@ public static class CustomCommands {
                 }
                 player.m_unitPlayer.Pos = targetPlayer.m_unitPlayer.Pos;
             } else {
-                var playerPos = player.m_unitPlayer.Pos;
-                var mousePos = SGame.MouseWorldPos;
-                if (!ParseRelativeCoordinate(args[0], playerPos.x, mousePos.x, out float pos_x)) {
-                    throw new InvalidCommandArgument("Expected number", 1);
-                }
-                if (args.Length <= 1 || !ParseRelativeCoordinate(args[1], playerPos.y, mousePos.y, out float pos_y)) {
-                    throw new InvalidCommandArgument("Expected number", 2);
-                }
-
-                Vector2 new_pos = new Vector2(pos_x, pos_y);
-                if (!SWorld.GridRectM2.Contains(new_pos)) {
+                Vector2 pos = ArgParseXYCoordinate(args, argXIndex: 0, argYIndex: 1, player);
+                if (!SWorld.GridRectM2.Contains(pos)) {
                     throw new InvalidCommandArgument("The position is out of the world");
                 }
-                player.m_unitPlayer.Pos = new_pos;
-                Utils.AddChatMessageLocal($"Teleported to ({pos_x}, {pos_y})");
+                player.m_unitPlayer.Pos = pos;
+                Utils.AddChatMessageLocal($"Teleported to {pos}");
             }
         }, tabCommandFn: (int argIndex) => {
             return GetListOfPlayersNames();
@@ -315,20 +341,13 @@ public static class CustomCommands {
             } catch (Exception ex) when (ex is FormatException || ex is OverflowException) {
                 throw new InvalidCommandArgument(ex.Message, 1);
             }
-            var playerPos = player.m_unitPlayer.PosCell;
-            var mousePos = SGame.MouseWorldPosInt;
-            if (args.Length < 2 || !ParseRelativeCoordinate(args[1], playerPos.x, mousePos.x, out int posI)) {
-                throw new InvalidCommandArgument("Expected integer", 2);
-            }
-            if (args.Length < 3 || !ParseRelativeCoordinate(args[2], playerPos.y, mousePos.y, out int posJ)) {
-                throw new InvalidCommandArgument("Expected integer", 3);
-            }
+            int2 pos = ArgParseXYCoordinateInt(args, argXIndex: 1, argYIndex: 2, player);
 
-            if (!Utils.IsInWorld(posI, posJ)) {
+            if (!Utils.IsInWorld(pos)) {
                 throw new InvalidCommandArgument("The cell position is out of the world");
             }
-            Utils.AddChatMessageLocal($"Replaced cell at ({posI}, {posJ}) with {selectedCell.item.Name}");
-            SetCell(posI, posJ, selectedCell.item, selectedCell.parameters);
+            Utils.AddChatMessageLocal($"Replaced cell at {pos} with {selectedCell.item.Name}");
+            SetCell(pos, selectedCell.item, selectedCell.parameters);
         }, tabCommandFn: (int argIndex) => {
             return GetListOfCCellItemNames();
         }, helpString:
@@ -345,35 +364,23 @@ public static class CustomCommands {
                 throw new InvalidCommandArgument(formatException.Message, 1);
             }
 
-            var playerPos = player.m_unitPlayer.PosCell;
-            var mousePos = SGame.MouseWorldPosInt;
-            if (args.Length < 2 || !ParseRelativeCoordinate(args[1], playerPos.x, mousePos.x, out int fromX)) {
-                throw new InvalidCommandArgument("Expected integer", 2);
-            }
-            if (args.Length < 3 || !ParseRelativeCoordinate(args[2], playerPos.y, mousePos.y, out int fromY)) {
-                throw new InvalidCommandArgument("Expected integer", 3);
-            }
-            if (args.Length < 4 || !ParseRelativeCoordinate(args[3], playerPos.x, mousePos.x, out int toX)) {
-                throw new InvalidCommandArgument("Expected integer", 4);
-            }
-            if (args.Length < 5 || !ParseRelativeCoordinate(args[4], playerPos.y, mousePos.y, out int toY)) {
-                throw new InvalidCommandArgument("Expected integer", 5);
-            }
+            int2 from = ArgParseXYCoordinateInt(args, argXIndex: 1, argYIndex: 2, player);
+            int2 to = ArgParseXYCoordinateInt(args, argXIndex: 3, argYIndex: 4, player);
 
-            if (!Utils.IsInWorld(fromX - 1, fromY - 1)) {
-                throw new InvalidCommandArgument($"The cell 'from' position is out of the world ({fromX}, {fromY})");
+            if (!Utils.IsInWorld(from.x - 1, from.y - 1)) {
+                throw new InvalidCommandArgument($"The cell 'from' position is out of the world {from}");
             }
-            if (!Utils.IsInWorld(toX, toY)) {
-                throw new InvalidCommandArgument($"The cell 'to' position is out of the world ({toX}, {toY})");
+            if (!Utils.IsInWorld(to)) {
+                throw new InvalidCommandArgument($"The cell 'to' position is out of the world {to}");
             }
-            int replacedCellsNum = Math.Max(0, toX - fromX + 1) * Math.Max(0, toY - fromY + 1);
+            int replacedCellsNum = Math.Max(0, to.x - from.x + 1) * Math.Max(0, to.y - from.y + 1);
 
             Utils.AddChatMessageLocal(
-                $"Filled cells from ({fromX}, {fromY}) to ({toX}, {toY}) with {selectedCell.item.Name}. " +
+                $"Filled cells from {from} to {to} with {selectedCell.item.Name}. " +
                 $"Total replaced cells: {replacedCellsNum}"
             );
-            for (int x = fromX; x <= toX; ++x) {
-                for (int y = fromY; y <= toY; ++y) {
+            for (int x = from.x; x <= to.x; ++x) {
+                for (int y = from.y; y <= to.y; ++y) {
                     SetCell(x, y, selectedCell.item, selectedCell.parameters);
                 }
             }
@@ -405,21 +412,12 @@ public static class CustomCommands {
             if (selectedUnit is null) {
                 throw new InvalidCommandArgument("Cannot spawn null unit", 1);
             }
+            Vector2 spawnPos = ArgParseXYCoordinate(args, argXIndex: 1, argYIndex: 2, player);
 
-            var playerPos = player.m_unitPlayer.Pos;
-            var mousePos = SGame.MouseWorldPos;
-            if (args.Length < 2 || !ParseRelativeCoordinate(args[1], playerPos.x, mousePos.x, out float spawnX)) {
-                throw new InvalidCommandArgument("Expected x coordinate (number)", 2);
-            }
-            if (args.Length < 3 || !ParseRelativeCoordinate(args[2], playerPos.y, mousePos.y, out float spawnY)) {
-                throw new InvalidCommandArgument("Expected y coordinate (number)", 3);
-            }
-
-            Vector2 spawnPos = new Vector2(spawnX, spawnY);
             if (!SWorld.GridRectM2.Contains(spawnPos)) {
-                throw new InvalidCommandArgument($"The spawn position is out of the world ({spawnX}, {spawnY})");
+                throw new InvalidCommandArgument($"The spawn position is out of the world {spawnPos}");
             }
-            Utils.AddChatMessageLocal($"Spawned unit {selectedUnit.GetName()} at ({spawnX}, {spawnY})");
+            Utils.AddChatMessageLocal($"Spawned unit {selectedUnit.GetName()} at {spawnPos}");
             SUnits.SpawnUnit(selectedUnit, spawnPos);
         }, tabCommandFn: (int argIndex) => {
             return GUnits.UDescs.Skip(1).Select(x => x.m_codeName).ToList();
@@ -444,5 +442,8 @@ public static class CustomCommands {
         }, helpString:
             "<color='#afe8f5'>/clearpickups</color> Clears all pickups in the worldclearpickups."
         );
+        AddCommand("/clone", (string[] args, CPlayer player) => {
+
+        });
     }
 }
