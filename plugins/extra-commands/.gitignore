@@ -3,3 +3,4 @@
 !.gitignore
 !extra-commands.csproj
 !ExtraCommands.cs
+!Commands.cs
