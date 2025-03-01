@@ -95,6 +95,9 @@ public static class Utils {
     public static bool IsInWorld(int i, int j) {
         return i >= 0 && j >= 0 && i < SWorld.Gs.x && j < SWorld.Gs.y;
     }
+    public static bool IsInWorld(int2 pos) {
+        return IsInWorld(pos.x, pos.y);
+    }
     public static void AddChatMessageLocal(string msg) {
         SSingletonScreen<SScreenHudChat>.Inst.AddChatMessage_Local(null, msg);
     }
