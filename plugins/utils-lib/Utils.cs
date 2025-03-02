@@ -133,4 +133,9 @@ public static class Utils {
         if (valuesStr.Length != 3) { throw new FormatException("Expected exact 3 values for Color24"); }
         return new Color24(byte.Parse(valuesStr[0]), byte.Parse(valuesStr[1]), byte.Parse(valuesStr[2]));
     }
+    public static void Swap<T>(ref T left, ref T right) {
+        T temp = left;
+        left = right;
+        right = left;
+    }
 }
