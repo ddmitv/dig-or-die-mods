@@ -367,12 +367,15 @@ public static class CustomCommands {
             int2 from = ArgParseXYCoordinateInt(args, argXIndex: 1, argYIndex: 2, player);
             int2 to = ArgParseXYCoordinateInt(args, argXIndex: 3, argYIndex: 4, player);
 
-            if (!Utils.IsInWorld(from.x - 1, from.y - 1)) {
+            if (!Utils.IsInWorld(from)) {
                 throw new InvalidCommandArgument($"The cell 'from' position is out of the world {from}");
             }
             if (!Utils.IsInWorld(to)) {
                 throw new InvalidCommandArgument($"The cell 'to' position is out of the world {to}");
             }
+            if (from.x > to.x) { Utils.Swap(ref to.x, ref from.x); }
+            if (from.y > to.x) { Utils.Swap(ref to.y, ref from.y); }
+
             int replacedCellsNum = Math.Max(0, to.x - from.x + 1) * Math.Max(0, to.y - from.y + 1);
 
             Utils.AddChatMessageLocal(
@@ -443,7 +446,33 @@ public static class CustomCommands {
             "<color='#afe8f5'>/clearpickups</color> Clears all pickups in the worldclearpickups."
         );
         AddCommand("/clone", (string[] args, CPlayer player) => {
+            int2 srcFrom = ArgParseXYCoordinateInt(args, argXIndex: 0, argYIndex: 1, player);
+            int2 srcTo = ArgParseXYCoordinateInt(args, argXIndex: 2, argYIndex: 3, player);
+            int2 dest = ArgParseXYCoordinateInt(args, argXIndex: 4, argYIndex: 5, player);
 
+            if (!Utils.IsInWorld(srcFrom)) {
+                throw new InvalidCommandArgument($"The 'from' position is out of the world {srcFrom}");
+            }
+            if (!Utils.IsInWorld(srcTo)) {
+                throw new InvalidCommandArgument($"The 'to' position is out of the world {srcTo}");
+            }
+            if (!Utils.IsInWorld(dest)) {
+                throw new InvalidCommandArgument($"The 'dest' position is out of the world {dest}");
+            }
+            if (srcFrom.x > srcTo.x) { Utils.Swap(ref srcTo.x, ref srcFrom.x); }
+            if (srcFrom.y > srcTo.x) { Utils.Swap(ref srcTo.y, ref srcFrom.y); }
+
+            bool isOverlapping = (dest.y >= srcFrom.y);
+            int iStep = !isOverlapping ? 1 : -1;
+            int iStart = !isOverlapping ? 0 : srcTo.x - srcFrom.x - 1;
+            int iEnd = !isOverlapping ? srcTo.x - srcFrom.x : -1;
+
+            int copyLength = srcTo.y - srcFrom.y;
+            for (int i = iStart; i != iEnd; i += iStep) {
+                int srcIdx = srcFrom.y + (i + srcFrom.x) * SWorld.Gs.y;
+                int destIdx = dest.y + (i + dest.x) * SWorld.Gs.y;
+                Array.Copy(SWorld.Grid, srcIdx, SWorld.Grid, destIdx, copyLength);
+            }
         });
     }
 }
