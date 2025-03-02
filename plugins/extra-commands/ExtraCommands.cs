@@ -1,4 +1,5 @@
 ﻿using BepInEx;
+using BepInEx.Configuration;
 using HarmonyLib;
 using ModUtils;
 using System;
@@ -107,11 +108,36 @@ public static class CustomCommandsPatch {
     }
 }
 
+public static class RepeatLastCommandPatch {
+    [HarmonyPatch(typeof(SScreenHudChat), nameof(SScreenHudChat.OnUpdate))]
+    [HarmonyPostfix]
+    private static void SScreenHudChat_OnUpdate() {
+        if (ExtraCommands.configRepeatLastCommand.Value.IsDown()) {
+            var networkCommands = SSingleton<SNetworkCommands>.Inst;
+
+            if (networkCommands.m_historyCommands.Count == 0) { return; }
+
+            string prevCommand = networkCommands.m_historyCommands[networkCommands.m_historyIndex - 1];
+            networkCommands.ProcessCommand(prevCommand, SNetwork.GetMyPlayer());
+        }
+    }
+}
+
 [BepInPlugin("extra-commands", "Extra Commands", "1.0.0")]
 public class ExtraCommands : BaseUnityPlugin {
+    public static ConfigEntry<KeyboardShortcut> configRepeatLastCommand = null;
+
     private void Start() {
+        configRepeatLastCommand = Config.Bind<KeyboardShortcut>(
+            section: "General", key: "RepeatLastCommand",
+            defaultValue: new KeyboardShortcut(KeyCode.BackQuote, KeyCode.LeftControl),
+            description: "Keyboard shortcut for running last command"
+        );
         var harmony = new Harmony("extra-commands");
         harmony.PatchAll(typeof(CustomCommandsPatch));
+        if (configRepeatLastCommand.Value.MainKey != KeyCode.None) {
+            harmony.PatchAll(typeof(RepeatLastCommandPatch));
+        }
 
         CustomCommands.AddCustomCommands();
     }
