@@ -449,18 +449,28 @@ public static class CustomCommands {
             int2 srcFrom = ArgParseXYCoordinateInt(args, argXIndex: 0, argYIndex: 1, player);
             int2 srcTo = ArgParseXYCoordinateInt(args, argXIndex: 2, argYIndex: 3, player);
             int2 dest = ArgParseXYCoordinateInt(args, argXIndex: 4, argYIndex: 5, player);
-
+            
             if (!Utils.IsInWorld(srcFrom)) {
-                throw new InvalidCommandArgument($"The 'from' position is out of the world {srcFrom}");
+                throw new InvalidCommandArgument($"The start source position is out of the world {srcFrom}");
             }
             if (!Utils.IsInWorld(srcTo)) {
-                throw new InvalidCommandArgument($"The 'to' position is out of the world {srcTo}");
-            }
-            if (!Utils.IsInWorld(dest)) {
-                throw new InvalidCommandArgument($"The 'dest' position is out of the world {dest}");
+                throw new InvalidCommandArgument($"The end source position is out of the world {srcTo}");
             }
             if (srcFrom.x > srcTo.x) { Utils.Swap(ref srcTo.x, ref srcFrom.x); }
-            if (srcFrom.y > srcTo.x) { Utils.Swap(ref srcTo.y, ref srcFrom.y); }
+            if (srcFrom.y > srcTo.y) { Utils.Swap(ref srcTo.y, ref srcFrom.y); }
+
+            if (!Utils.IsInWorld(dest)) {
+                throw new InvalidCommandArgument($"The start destination position is out of the world {dest}");
+            }
+            if (!Utils.IsInWorld(dest + (srcTo - srcFrom))) {
+                throw new InvalidCommandArgument($"The end destination position is out of the world {dest + (srcTo - srcFrom)}");
+            }
+
+            int clonedCellsNum = Math.Max(0, srcTo.x - srcFrom.x + 1) * Math.Max(0, srcTo.y - srcFrom.y + 1);
+            Utils.AddChatMessageLocal(
+                $"Cloned cells from source region {srcFrom}-{srcTo} to destination starting at {dest}. " +
+                $"Total cloned cells: {clonedCellsNum}"
+            );
 
             bool isOverlapping = (dest.y >= srcFrom.y);
             int iStep = !isOverlapping ? 1 : -1;
