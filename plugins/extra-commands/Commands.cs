@@ -6,14 +6,14 @@ using System.Linq;
 using System.Linq.Expressions;
 using UnityEngine;
 
-public class NothingCItemCell : CItemCell {
-    public NothingCItemCell() : base(tile: null, tileIcon: null, 0, 0) {
+public class AirCItemCell : CItemCell {
+    public AirCItemCell() : base(tile: null, tileIcon: null, 0, 0) {
         m_id = 0;
-        m_name = "Nothing";
-        m_codeName = "nothing";
+        m_name = "Air";
+        m_codeName = "air";
     }
 
-    public static readonly CItemCell Inst = new NothingCItemCell();
+    public static readonly CItemCell Inst = new AirCItemCell();
 }
 
 public static class CustomCommands {
@@ -52,8 +52,8 @@ public static class CustomCommands {
             }
             return GItems.Items[(int)itemId];
         }
-        if (codeName == NothingCItemCell.Inst.m_codeName) {
-            return NothingCItemCell.Inst;
+        if (codeName == AirCItemCell.Inst.m_codeName) {
+            return AirCItemCell.Inst;
         }
         var item = GItems.Items.Skip(1).FirstOrDefault(x => x.m_codeName == codeName);
         if (item is null) {
