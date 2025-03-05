@@ -20,8 +20,7 @@ public static class CustomCommands {
     private static void AddCommand(
         string name,
         CustomCommandsPatch.ExecCommandFn fn,
-        CustomCommandsPatch.TabCommandFn tabCommandFn = null,
-        string helpString = null
+        CustomCommandsPatch.TabCommandFn tabCommandFn = null
     ) {
         if (!name.StartsWith("/")) {
             throw new ArgumentException("Command name must start with '/'", nameof(name));
@@ -29,9 +28,6 @@ public static class CustomCommands {
         CustomCommandsPatch.customCommands.Add(name, fn);
         if (tabCommandFn is not null) {
             CustomCommandsPatch.customTabCommands.Add(name, tabCommandFn);
-        }
-        if (helpString is not null) {
-            CustomCommandsPatch.customCommandHelpString.Add(name, helpString);
         }
     }
     private static CPlayer GetPlayerByName(string name) {
@@ -299,10 +295,7 @@ public static class CustomCommands {
             }
         }, tabCommandFn: (int argIndex) => {
             return GetListOfPlayersNames();
-        }, helpString:
-            "<color='#afe8f5'>/tp pos-x pos-y</color>: Teleport to the location.\n" +
-            "<color='#afe8f5'>/tp player-name</color>: Teleport to the 'player-name's location."
-        );
+        });
         AddCommand("/give", (string[] args, CPlayer player) => {
             if (args.Length == 0) {
                 throw new InvalidCommandArgument("Expected item name", 1);
@@ -327,10 +320,7 @@ public static class CustomCommands {
             player.m_inventory.AddToInventory(selectedItem, itemCount);
         }, tabCommandFn: (int argIndex) => {
             return GItems.Items.Skip(1).Select(x => x.m_codeName).ToList();
-        }, helpString:
-            "<color='#afe8f5'>/give item-codename</color>: Give 1 'item-codename' to the player.\n" +
-            "<color='#afe8f5'>/give item-codename amount</color>: Give 'amount' of 'item-codename' to the player"
-        );
+        });
         AddCommand("/place", (string[] args, CPlayer player) => {
             if (args.Length == 0) {
                 throw new InvalidCommandArgument("Expected item cell code name", 1);
@@ -350,9 +340,7 @@ public static class CustomCommands {
             SetCell(pos, selectedCell.item, selectedCell.parameters);
         }, tabCommandFn: (int argIndex) => {
             return GetListOfCCellItemNames();
-        }, helpString:
-            "<color='#afe8f5'>/place tile-codename pos-x pos-y</color>: Place 'tile-codename' to the 'pos-x', 'pos-y' location. 'pos-x' and 'pos-y' must be integers"
-        );
+        });
         AddCommand("/fill", (string[] args, CPlayer player) => {
             if (args.Length == 0) {
                 throw new InvalidCommandArgument("Expected item cell code name", 1);
@@ -389,9 +377,7 @@ public static class CustomCommands {
             }
         }, tabCommandFn: (int argIndex) => {
             return GetListOfCCellItemNames();
-        }, helpString:
-            "<color='#afe8f5'>/fill tile-codename from-x from-y to-x to-y</color>: Fill region with a specific cell"
-        );
+        });
         AddCommand("/killinfo", (string[] args, CPlayer player) => {
             if (args.Length > 0) {
                 throw new InvalidCommandArgument("None arguments are expected");
@@ -399,9 +385,7 @@ public static class CustomCommands {
             foreach (var specieKilled in SSingleton<SUnits>.Inst.SpeciesKilled) {
                 Utils.AddChatMessageLocal($"{specieKilled.m_uDesc.GetName()}: {specieKilled.m_nb} ({GVars.SimuTime - specieKilled.m_lastKillTime:0.00})");
             }
-        }, helpString:
-            "<color='#afe8f5'>/killinfo</color>: Displays world's species kill information in the format 'species name': 'kill number' ('time since last kill')"
-        );
+        });
         AddCommand("/spawn", (string[] args, CPlayer player) => {
             if (args.Length == 0) {
                 throw new InvalidCommandArgument("Expected item cell code name", 1);
@@ -424,27 +408,21 @@ public static class CustomCommands {
             SUnits.SpawnUnit(selectedUnit, spawnPos);
         }, tabCommandFn: (int argIndex) => {
             return GUnits.UDescs.Skip(1).Select(x => x.m_codeName).ToList();
-        }, helpString:
-            "<color='#afe8f5'>/spawn unit-codename spawn-x spawn-y</color>: Creates new unit 'unit-codename' at 'spawn-x', 'spawn-y' position"
-        );
+        });
         AddCommand("/clearinventory", (string[] args, CPlayer player) => {
             if (args.Length > 0) {
                 throw new InvalidCommandArgument("None arguments are expected");
             }
             Utils.AddChatMessageLocal($"Cleared {player.m_inventory.Items.Count} items from inventory");
             player.m_inventory.CleanAll();
-        }, helpString:
-            "<color='#afe8f5'>/clearinventory</color> Clears current player inventory."
-        );
+        });
         AddCommand("/clearpickups", (string[] args, CPlayer player) => {
             if (args.Length > 0) {
                 throw new InvalidCommandArgument("None arguments are expected");
             }
             Utils.AddChatMessageLocal($"Cleared {SPickups.Pickups.Count} pickups");
             SSingleton<SPickups>.Inst.CleanAll();
-        }, helpString:
-            "<color='#afe8f5'>/clearpickups</color> Clears all pickups in the worldclearpickups."
-        );
+        });
         AddCommand("/clone", (string[] args, CPlayer player) => {
             int2 srcFrom = ArgParseXYCoordinateInt(args, argXIndex: 0, argYIndex: 1, player);
             int2 srcTo = ArgParseXYCoordinateInt(args, argXIndex: 2, argYIndex: 3, player);

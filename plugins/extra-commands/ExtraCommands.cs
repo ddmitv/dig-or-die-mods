@@ -27,8 +27,6 @@ public static class CustomCommandsPatch {
 
     public static readonly Dictionary<string, TabCommandFn> customTabCommands = new();
 
-    public static readonly Dictionary<string, string> customCommandHelpString = new();
-
     private static string[] ParseArgs(string text) {
         return text.Split([' ', '\t', '\r', '\n', '\v', '\f'], StringSplitOptions.RemoveEmptyEntries);
     }
@@ -89,22 +87,6 @@ public static class CustomCommandsPatch {
         string arg = commandAndArgs.Length <= 1 ? "" : commandAndArgs[1];
         List<string> argList = tabCommand(commandAndArgs.Length);
         __result = __instance.TabOnList(__result, command, arg, argList);
-    }
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(SNetworkCommands), nameof(SNetworkCommands.DrawHelp_IfSenderIsMe))]
-    private static void SNetworkCommands_DrawHelp_IfSenderIsMe(SNetworkCommands __instance, string command, CPlayer playerSender, bool all) {
-        if (!playerSender.IsMe()) { return; }
-
-        if (all) {
-            foreach (var commandHelpString in customCommandHelpString.Values) {
-                Utils.AddChatMessageLocalNL(commandHelpString);
-            }
-            return;
-        }
-        if (!customCommandHelpString.TryGetValue(command, out string helpString)) {
-            return;
-        }
-        Utils.AddChatMessageLocalNL(helpString);
     }
 }
 
