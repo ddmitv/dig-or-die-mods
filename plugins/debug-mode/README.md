@@ -25,6 +25,8 @@ It will give you invincibility and also display extra information.
 - light (`G.m_debugLight`)
 - crashes (`G.m_debugCrashes`)
 - crashesFull (`G.m_debugCrashesFull`)
+- IsEditor (overrides `Application.isEditor` to always return `true`, set this parameter before starting the game)
+  - One of the things that this enables is creating an PNG image of the world (`SMisc.ExportWorldToPNG`)
 
 There is also `G.m_debugCameras` but it doesn't seem to be used anywhere, possible it is a remains of a scrapped debug feature.
 

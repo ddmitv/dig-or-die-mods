@@ -2,6 +2,7 @@
 using BepInEx.Configuration;
 using HarmonyLib;
 using ModUtils;
+using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
@@ -28,6 +29,13 @@ public static class EnableDebugModePatch {
             .RemoveInstructions(8);
 
         return codeMatcher.Instructions();
+    }
+}
+public static class ApplicationIsEditorPatch {
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(Application), nameof(Application.isEditor), MethodType.Getter)]
+    private static IEnumerable<CodeInstruction> Application_isEditor() {
+        return [new(OpCodes.Ldc_I4_1), new(OpCodes.Ret)];
     }
 }
 
@@ -86,9 +94,17 @@ public class DebugMode : BaseUnityPlugin
     }
 
     private void Start() {
+        var configIsEditor = Config.Bind<bool>(
+            section: "StartUp", key: "IsEditor", defaultValue: true,
+            description: "Forces `Application.isEditor` to always return `true`"
+        );
+
         var harmony = new Harmony("debug-mode");
 
         harmony.PatchAll(typeof(EnableDebugModePatch));
+        if (configIsEditor.Value) {
+            harmony.PatchAll(typeof(ApplicationIsEditorPatch));
+        }
 
         OnChangedSetting();
         Config.SettingChanged += (object _, SettingChangedEventArgs _) => {
