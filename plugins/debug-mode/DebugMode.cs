@@ -38,6 +38,44 @@ public static class ApplicationIsEditorPatch {
         return [new(OpCodes.Ldc_I4_1), new(OpCodes.Ret)];
     }
 }
+public static class NoWorldPresimulationPatch {
+    [HarmonyTranspiler]
+    [HarmonyDebug]
+    [HarmonyPatch(typeof(SGameStartEnd), nameof(SGameStartEnd.GenerateWorld), MethodType.Enumerator)]
+    private static IEnumerable<CodeInstruction> SGameStartEnd_GenerateWorld(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new(OpCodes.Call, typeof(UnityEngine.Application).GetMethod("get_isEditor")),
+                new(OpCodes.Brfalse),
+                new(OpCodes.Ldsfld, typeof(G).GetField("m_autoCreateMode")),
+                new(OpCodes.Brfalse),
+                new(OpCodes.Ldsfld, typeof(G).GetField("m_autoCreateMode_Fast")),
+                new(OpCodes.Brfalse),
+                new(OpCodes.Call, typeof(UnityEngine.Time).GetMethod("get_time")),
+                new(OpCodes.Ldc_R4, 5.0f),
+                new(OpCodes.Bge_Un),
+                new(OpCodes.Br))
+            .ThrowIfInvalid("(1)")
+            .CollapseInstructions(9) // keep last `br` instruction to skip loop body
+            .MatchForward(useEnd: false,
+                new(OpCodes.Call, typeof(UnityEngine.Application).GetMethod("get_isEditor")),
+                new(OpCodes.Brfalse),
+                new(OpCodes.Ldsfld, typeof(G).GetField("m_autoCreateMode")),
+                new(OpCodes.Brfalse),
+                new(OpCodes.Ldsfld, typeof(G).GetField("m_autoCreateMode_Fast")),
+                new(OpCodes.Brfalse),
+                new(OpCodes.Call, typeof(UnityEngine.Time).GetMethod("get_time")),
+                new(OpCodes.Ldc_R4, 5.0f),
+                new(OpCodes.Bge_Un),
+                new(OpCodes.Br))
+            .ThrowIfInvalid("(2)")
+            .CollapseInstructions(9); // keep last `br` instruction to skip loop body
+
+        return codeMatcher.Instructions();
+    }
+}
 
 [BepInPlugin("debug-mode", "Debug Mode", "1.0.0")]
 public class DebugMode : BaseUnityPlugin
@@ -94,14 +132,27 @@ public class DebugMode : BaseUnityPlugin
     }
 
     private void Start() {
+        var configEnable = Config.Bind<bool>(
+            section: "General", key: "Enable", defaultValue: true,
+            description: "Enables the plugin"
+        );
         var configIsEditor = Config.Bind<bool>(
             section: "StartUp", key: "IsEditor", defaultValue: true,
             description: "Forces `Application.isEditor` to always return `true`"
         );
-
+        var configNoWorldPresimulation = Config.Bind<bool>(
+            section: "StartUp", key: "NoWorldPresimulation", defaultValue: false,
+            description: "Disables world presimulation (e.g. no initial water and plants are generated)"
+        );
+        if (!configEnable.Value) {
+            return;
+        }
         var harmony = new Harmony("debug-mode");
 
         harmony.PatchAll(typeof(EnableDebugModePatch));
+        if (configNoWorldPresimulation.Value) {
+            harmony.PatchAll(typeof(NoWorldPresimulationPatch));
+        }
         if (configIsEditor.Value) {
             harmony.PatchAll(typeof(ApplicationIsEditorPatch));
         }
