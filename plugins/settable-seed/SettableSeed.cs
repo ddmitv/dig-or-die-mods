@@ -5,7 +5,9 @@ using ModUtils;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Security.Cryptography;
 using System.Text;
@@ -110,11 +112,12 @@ public static class InputSeedPatch {
                 new(OpCodes.Call, typeof(UnityEngine.Random).GetMethod("Range", [typeof(int), typeof(int)])),
                 new(OpCodes.Stfld, typeof(CParams).GetField("m_seed")))
             .ThrowIfNotMatch("(1)")
-            .CollapseInstructions(5)
+            .CollapseInstructionsTo(5, out List<Label> labels)
             .Insert(
                 new(OpCodes.Call, typeof(SOutgame).GetMethod("get_Params")),
                 new(OpCodes.Ldfld, typeof(CParams).GetField("m_seed")),
-                new(OpCodes.Call, typeof(UnityEngine.Random).GetMethod("InitState")));
+                new(OpCodes.Call, typeof(UnityEngine.Random).GetMethod("InitState")))
+            .AddLabels(labels);
 
         return codeMatcher.Instructions();
     }
