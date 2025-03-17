@@ -2,6 +2,7 @@ using HarmonyLib;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 
 namespace ModUtils;
 
@@ -34,6 +35,21 @@ public static class CodeMatcherExtensions {
 
         return self;
     }
+    public static CodeMatcher CollapseInstructionsTo(this CodeMatcher self, uint count, out List<Label> outLabels) {
+        List<Label> labels = new List<Label>();
+        for (int i = self.Pos; i < self.Pos + count; i++) {
+            labels.AddRange(self.Instructions()[i].labels);
+        }
+        self.RemoveInstructions((int)count);
+        outLabels = labels;
+
+        return self;
+    }
+    public static CodeMatcher SetOperand(this CodeMatcher self, object operand) {
+        self.Operand = operand;
+        return self;
+    }
+
     public static CodeMatcher CreateLabelAtOffset(this CodeMatcher self, int offset, out Label label) {
         self.CreateLabelAt(self.Pos + offset, out label);
         return self;
