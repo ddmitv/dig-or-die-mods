@@ -4,4 +4,5 @@
 !extra-commands.csproj
 !ExtraCommands.cs
 !Commands.cs
+!ExpressionEvaluator.cs
 !README.md
