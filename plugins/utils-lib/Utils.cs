@@ -138,4 +138,19 @@ public static class Utils {
         left = right;
         right = temp;
     }
+    public static bool TryParseBinary(string str, out long result) {
+        result = 0;
+        if (string.IsNullOrEmpty(str)) { return false; }
+
+        ulong tmp = 0;
+        foreach (char ch in str) {
+            if (ch != '0' && ch != '1') { return false; }
+            tmp = (tmp << 1) | (uint)(ch - '0');
+            if (tmp > long.MaxValue) {
+                return false;
+            }
+        }
+        result = (long)tmp;
+        return true;
+    }
 }
