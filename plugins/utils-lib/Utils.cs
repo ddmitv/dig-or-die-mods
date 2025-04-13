@@ -153,4 +153,13 @@ public static class Utils {
         result = (long)tmp;
         return true;
     }
+    public static double Hypot(double x, double y) {
+        return Math.Sqrt(x * x + y * y);
+    }
+    public static float Hypot(float x, float y) {
+        return Mathf.Sqrt(x * x + y * y);
+    }
+    public static double Hypot(int2 vec) {
+        return Math.Sqrt(vec.x * vec.x + vec.y * vec.y);
+    }
 }
