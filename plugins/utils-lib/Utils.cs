@@ -1,6 +1,7 @@
 using BepInEx;
 using HarmonyLib;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -152,6 +153,78 @@ public static class Utils {
         }
         result = (long)tmp;
         return true;
+    }
+    public static int LevenshteinDistance(string source, string target) {
+        int n = source.Length;
+        int m = target.Length;
+        int[,] d = new int[n + 1, m + 1];
+
+        if (n == 0) {
+            return m;
+        }
+
+        if (m == 0) {
+            return n;
+        }
+
+        for (int i = 0; i <= n; d[i, 0] = i++) {}
+        for (int j = 0; j <= m; d[0, j] = j++) {}
+
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+                int cost = (target[j - 1] == source[i - 1]) ? 0 : 1;
+                d[i, j] = Math.Min(
+                    Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
+                    d[i - 1, j - 1] + cost);
+            }
+        }
+        return d[n, m];
+    }
+    public static int DamerauLevenshteinDistance(string str1, string str2,
+        int insertionCost = 1, int deletionCost = 1, int substitutionCost = 1, int transpositionCost = 1
+    ) {
+        var d = new int[str1.Length + 1, str2.Length + 1];
+        for (int i = 0; i <= str1.Length; ++i) {
+            d[i, 0] = i;
+        }
+        for (int j = 0; j <= str2.Length; ++j) {
+            d[0, j] = j;
+        }
+        for (int i = 1; i <= str1.Length; ++i) {
+            for (int j = 1; j <= str2.Length; ++j) {
+                int cost = str1[i - 1] == str2[j - 1] ? 0 : substitutionCost;
+
+                d[i, j] = Math.Min(Math.Min(
+                    d[i - 1, j] + deletionCost,
+                    d[i, j - 1] + insertionCost),
+                    d[i - 1, j - 1] + cost
+                );
+                if (i > 1 && j > 1 && str1[i - 1] == str2[j - 2] && str1[i - 2] == str2[j - 1]) {
+                    d[i, j] = Math.Min(
+                        d[i, j],
+                        d[i - 2, j - 2] + transpositionCost
+                    );
+                }
+            }
+        }
+        return d[str1.Length, str2.Length];
+    }
+    public static string ClosestStringMatch(string target, IEnumerable<string> sources) {
+        if (!sources.Any()) { throw new InvalidOperationException("source string sequence is empty"); }
+
+        string result = null;
+        int resultDist = int.MaxValue;
+        foreach (string src in sources.Skip(1)) {
+            int dist = DamerauLevenshteinDistance(src, target,
+                insertionCost: 1, deletionCost: 2, substitutionCost: 3, transpositionCost: 2
+            );
+            // Console.WriteLine($"ClosestStringMatch {src}: {dist}");
+            if (dist < resultDist) {
+                resultDist = dist;
+                result = src;
+            }
+        }
+        return result;
     }
     public static double Hypot(double x, double y) {
         return Math.Sqrt(x * x + y * y);
