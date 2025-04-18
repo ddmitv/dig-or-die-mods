@@ -77,9 +77,6 @@ public static class Utils {
     public static int CeilDiv(int x, int y) {
         return (x + y - 1) / y;
     }
-    public static FieldInfo StaticField(Type type, string fieldName) {
-        return type.GetField(fieldName, BindingFlags.Instance | BindingFlags.Public);
-    }
     public static void DoShockWave(Vector2 center, float radius, float damage, float knockbackTarget) {
         float radiusSqr = radius * radius;
         foreach (CUnit unit in SUnits.Units) {

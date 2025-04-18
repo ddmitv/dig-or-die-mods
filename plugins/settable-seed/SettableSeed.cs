@@ -1,16 +1,9 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
-using ModUtils;
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
 using System.Reflection.Emit;
-using System.Security.Cryptography;
-using System.Text;
+using ModUtils.Extensions;
 
 public static class InputSeedPatch {
     private static CGuiOptionInput multiGuiSeed = null;
@@ -44,7 +37,7 @@ public static class InputSeedPatch {
         codeMatcher.Start()
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, typeof(SScreenChooseMultiOptions).GetField("m_startCheated")),
+                new(OpCodes.Ldfld, typeof(SScreenChooseMultiOptions).Field("m_startCheated")),
                 new(OpCodes.Brfalse))
             .ThrowIfNotMatch("(1)")
             .CreateLabel(out Label skipRet)
@@ -86,7 +79,7 @@ public static class InputSeedPatch {
         codeMatcher.Start()
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, typeof(SScreenChooseDifficulty).GetField("m_startCheated")),
+                new(OpCodes.Ldfld, typeof(SScreenChooseDifficulty).Field("m_startCheated")),
                 new(OpCodes.Brfalse))
             .ThrowIfNotMatch("(1)")
             .CreateLabel(out Label skipRet)
@@ -106,17 +99,17 @@ public static class InputSeedPatch {
 
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new(OpCodes.Call, typeof(SOutgame).GetMethod("get_Params")),
+                new(OpCodes.Call, typeof(SOutgame).Method("get_Params")),
                 new(OpCodes.Ldc_I4_0),
                 new(OpCodes.Ldc_I4, 100000),
-                new(OpCodes.Call, typeof(UnityEngine.Random).GetMethod("Range", [typeof(int), typeof(int)])),
-                new(OpCodes.Stfld, typeof(CParams).GetField("m_seed")))
+                new(OpCodes.Call, typeof(UnityEngine.Random).Method("Range", [typeof(int), typeof(int)])),
+                new(OpCodes.Stfld, typeof(CParams).Field("m_seed")))
             .ThrowIfNotMatch("(1)")
             .CollapseInstructionsTo(5, out List<Label> labels)
             .Insert(
-                new(OpCodes.Call, typeof(SOutgame).GetMethod("get_Params")),
-                new(OpCodes.Ldfld, typeof(CParams).GetField("m_seed")),
-                new(OpCodes.Call, typeof(UnityEngine.Random).GetMethod("InitState")))
+                new(OpCodes.Call, typeof(SOutgame).Method("get_Params")),
+                new(OpCodes.Ldfld, typeof(CParams).Field("m_seed")),
+                new(OpCodes.Call, typeof(UnityEngine.Random).Method("InitState")))
             .AddLabels(labels);
 
         return codeMatcher.Instructions();

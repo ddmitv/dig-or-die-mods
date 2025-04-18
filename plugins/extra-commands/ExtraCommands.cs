@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
 using UnityEngine;
+using ModUtils.Extensions;
+using System.Reflection;
 
 [Serializable]
 public class InvalidCommandArgument : Exception {
@@ -55,16 +57,15 @@ public static class CustomCommandsPatch {
             }
             return true;
         }
-
+        
         var codeMatcher = new CodeMatcher(instructions, generator);
-
         codeMatcher.Start()
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldsfld, Utils.StaticField(typeof(System.String), "Empty")),
+                new(OpCodes.Ldsfld, typeof(System.String).StaticField("Empty")),
                 new(OpCodes.Ldarg_2),
                 new(OpCodes.Ldc_I4_1),
-                new(OpCodes.Call, AccessTools.Method(typeof(SNetworkCommands), "DrawHelp_IfSenderIsMe")),
+                new(OpCodes.Call, typeof(SNetworkCommands).Method("DrawHelp_IfSenderIsMe")),
                 new(OpCodes.Ret))
             .CreateLabelAtOffset(5, out Label exitLabel)
             .InjectAndAdvance(OpCodes.Ldarg_1)
@@ -175,10 +176,10 @@ public static class ChatExpressionEvaluationPatch {
         codeMatcher
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, typeof(SScreenHudChat).GetField("m_inputChat")),
-                new(OpCodes.Ldfld, typeof(CGuiInput).GetField("m_text")),
+                new(OpCodes.Ldfld, typeof(SScreenHudChat).Field("m_inputChat")),
+                new(OpCodes.Ldfld, typeof(CGuiInput).Field("m_text")),
                 new(OpCodes.Ldstr, "/"),
-                new(OpCodes.Callvirt, typeof(string).GetMethod("StartsWith", [typeof(string)])),
+                new(OpCodes.Callvirt, typeof(string).Method("StartsWith", [typeof(string)])),
                 new(OpCodes.Brfalse))
             .ThrowIfInvalid("(1)")
             .GetOperandAtOffset(-1, out Label skipMessage)
@@ -200,14 +201,14 @@ public static class FullChatHistoryPatch {
         codeMatcher
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, typeof(SNetworkCommands).GetField("m_historyCommands")),
+                new(OpCodes.Ldfld, typeof(SNetworkCommands).Field("m_historyCommands")),
                 new(OpCodes.Ldarg_1),
-                new(OpCodes.Callvirt, typeof(List<string>).GetMethod("Add")),
+                new(OpCodes.Callvirt, typeof(List<string>).Method("Add")),
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, typeof(SNetworkCommands).GetField("m_historyCommands")),
-                new(OpCodes.Callvirt, typeof(List<string>).GetMethod("get_Count")),
-                new(OpCodes.Stfld, typeof(SNetworkCommands).GetField("m_historyIndex")))
+                new(OpCodes.Ldfld, typeof(SNetworkCommands).Field("m_historyCommands")),
+                new(OpCodes.Callvirt, typeof(List<string>).Method("get_Count")),
+                new(OpCodes.Stfld, typeof(SNetworkCommands).Field("m_historyIndex")))
             .ThrowIfInvalid("(1)")
             .RemoveInstructions(9);
         return codeMatcher.Instructions();
@@ -226,13 +227,13 @@ public static class FullChatHistoryPatch {
         codeMatcher.
             MatchForward(useEnd: true,
                 new(OpCodes.Ldc_I4_S, (sbyte)13),
-                new(OpCodes.Call, typeof(SInputs).GetMethod("GetKeyDown")),
+                new(OpCodes.Call, typeof(SInputs).Method("GetKeyDown")),
                 new(OpCodes.Brfalse),
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, typeof(SScreenHudChat).GetField("m_inputChat")),
-                new(OpCodes.Ldfld, typeof(CGuiInput).GetField("m_text")),
-                new(OpCodes.Ldsfld, typeof(string).GetField("Empty")),
-                new(OpCodes.Call, typeof(string).GetMethod("op_Inequality")),
+                new(OpCodes.Ldfld, typeof(SScreenHudChat).Field("m_inputChat")),
+                new(OpCodes.Ldfld, typeof(CGuiInput).Field("m_text")),
+                new(OpCodes.Ldsfld, typeof(string).StaticField("Empty")),
+                new(OpCodes.Call, typeof(string).Method("op_Inequality")),
                 new(OpCodes.Brfalse))
             .ThrowIfInvalid("(1)")
             .Advance(1)

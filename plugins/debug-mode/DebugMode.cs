@@ -1,11 +1,10 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
-using ModUtils;
-using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
+using ModUtils.Extensions;
 
 public static class EnableDebugModePatch {
     [HarmonyTranspiler]
@@ -15,14 +14,14 @@ public static class EnableDebugModePatch {
 
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new(OpCodes.Call, AccessTools.PropertyGetter(typeof(Application), nameof(Application.isEditor))),
+                new(OpCodes.Call, typeof(Application).Method("get_isEditor")),
                 new(OpCodes.Brtrue),
 
-                new(OpCodes.Call, AccessTools.PropertyGetter(typeof(SNetwork), nameof(SNetwork.MySteamID))),
+                new(OpCodes.Call, typeof(SNetwork).Method("get_MySteamID")),
                 new(OpCodes.Ldc_I8),
                 new(OpCodes.Beq),
 
-                new(OpCodes.Call, AccessTools.PropertyGetter(typeof(SNetwork), nameof(SNetwork.MySteamID))),
+                new(OpCodes.Call, typeof(SNetwork).Method("get_MySteamID")),
                 new(OpCodes.Ldc_I8),
                 new(OpCodes.Bne_Un))
             .ThrowIfInvalid("(1)")
@@ -40,33 +39,32 @@ public static class ApplicationIsEditorPatch {
 }
 public static class NoWorldPresimulationPatch {
     [HarmonyTranspiler]
-    [HarmonyDebug]
     [HarmonyPatch(typeof(SGameStartEnd), nameof(SGameStartEnd.GenerateWorld), MethodType.Enumerator)]
     private static IEnumerable<CodeInstruction> SGameStartEnd_GenerateWorld(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         var codeMatcher = new CodeMatcher(instructions, generator);
 
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new(OpCodes.Call, typeof(UnityEngine.Application).GetMethod("get_isEditor")),
+                new(OpCodes.Call, typeof(UnityEngine.Application).Method("get_isEditor")),
                 new(OpCodes.Brfalse),
-                new(OpCodes.Ldsfld, typeof(G).GetField("m_autoCreateMode")),
+                new(OpCodes.Ldsfld, typeof(G).Field("m_autoCreateMode")),
                 new(OpCodes.Brfalse),
-                new(OpCodes.Ldsfld, typeof(G).GetField("m_autoCreateMode_Fast")),
+                new(OpCodes.Ldsfld, typeof(G).Field("m_autoCreateMode_Fast")),
                 new(OpCodes.Brfalse),
-                new(OpCodes.Call, typeof(UnityEngine.Time).GetMethod("get_time")),
+                new(OpCodes.Call, typeof(UnityEngine.Time).Method("get_time")),
                 new(OpCodes.Ldc_R4, 5.0f),
                 new(OpCodes.Bge_Un),
                 new(OpCodes.Br))
             .ThrowIfInvalid("(1)")
             .CollapseInstructions(9) // keep last `br` instruction to skip loop body
             .MatchForward(useEnd: false,
-                new(OpCodes.Call, typeof(UnityEngine.Application).GetMethod("get_isEditor")),
+                new(OpCodes.Call, typeof(UnityEngine.Application).Method("get_isEditor")),
                 new(OpCodes.Brfalse),
-                new(OpCodes.Ldsfld, typeof(G).GetField("m_autoCreateMode")),
+                new(OpCodes.Ldsfld, typeof(G).Field("m_autoCreateMode")),
                 new(OpCodes.Brfalse),
-                new(OpCodes.Ldsfld, typeof(G).GetField("m_autoCreateMode_Fast")),
+                new(OpCodes.Ldsfld, typeof(G).Field("m_autoCreateMode_Fast")),
                 new(OpCodes.Brfalse),
-                new(OpCodes.Call, typeof(UnityEngine.Time).GetMethod("get_time")),
+                new(OpCodes.Call, typeof(UnityEngine.Time).Method("get_time")),
                 new(OpCodes.Ldc_R4, 5.0f),
                 new(OpCodes.Bge_Un),
                 new(OpCodes.Br))

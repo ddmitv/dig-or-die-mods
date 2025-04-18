@@ -1,10 +1,10 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
-using System.CodeDom;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reflection.Emit;
+using ModUtils.Extensions;
 
 public static class PreciseTimePatch {
     [HarmonyTranspiler]
@@ -30,23 +30,23 @@ public static class PreciseTimePatch {
         codeMatcher.Start()
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(SScreenMessages), nameof(SScreenMessages.m_guiEnvironment))),
+                new(OpCodes.Ldfld, typeof(SScreenMessages).Field("m_guiEnvironment")),
                 new(OpCodes.Ldstr, "ENV_EXPECTED"),
                 new(OpCodes.Ldc_I4_0),
                 new(OpCodes.Ldstr, "ENV_"),
                 new(OpCodes.Ldloc_0),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CDesc), nameof(CDesc.m_id))))
+                new(OpCodes.Ldfld, typeof(CDesc).Field("m_id")))
             .ThrowIfInvalid("(1)")
             .Advance(27)
             .Insert(Transpilers.EmitDelegate(ChangeEnvExpectedStr))
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(SScreenMessages), nameof(SScreenMessages.m_guiEnvironment))),
+                new(OpCodes.Ldfld, typeof(SScreenMessages).Field("m_guiEnvironment")),
                 new(OpCodes.Ldstr, "ENV_ONGOING"),
                 new(OpCodes.Ldc_I4_0),
                 new(OpCodes.Ldstr, "ENV_"),
                 new(OpCodes.Ldloc_0),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CDesc), nameof(CDesc.m_id))))
+                new(OpCodes.Ldfld, typeof(CDesc).Field("m_id")))
             .ThrowIfInvalid("(2)")
             .Advance(27)
             .Insert(Transpilers.EmitDelegate(ChangeEnvOnGoingStr));

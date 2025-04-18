@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
 using ModUtils;
+using ModUtils.Extensions;
 
 public static class PlayersDamagePlayersPatch {
     [HarmonyTranspiler]
@@ -13,7 +14,7 @@ public static class PlayersDamagePlayersPatch {
 
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new(OpCodes.Call, AccessTools.PropertyGetter(typeof(Vector2), nameof(Vector2.zero))),
+                new(OpCodes.Call, typeof(Vector2).Method("get_zero")),
                 new(OpCodes.Stloc_S))
             .ThrowIfInvalid("(1)")
             .CreateLabel(out var successLabel);
@@ -21,23 +22,23 @@ public static class PlayersDamagePlayersPatch {
         codeMatcher.Start()
             .MatchForward(useEnd: true,
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), "m_unitsHit")),
+                new(OpCodes.Ldfld, typeof(CBullet).Field("m_unitsHit")),
                 new(OpCodes.Ldloc_2),
-                new(OpCodes.Callvirt, AccessTools.Method(typeof(List<CUnit>), nameof(List<CUnit>.Contains))),
+                new(OpCodes.Callvirt, typeof(List<CUnit>).Method("Contains")),
                 new(OpCodes.Brtrue))
             .ThrowIfInvalid("(2)")
             .Advance(1)
             .InjectAndAdvance(OpCodes.Ldarg_0)
             .CreateLabel(out var failLabel)
             .Insert(
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
+                new(OpCodes.Ldfld, typeof(CBullet).Field("m_attacker")),
                 new(OpCodes.Isinst, typeof(CUnitPlayer)),
                 new(OpCodes.Brfalse, failLabel), // `m_attacker` is not CUnitPlayer
                 new(OpCodes.Ldloc_2),
                 new(OpCodes.Isinst, typeof(CUnitPlayer)),
                 new(OpCodes.Brfalse, failLabel), // `cunit2` is CUnitPlayer
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
+                new(OpCodes.Ldfld, typeof(CBullet).Field("m_attacker")),
                 new(OpCodes.Ldloc_2),
                 new(OpCodes.Bne_Un, successLabel)); // `m_attacker` != `cunit2`
 
@@ -79,13 +80,12 @@ public static class HidePlayerNamesPatch {
     [HarmonyPatch(typeof(SScreenHudWorld), nameof(SScreenHudWorld.OnUpdate))]
     private static IEnumerable<CodeInstruction> SScreenHudWorld_OnUpdate(IEnumerable<CodeInstruction> instructions) {
         var codeMatcher = new CodeMatcher(instructions);
-        var CMeshText_Get = AccessTools.Method(typeof(CMesh<CMeshText>), nameof(CMesh<CMeshText>.Get), [typeof(SScreen), typeof(bool)]);
 
         codeMatcher.Start()
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldc_I4_0),
-                new(OpCodes.Call, CMeshText_Get))
+                new(OpCodes.Call, typeof(CMesh<CMeshText>).Method("Get", [typeof(SScreen), typeof(bool)])))
             .ThrowIfInvalid("(1)")
             .SetAndAdvance(OpCodes.Nop, null)
             .RemoveInstructions(28);
@@ -93,7 +93,7 @@ public static class HidePlayerNamesPatch {
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldc_I4_0),
-                new(OpCodes.Call, CMeshText_Get),
+                new(OpCodes.Call, typeof(CMesh<CMeshText>).Method("Get", [typeof(SScreen), typeof(bool)])),
                 new(OpCodes.Ldloc_S),
                 new(OpCodes.Ldfld, AccessTools.Field(typeof(CPlayer), nameof(CPlayer.m_lastChat))),
                 new(OpCodes.Ldloca_S))
@@ -110,7 +110,7 @@ public static class HideMinimapPlayers_Patch {
         codeMatcher.Start()
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldloc_S),
-                new(OpCodes.Callvirt, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.HasUnitPlayer))),
+                new(OpCodes.Callvirt, typeof(CPlayer).Method("HasUnitPlayer")),
                 new(OpCodes.Brtrue))
             .ThrowIfInvalid("(1)");
 
@@ -123,20 +123,20 @@ public static class HideMinimapPlayers_Patch {
             .GetOperand(out LocalBuilder playerVar)
             .Insert(
                 new(OpCodes.Ldloc_S, playerVar),
-                new(OpCodes.Call, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.IsMe))),
+                new(OpCodes.Call, typeof(CPlayer).Method("IsMe")),
                 new(OpCodes.Brfalse, failLabel));
     }
     private static void HideLiveViewPixels(CodeMatcher codeMatcher) {
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Texture2D), nameof(Texture2D.SetPixels32), [typeof(int), typeof(int), typeof(int), typeof(int), typeof(Color32[])])))
+                new CodeMatch(OpCodes.Callvirt, typeof(Texture2D).Method("SetPixels32", [typeof(int), typeof(int), typeof(int), typeof(int), typeof(Color32[])])))
             .ThrowIfInvalid("(3)")
             .Advance(1)
             .CreateLabel(out Label skipLabel)
             .Advance(-13)
             .Insert(
                 new(OpCodes.Ldloc_1),
-                new(OpCodes.Call, AccessTools.Method(typeof(CPlayer), nameof(CPlayer.IsMe))),
+                new(OpCodes.Call, typeof(CPlayer).Method("IsMe")),
                 new(OpCodes.Brfalse, skipLabel));
     }
 
@@ -161,13 +161,13 @@ public static class PlayerDamageToGroundPatch {
         codeMatcher.Start()
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
+                new(OpCodes.Ldfld, typeof(CBullet).Field("m_attacker")),
                 new(OpCodes.Isinst, typeof(CUnitMonster)),
                 new(OpCodes.Brfalse))
             .CreateLabelAtOffset(4, out Label successLabel)
             .InjectAndAdvance(OpCodes.Ldarg_0)
             .Insert(
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBullet), nameof(CBullet.m_attacker))),
+                new(OpCodes.Ldfld, typeof(CBullet).Field("m_attacker")),
                 new(OpCodes.Isinst, typeof(CUnitPlayer)),
                 new(OpCodes.Brtrue, successLabel));
 

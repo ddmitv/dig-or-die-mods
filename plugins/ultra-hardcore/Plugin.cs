@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
 using ModUtils;
-using System.Diagnostics.SymbolStore;
+using ModUtils.Extensions;
 
 public static class HpMaxPatch {
     [HarmonyTranspiler]
@@ -27,15 +27,15 @@ public static class PermanentMistPatch {
 
         codeMatcher.Start()
             .MatchForward(useEnd: true,
-                new(OpCodes.Call, AccessTools.Method(typeof(SEnvironment), nameof(SEnvironment.GetEnvironmentCurrent))),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CEnvironment), nameof(CEnvironment.m_mist))),
+                new(OpCodes.Call, typeof(SEnvironment).Method("GetEnvironmentCurrent")),
+                new(OpCodes.Ldfld, typeof(CEnvironment).Field("m_mist")),
                 new(OpCodes.Brfalse))
             .ThrowIfInvalid("(1)")
             .SetAndAdvance(OpCodes.Pop, null)
             .MatchForward(useEnd: false,
-                new(OpCodes.Call, AccessTools.Method(typeof(SEnvironment), nameof(SEnvironment.GetEnvironmentCurrent))),
+                new(OpCodes.Call, typeof(SEnvironment).Method("GetEnvironmentCurrent")),
                 new(OpCodes.Ldc_R4, 5f),
-                new(OpCodes.Callvirt, AccessTools.Method(typeof(CEnvironment), nameof(CEnvironment.GetBeginEndSmoothingValue))))
+                new(OpCodes.Callvirt, typeof(CEnvironment).Method("GetBeginEndSmoothingValue")))
             .ThrowIfInvalid("(2)")
             .SetAndAdvance(OpCodes.Ldc_R4, 1f)
             .RemoveInstructions(2);
@@ -73,8 +73,8 @@ public static class PermanentDarknessPatch {
         codeMatcher.Start()
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_1),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CPlayer), nameof(CPlayer.m_inventory))),
-                new(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.gunRifle))))
+                new(OpCodes.Ldfld, typeof(CPlayer).Field("m_inventory")),
+                new(OpCodes.Ldsfld, typeof(GItems).StaticField("gunRifle")))
             .ThrowIfInvalid("(1)")
             .Insert(
                 new CodeInstruction(OpCodes.Ldarg_1),
@@ -83,7 +83,7 @@ public static class PermanentDarknessPatch {
                 }));
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.gunRifle))),
+                new(OpCodes.Ldsfld, typeof(GItems).StaticField("gunRifle")),
                 new(OpCodes.Ldc_R4, 1f))
             .ThrowIfInvalid("(2)")
             .Insert(
@@ -127,8 +127,8 @@ public static class PermanentAcidWaterPatch {
         var codeMatcher = new CodeMatcher(instructions);
         codeMatcher.Start()
             .MatchForward(useEnd: false,
-                new(OpCodes.Call, AccessTools.Method(typeof(SEnvironment), nameof(SEnvironment.GetEnvironmentCurrent))),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CEnvironment), nameof(CEnvironment.m_acidWater))),
+                new(OpCodes.Call, typeof(SEnvironment).Method("GetEnvironmentCurrent")),
+                new(OpCodes.Ldfld, typeof(CEnvironment).Field("m_acidWater")),
                 new(OpCodes.Brfalse))
             .ThrowIfInvalid("Match failed")
             .CollapseInstructions(3);
@@ -153,7 +153,7 @@ public static class NoRegenerationPatch {
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldc_R4, 0.005f),
-                new(OpCodes.Stfld, AccessTools.Field(typeof(CUnit.CDesc), nameof(CUnit.CDesc.m_regenSpeed))))
+                new(OpCodes.Stfld, typeof(CUnit.CDesc).Field("m_regenSpeed")))
             .ThrowIfInvalid("(1)")
             .Advance(1)
             .Set(OpCodes.Ldc_R4, 0f);
@@ -200,7 +200,7 @@ public static class ContinuousEventsPatch {
                 new(OpCodes.Ldloc_S),
                 new(OpCodes.Ldc_I4_0),
                 new(OpCodes.Ldloc_S),
-                new(OpCodes.Callvirt, AccessTools.PropertyGetter(typeof(List<CEnvironment>), nameof(List<CEnvironment>.Count))),
+                new(OpCodes.Callvirt, typeof(List<CEnvironment>).Method("get_Count")),
                 new(OpCodes.Call),
                 new(OpCodes.Callvirt),
                 new(OpCodes.Stfld))
@@ -212,12 +212,12 @@ public static class ContinuousEventsPatch {
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldloc_S),
                 new(OpCodes.Ldfld),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CEnvironment), nameof(CEnvironment.m_isNightEnv))),
+                new(OpCodes.Ldfld, typeof(CEnvironment).Field("m_isNightEnv")),
                 new(OpCodes.Brfalse))
             .RemoveInstructions(51)
             .Insert(
-                new(OpCodes.Call, AccessTools.PropertyGetter(typeof(GVars), nameof(GVars.SimuTime))),
-                new(OpCodes.Stsfld, AccessTools.Field(typeof(GVars), nameof(GVars.m_eventStartTime))));
+                new(OpCodes.Call, typeof(GVars).Method("get_SimuTime")),
+                new(OpCodes.Stsfld, typeof(GVars).StaticField("m_eventStartTime")));
 
         return codeMatcher.Instructions();
     }
@@ -232,8 +232,8 @@ public static class InstantDrowning {
         codeMatcher.Start()
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Call, typeof(GVars).GetMethod("get_SimuTime")),
-                new(OpCodes.Stfld, typeof(CUnit).GetField("m_lastAirHit")),
+                new(OpCodes.Call, typeof(GVars).Method("get_SimuTime")),
+                new(OpCodes.Stfld, typeof(CUnit).Field("m_lastAirHit")),
 
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Isinst, typeof(CUnitPlayer)),

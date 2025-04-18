@@ -5,6 +5,7 @@ using System.Reflection.Emit;
 using System;
 using UnityEngine;
 using ModUtils;
+using ModUtils.Extensions;
 
 public class Patches {
     [HarmonyPatch(typeof(UnityEngine.Resources), nameof(UnityEngine.Resources.Load), [typeof(string)])]
@@ -75,13 +76,13 @@ public class Patches {
         codeMatcher.End()
             .MatchBack(useEnd: true,
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CItem), nameof(CItem.m_tile))),
+                new(OpCodes.Ldfld, typeof(CItem).Field("m_tile")),
                 new(OpCodes.Brfalse))
             .GetOperand(out Label failLabel)
             .Advance(1)
             .Insert(
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CItem), nameof(CItem.m_tileIcon))),
+                new(OpCodes.Ldfld, typeof(CItem).Field("m_tileIcon")),
                 new(OpCodes.Brtrue, failLabel));
 
         return codeMatcher.Instructions();
@@ -99,7 +100,7 @@ public class Patches {
             .InjectAndAdvance(OpCodes.Ldloc_0)
             .Insert(
                 new(OpCodes.Ldc_I4_S, (sbyte)5),
-                new(OpCodes.Call, AccessTools.Method(typeof(Math), nameof(Math.Min), [typeof(int), typeof(int)])),
+                new(OpCodes.Call, typeof(Math).Method("Min", [typeof(int), typeof(int)])),
                 new(OpCodes.Stloc_0));
 
         return codeMatcher.Instructions();
@@ -198,14 +199,14 @@ public class Patches {
         codeMatcher.Start()
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
-                new(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.explosive))),
+                new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
+                new(OpCodes.Ldsfld, typeof(GItems).StaticField("explosive")),
                 new(OpCodes.Bne_Un))
             .Advance(1)
             .Insert(new CodeInstruction(OpCodes.Ldarg_0))
             .CreateLabel(out var nextLabel)
             .Insert(
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
+                new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
                 new(OpCodes.Isinst, typeof(CItem_Explosive)),
                 new(OpCodes.Ldnull),
                 new(OpCodes.Beq, nextLabel),
@@ -234,13 +235,13 @@ public class Patches {
         }
         codeMatcher.Start()
             .MatchForward(useEnd: true,
-                new(OpCodes.Call, AccessTools.Method(typeof(Mathf), nameof(Mathf.MoveTowardsAngle))),
-                new(OpCodes.Stfld, AccessTools.Field(typeof(CUnitDefense), "m_angleDeg")))
+                new(OpCodes.Call, typeof(Mathf).Method("MoveTowardsAngle")),
+                new(OpCodes.Stfld, typeof(CUnitDefense).Field("m_angleDeg")))
             .Advance(1)
             .CreateLabel(out var skipLabel)
             .Insert(
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
+                new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
                 new(OpCodes.Isinst, typeof(CItem_Collector)),
                 new(OpCodes.Ldnull),
                 new(OpCodes.Beq, skipLabel),
@@ -254,14 +255,14 @@ public class Patches {
         codeMatcher.Start()
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
-                new(OpCodes.Ldsfld, AccessTools.Field(typeof(GItems), nameof(GItems.turretTesla))),
+                new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
+                new(OpCodes.Ldsfld, typeof(GItems).StaticField("turretTesla")),
                 new(OpCodes.Bne_Un))
             .CreateLabelAt(codeMatcher.Pos + 4, out var teslaCond) // after bne.un
             .Advance(1)
             .InsertAndAdvance(
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CUnitDefense), "m_item")),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CItem_Defense), nameof(CItem.m_codeName))),
+                new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
+                new(OpCodes.Ldfld, typeof(CItem_Defense).Field("m_codeName")),
                 new(OpCodes.Ldstr, "turretTeslaMK2"),
                 new(OpCodes.Beq, teslaCond),
                 new(OpCodes.Ldarg_0));
@@ -366,8 +367,8 @@ public class Patches {
         codeMatcher.Start()
             .MatchForward(useEnd: true,
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Call, AccessTools.PropertyGetter(typeof(CBullet), nameof(CBullet.Desc))),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CBulletDesc), nameof(CBulletDesc.m_lavaQuantity))),
+                new(OpCodes.Call, typeof(CBullet).Method("get_Desc")),
+                new(OpCodes.Ldfld, typeof(CBulletDesc).Field("m_lavaQuantity")),
                 new(OpCodes.Ldc_R4, 0.0f),
                 new(OpCodes.Ble_Un))
             .ThrowIfInvalid("(1)")
@@ -447,14 +448,14 @@ public class Patches {
         codeMatcher.Start()
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldflda, AccessTools.Field(typeof(CUnit), nameof(CUnit.m_speed))),
+                new(OpCodes.Ldflda, typeof(CUnit).Field("m_speed")),
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldflda, AccessTools.Field(typeof(CUnit), nameof(CUnit.m_speed))),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(Vector2), nameof(Vector2.x))),
+                new(OpCodes.Ldflda, typeof(CUnit).Field("m_speed")),
+                new(OpCodes.Ldfld, typeof(Vector2).Field("x")),
                 new(OpCodes.Ldc_R4, -30f),
                 new(OpCodes.Ldc_R4, 30f),
-                new(OpCodes.Call, AccessTools.Method(typeof(Mathf), nameof(Mathf.Clamp), [typeof(float), typeof(float), typeof(float)])),
-                new(OpCodes.Stfld, AccessTools.Field(typeof(Vector2), nameof(Vector2.x))))
+                new(OpCodes.Call, typeof(Mathf).Method("Clamp", [typeof(float), typeof(float), typeof(float)])),
+                new(OpCodes.Stfld, typeof(Vector2).Field("x")))
             .ThrowIfInvalid("(1)")
             .RemoveInstructions(18);
 
@@ -465,8 +466,8 @@ public class Patches {
         codeMatcher
             .MatchForward(useEnd: true,
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Call, AccessTools.PropertyGetter(typeof(CBullet), nameof(CBullet.Desc))),
-                new(OpCodes.Ldsfld, AccessTools.Field(typeof(GBullets), nameof(GBullets.zf0bullet))),
+                new(OpCodes.Call, typeof(CBullet).Method("get_Desc")),
+                new(OpCodes.Ldsfld, typeof(GBullets).StaticField("zf0bullet")),
                 new(OpCodes.Bne_Un))
             .ThrowIfInvalid(explanation)
             .Advance(1)
@@ -474,8 +475,8 @@ public class Patches {
             .Advance(-4)
             .InjectAndAdvance(OpCodes.Ldarg_0)
             .InsertAndAdvance(
-                new(OpCodes.Call, AccessTools.PropertyGetter(typeof(CBullet), nameof(CBullet.Desc))),
-                new(OpCodes.Ldsfld, AccessTools.Field(typeof(CustomBullets), nameof(CustomBullets.zf0shotgunBullet))),
+                new(OpCodes.Call, typeof(CBullet).Method("get_Desc")),
+                new(OpCodes.Ldsfld, typeof(CustomBullets).StaticField("zf0shotgunBullet")),
                 new(OpCodes.Beq, successLabel))
             .Advance(4);
     }
