@@ -221,6 +221,30 @@ public static class ContinuousEventsPatch {
         return codeMatcher.Instructions();
     }
 }
+public static class InstantDrowning {
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(CUnit), nameof(CUnit.Update))]
+    private static IEnumerable<CodeInstruction> CUnit_Update(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        // Patch the amount of damage when the player is drowning (m_air <= 0) to maximum possible damage (int.MaxValue)
+
+        var codeMatcher = new CodeMatcher(instructions, generator);
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Call, typeof(GVars).GetMethod("get_SimuTime")),
+                new(OpCodes.Stfld, typeof(CUnit).GetField("m_lastAirHit")),
+
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Isinst, typeof(CUnitPlayer)),
+                new(OpCodes.Brfalse),
+                new(OpCodes.Ldc_I4_5), // overwrite this to "ldc.i4 int.MaxValue"
+                new(OpCodes.Br))
+            .ThrowIfInvalid("(1)")
+            .Advance(6)
+            .Set(OpCodes.Ldc_I4, int.MaxValue);
+        return codeMatcher.Instructions();
+    }
+}
 
 [BepInPlugin("ultra-hardcore", "Ultra Hardcore", "0.0.0")]
 public class UltraHardcorePlugin : BaseUnityPlugin
@@ -271,6 +295,10 @@ public class UltraHardcorePlugin : BaseUnityPlugin
             section: "UltraHardcore", key: "ContinuousEvents", defaultValue: false,
             description: "Makes events always active. Note that day-only and night-only events will appear only at corresponding time of day"
         );
+        var configInstantDrowning = Config.Bind<bool>(
+            section: "UltraHardcore", key: "InstantDrowning", defaultValue: false,
+            description: "Causes the player to instantly die by drowning (without slow loss of health)"
+        );
 
         var harmony = new Harmony("ultra-hardcore");
 
@@ -300,6 +328,9 @@ public class UltraHardcorePlugin : BaseUnityPlugin
         }
         if (configContinuousEvents.Value) {
             harmony.PatchAll(typeof(ContinuousEventsPatch));
+        }
+        if (configInstantDrowning.Value) {
+            harmony.PatchAll(typeof(InstantDrowning));
         }
     }
 }
