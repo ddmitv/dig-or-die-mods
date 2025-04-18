@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
 using ModUtils;
+using System.Diagnostics.SymbolStore;
 
 public static class HpMaxPatch {
     [HarmonyTranspiler]
@@ -245,6 +246,27 @@ public static class InstantDrowning {
         return codeMatcher.Instructions();
     }
 }
+// public static class EnemyNoDetourPathing {
+//     [HarmonyTranspiler]
+//     [HarmonyPatch(typeof(SWorld_PF), nameof(SWorld_PF.AddMove))]
+//     private static IEnumerable<CodeInstruction> SWorld_PF_AddMove(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+//         // Patch the enemy pathfinding algorithm, and make them ignore more optimal pathes and go directly through every cell
+// 
+//         var codeMatcher = new CodeMatcher(instructions, generator);
+//         codeMatcher.Start()
+//             .MatchForward(useEnd: false,
+//                 new(OpCodes.Ldarg_0),
+//                 new(OpCodes.Ldfld, typeof(SWorld_PF).GetField("m_grid")),
+//                 new(OpCodes.Ldloc_0),
+//                 new(OpCodes.Ldloc_1),
+//                 new(OpCodes.Call, typeof(CCell[,]).GetMethod("Address")),
+//                 new(OpCodes.Call, typeof(CCell).GetMethod("IsPassable")),
+//                 new(OpCodes.Brfalse))
+//             .ThrowIfInvalid("(1)")
+//             .RemoveInstructions(7); // remove these instruction to make every cell behave like it is passble
+//         return codeMatcher.Instructions();
+//     }
+// }
 
 [BepInPlugin("ultra-hardcore", "Ultra Hardcore", "0.0.0")]
 public class UltraHardcorePlugin : BaseUnityPlugin
@@ -299,6 +321,10 @@ public class UltraHardcorePlugin : BaseUnityPlugin
             section: "UltraHardcore", key: "InstantDrowning", defaultValue: false,
             description: "Causes the player to instantly die by drowning (without slow loss of health)"
         );
+        // var configEnemyNoDetourPathing = Config.Bind<bool>(
+        //     section: "UltraHardcore", key: "EnemyNoDetourPathing", defaultValue: false,
+        //     description: "Makes enemies to go ahead through cells ignoring it's durability"
+        // );
 
         var harmony = new Harmony("ultra-hardcore");
 
@@ -332,5 +358,8 @@ public class UltraHardcorePlugin : BaseUnityPlugin
         if (configInstantDrowning.Value) {
             harmony.PatchAll(typeof(InstantDrowning));
         }
+        // if (configEnemyNoDetourPathing.Value) {
+        //     harmony.PatchAll(typeof(EnemyNoDetourPathing));
+        // }
     }
 }
