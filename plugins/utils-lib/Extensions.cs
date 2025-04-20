@@ -55,6 +55,10 @@ public static class CodeMatcherExtensions {
         self.CreateLabelAt(self.Pos + offset, out label);
         return self;
     }
+    public static CodeMatcher SetOpcode(this CodeMatcher self, OpCode opcode) {
+        self.Opcode = opcode;
+        return self;
+    }
 }
 
 public static class TypeExtensions {
