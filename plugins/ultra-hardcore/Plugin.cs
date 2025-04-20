@@ -267,6 +267,36 @@ public static class InstantDrowning {
 //         return codeMatcher.Instructions();
 //     }
 // }
+public static class UnitInstantObservation {
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(CUnitMonster), nameof(CUnitMonster.UpdateTarget))]
+    private static IEnumerable<CodeInstruction> CUnitMonster_UpdateTarget(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, typeof(CUnitMonster).Field("m_target")),
+                new(OpCodes.Brtrue))
+            .ThrowIfInvalid("(1)")
+            .RemoveInstructions(2)
+            .SetOpcode(OpCodes.Br)
+
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, typeof(CUnitMonster).Field("m_target")),
+                new(OpCodes.Brtrue),
+                // remove these lower instructions
+                new(OpCodes.Call, typeof(SUnits).Method("IsThereABossAggressive")),
+                new(OpCodes.Brtrue),
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, typeof(CUnitMonster).Field("m_isNightSpawn")),
+                new(OpCodes.Brfalse))
+            .ThrowIfInvalid("(2)")
+            .Advance(3)
+            .RemoveInstructions(5);
+        return codeMatcher.Instructions();
+    }
+}
 
 [BepInPlugin("ultra-hardcore", "Ultra Hardcore", "0.0.0")]
 public class UltraHardcorePlugin : BaseUnityPlugin
@@ -325,6 +355,10 @@ public class UltraHardcorePlugin : BaseUnityPlugin
         //     section: "UltraHardcore", key: "EnemyNoDetourPathing", defaultValue: false,
         //     description: "Makes enemies to go ahead through cells ignoring it's durability"
         // );
+        var configUnitInstantObservation = Config.Bind<bool>(
+            section: "UltraHardcore", key: "UnitInstantObservation", defaultValue: false,
+            description: "Makes every unit target closest player regardless of distance between them"
+        );
 
         var harmony = new Harmony("ultra-hardcore");
 
@@ -361,5 +395,8 @@ public class UltraHardcorePlugin : BaseUnityPlugin
         // if (configEnemyNoDetourPathing.Value) {
         //     harmony.PatchAll(typeof(EnemyNoDetourPathing));
         // }
+        if (configUnitInstantObservation.Value) {
+            harmony.PatchAll(typeof(UnitInstantObservation));
+        }
     }
 }
