@@ -25,15 +25,5 @@
       SourceFiles="$(TargetDir)$(AssemblyName).dll"
       DestinationFolder="$(GameDir)BepInEx\plugins" />
     <Message Text="Copying plugin assembly &quot;$(TargetDir)$(AssemblyName).dll&quot; to &quot;$(GameDir)BepInEx\plugins\$(AssemblyName).dll&quot;" Importance="high" />
-      
-    <ItemGroup>
-        <DataFolder Include="$(ProjectDir)DigOrDie_Data\**\*.*"/>
-    </ItemGroup>
-    <Copy Condition="Exists('$(ProjectDir)DigOrDie_Data')"
-      SourceFiles="@(DataFolder)"
-      DestinationFolder="$(GameDir)DigOrDie_Data\%(RecursiveDir)"
-      SkipUnchangedFiles="true" />
-    <Message Condition="Exists('$(ProjectDir)DigOrDie_Data')" Importance="high"
-      Text="Copying game's data &quot;$(ProjectDir)DigOrDie_Data&quot; to &quot;$(GameDir)DigOrDie_Data&quot;" />
   </Target>
 </Project>

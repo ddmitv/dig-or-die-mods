@@ -6,13 +6,15 @@ using System;
 using UnityEngine;
 using ModUtils;
 using ModUtils.Extensions;
+using System.Linq;
+using System.Reflection;
 
 public class Patches {
     [HarmonyPatch(typeof(UnityEngine.Resources), nameof(UnityEngine.Resources.Load), [typeof(string)])]
     [HarmonyPrefix]
     private static bool Resources_Load(string path, ref UnityEngine.Object __result) {
-        if (path == $"Textures/{CustomCTile.texturePath}") {
-            __result = CustomCTile.texture;
+        if (path == $"Textures/{ModCTile.texturePath}") {
+            __result = ModCTile.texture;
             return false;
         }
         return true;
@@ -23,13 +25,13 @@ public class Patches {
         Sprite CreateSprite(string name, Rect rect) {
             var pivot = new Vector2(0.5f, 0.5f);
 
-            var spriteRect = new Rect(rect.x, CustomCTile.texture.height - rect.yMax, rect.width, rect.height);
-            var sprite = Sprite.Create(CustomCTile.texture, spriteRect, pivot, 100, 0, SpriteMeshType.FullRect);
+            var spriteRect = new Rect(rect.x, ModCTile.texture.height - rect.yMax, rect.width, rect.height);
+            var sprite = Sprite.Create(ModCTile.texture, spriteRect, pivot, 100, 0, SpriteMeshType.FullRect);
             sprite.name = name;
             return sprite;
         }
 
-        if (path == $"Textures/{CustomCTile.texturePath}") {
+        if (path == $"Textures/{ModCTile.texturePath}") {
             __result = [
                 CreateSprite("meltdownSnipe", rect: new Rect(0, 128, 255, 119)),
                 CreateSprite("particlesSnipTurretMK2", rect: new Rect(0, 128 + 119, 209, 98)),
@@ -42,12 +44,25 @@ public class Patches {
     [HarmonyPatch(typeof(SItems), nameof(SItems.OnInit))]
     [HarmonyPostfix]
     private static void SItems_OnInit() {
-        foreach (var itemField in typeof(CustomItems).GetFields()) {
-            var item = (CustomItem)itemField.GetValue(null);
-            item.AddToGItems();
+        foreach (var itemField in typeof(CustomItems).GetFields(BindingFlags.Static | BindingFlags.Public)) {
+            var modItem = (ModItem)itemField.GetValue(null);
+            modItem.Item.m_tileTextureName = ModCTile.texturePath;
+            ItemTools.RegisterItem(modItem.Item);
         }
         SLoc.ReprocessTexts();
     }
+    [HarmonyPatch(typeof(SDataLua), nameof(SDataLua.OnInit))]
+    [HarmonyPostfix]
+    private static void SDataLua_OnInit() {
+        // SOutgame.Mode is "Solo"
+
+        foreach (var itemField in typeof(CustomItems).GetFields(BindingFlags.Static | BindingFlags.Public)) {
+            var modItem = (ModItem)itemField.GetValue(null);
+            if (modItem.Recipe is null) { continue; }
+            ItemTools.RegisterRecipe(modItem.Recipe);
+        }
+    }
+
     [HarmonyPatch(typeof(CItem_Device), nameof(CItem_Device.OnUpdate))]
     [HarmonyPrefix]
     private static bool CItem_Device_OnUpdate(CItem_Device __instance) {
@@ -110,16 +125,16 @@ public class Patches {
             if (self.GetLastFireTime() <= 0f) {
                 return;
             }
-            var item = (CItem_Explosive)self.m_item;
+            var item = (ExtCItem_Explosive)self.m_item;
 
             ref var current_cell = ref SWorld.Grid[self.PosCell.x, self.PosCell.y];
 
             if (item.lavaReleaseTime >= 0
                 && GVars.SimuTime >= self.GetLastFireTime() + item.lavaReleaseTime
-                && GVars.SimuTime > CItem_Explosive.lastTimeMap[self.Id]
+                && GVars.SimuTime > ExtCItem_Explosive.lastTimeMap[self.Id]
             ) {
-                const float dt = CItem_Explosive.deltaTime;
-                CItem_Explosive.lastTimeMap[self.Id] = GVars.SimuTime + dt;
+                const float dt = ExtCItem_Explosive.deltaTime;
+                ExtCItem_Explosive.lastTimeMap[self.Id] = GVars.SimuTime + dt;
 
                 float releaseTime = GVars.SimuTime - (self.GetLastFireTime() + item.lavaReleaseTime);
                 float completionPercentage = releaseTime / (item.explosionTime - item.lavaReleaseTime);
@@ -207,7 +222,7 @@ public class Patches {
             .CreateLabel(out var nextLabel)
             .Insert(
                 new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
-                new(OpCodes.Isinst, typeof(CItem_Explosive)),
+                new(OpCodes.Isinst, typeof(ExtCItem_Explosive)),
                 new(OpCodes.Ldnull),
                 new(OpCodes.Beq, nextLabel),
                 new(OpCodes.Ldarg_0),
@@ -230,7 +245,7 @@ public class Patches {
             if (self.m_timeRepaired > self.m_item.m_attack.m_cooldown) {
 
                 self.m_timeRepaired -= self.m_item.m_attack.m_cooldown;
-                SSingleton<SWorld>.Inst.DoDamageToCell(new int2(targetPos), ((CItem_Collector)self.m_item).collectorDamage, 2, true);
+                SSingleton<SWorld>.Inst.DoDamageToCell(new int2(targetPos), ((ExtCItem_Collector)self.m_item).collectorDamage, 2, true);
             }
         }
         codeMatcher.Start()
@@ -242,7 +257,7 @@ public class Patches {
             .Insert(
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
-                new(OpCodes.Isinst, typeof(CItem_Collector)),
+                new(OpCodes.Isinst, typeof(ExtCItem_Collector)),
                 new(OpCodes.Ldnull),
                 new(OpCodes.Beq, skipLabel),
                 new(OpCodes.Ldarg_0),
@@ -271,7 +286,7 @@ public class Patches {
         int range = Mathf.FloorToInt(self.m_item.m_attack.m_range);
         float closestDist = float.MaxValue;
         Vector2 result = Vector2.zero;
-        bool isBasaltCollector = ((CItem_Collector)self.m_item).isBasaltCollector;
+        bool isBasaltCollector = ((ExtCItem_Collector)self.m_item).isBasaltCollector;
 
         for (int i = self.PosCell.x - range; i <= self.PosCell.x + range; ++i) {
             for (int j = self.PosCell.y - range; j <= self.PosCell.y + range; ++j) {
@@ -297,7 +312,7 @@ public class Patches {
     [HarmonyPrefix]
     [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.GetUnitTargetPos))]
     private static bool CUnitDefense_GetUnitTargetPos(CUnitDefense __instance, ref Vector2 __result) {
-        if (__instance.m_item is CItem_Collector) {
+        if (__instance.m_item is ExtCItem_Collector) {
             __result = GetCollectorTargetPos(__instance);
 
             return false;
@@ -319,7 +334,7 @@ public class Patches {
     [HarmonyPostfix]
     [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.OnDisplayWorld))]
     private static void CUnitDefense_OnDisplayWorld(CUnitDefense __instance, float ___m_lastFireTime, Vector2 ___m_pos) {
-        if (__instance.m_item is CItem_Explosive item && ___m_lastFireTime > 0f && GVars.m_simuTimeD > (double)___m_lastFireTime) {
+        if (__instance.m_item is ExtCItem_Explosive item && ___m_lastFireTime > 0f && GVars.m_simuTimeD > (double)___m_lastFireTime) {
             CMesh<CMeshText>.Get("ITEMS").Draw(
                 text: Mathf.CeilToInt(___m_lastFireTime + item.explosionTime - GVars.SimuTime).ToString(),
                 pos: ___m_pos + Vector2.up * 0.4f,
@@ -331,20 +346,20 @@ public class Patches {
     [HarmonyPostfix]
     [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.OnActivate))]
     private static void CUnitDefense_OnActivate(CUnitDefense __instance, ref float ___m_lastFireTime) {
-        if (__instance.m_item is CItem_Explosive && ___m_lastFireTime < 0f) {
+        if (__instance.m_item is ExtCItem_Explosive && ___m_lastFireTime < 0f) {
             ___m_lastFireTime = GVars.SimuTime;
 
             SSingleton<SWorld>.Inst.SetContent(
                 pos: __instance.PosCell - int2.up,
-                item: (CItemCell)CustomItems.indestructibleLavaOld.item
+                item: (CItemCell)CustomItems.indestructibleLavaOld.Item
             );
-            CItem_Explosive.lastTimeMap[__instance.Id] = 0f;
+            ExtCItem_Explosive.lastTimeMap[__instance.Id] = 0f;
         }
     }
     [HarmonyPostfix]
     [HarmonyPatch(typeof(CBullet), nameof(CBullet.Explosion))]
     private static void CBullet_Explosion(CBullet __instance) {
-        if (__instance.Desc is not CustomCBulletDesc cbulletdesc) { return; }
+        if (__instance.Desc is not ExtCBulletDesc cbulletdesc) { return; }
 
         if (cbulletdesc.explosionBasaltBgRadius > 0) {
             Utils.ApplyInCircle(cbulletdesc.explosionBasaltBgRadius, new int2(__instance.m_pos), (int x, int y) => {
@@ -377,7 +392,7 @@ public class Patches {
             .Insert(
                 new(OpCodes.Ldarg_0),
                 Transpilers.EmitDelegate((CBullet self) => {
-                    if (self.Desc is CustomCBulletDesc cbulletdesc) {
+                    if (self.Desc is ExtCBulletDesc cbulletdesc) {
                         return cbulletdesc.emitLavaBurstParticles;
                     }
                     return true;
@@ -393,7 +408,7 @@ public class Patches {
     [HarmonyPrefix]
     private static bool SWorld_DoDamageToCell(ref int2 cellPos, ref bool __result) {
         var content = SWorld.Grid[cellPos.x, cellPos.y].GetContent();
-        if ((content is CItem_Explosive citem && citem.indestructible) || content is CItem_IndestructibleMineral) {
+        if ((content is ExtCItem_Explosive citem && citem.indestructible) || content is ExtCItem_IndestructibleMineral) {
             __result = false;
             return false;
         }
@@ -403,7 +418,7 @@ public class Patches {
     [HarmonyPrefix]
     private static bool CUnit_Damage_Local(CUnit __instance) {
         var content = SWorld.Grid[__instance.PosCell.x, __instance.PosCell.y].GetContent();
-        if (content is CItem_Explosive citem && citem.indestructible) {
+        if (content is ExtCItem_Explosive citem && citem.indestructible) {
             return false;
         }
         return true;
@@ -496,12 +511,49 @@ public class Patches {
     [HarmonyPatch(typeof(CItem_Weapon), nameof(CItem_Weapon.Use_Local))]
     [HarmonyPostfix]
     private static void CItem_Weapon_Use_Local_Postfix(CItem_Weapon __instance, CPlayer player, Vector2 worldPos, bool isShift) {
-        if (__instance == CustomItems.gunZF0Shotgun.item
+        if (__instance == CustomItems.gunZF0Shotgun.Item
             && SWorld.GridRectCam.Contains(worldPos)
             && isShift) {
             CItemVars vars = GItems.gunZF0.GetVars(player);
             vars.ZF0TargetLastTimeHit = float.MinValue;
             vars.ZF0TargetId = ushort.MaxValue;
         }
+    }
+
+    [HarmonyPatch(typeof(SItems), nameof(SItems.OnUpdateSimu))]
+    [HarmonyDebug]
+    private static IEnumerable<CodeInstruction> SItems_OnUpdateSimu(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        static bool MiniaturizorMK6CustomLogic(CItem_Device cItem_Device, CItemCell content) {
+            if (cItem_Device != CustomItems.miniaturizorMK6.Item) { return false; }
+            
+            return content.m_hpMax > GItems.miniaturizorMK5.m_customValue;
+        }
+
+        var codeMatcher = new CodeMatcher(instructions, generator);
+        codeMatcher.Start()
+            // if (content != null && !(content is CItem_Wall) && (float)content.m_hpMax > customValue)
+            .MatchForward(useEnd: true,
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Brfalse),
+
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Isinst, typeof(CItem_Wall)),
+                new(OpCodes.Brtrue),
+                // (1)
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Ldfld, typeof(CItemCell).Field("m_hpMax")),
+                new(OpCodes.Conv_R4),
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Ble_Un))
+            .ThrowIfInvalid("(1)")
+            .Advance(1)
+            .CreateLabel(out Label cannotDigLabel)
+            .Advance(-5) // Put cursor at (1)
+            .Insert(
+                new(OpCodes.Ldloc_S, (byte)16),
+                new(OpCodes.Ldloc_S, (byte)18),
+                Transpilers.EmitDelegate(MiniaturizorMK6CustomLogic),
+                new(OpCodes.Brtrue, cannotDigLabel));
+        return codeMatcher.Instructions();
     }
 }
