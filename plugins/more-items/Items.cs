@@ -589,6 +589,15 @@ public static class CustomItems {
         ),
         recipe: new(groupId: "ULTIMATE")
     );
+
+    public static readonly ModItem portableTeleport = new(codeName: "portableTeleport",
+        name: "Portable Teleporter", description: "TODO.",
+        item: new CItem_Device(tile: new ModCTile(37, 0), tileIcon: new ModCTile(37, 0),
+            groupId: null, type: CItem_Device.Type.Activable
+        ),
+        recipe: new(groupId: "ULTIMATE")
+    );
+
     // public static CustomItem gunPlasmaThrower = new CustomItem(name: "gunPlasmaThrower",
     //     item: new CItem_Weapon(tile: new CustomCTile(35, 0), tileIcon: new CustomCTile(36, 0),
     //         heatingPerShot: 0f, isAuto: true,

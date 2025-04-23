@@ -8,6 +8,7 @@ using ModUtils;
 using ModUtils.Extensions;
 using System.Linq;
 using System.Reflection;
+using System.Diagnostics.SymbolStore;
 
 public class Patches {
     [HarmonyPatch(typeof(UnityEngine.Resources), nameof(UnityEngine.Resources.Load), [typeof(string)])]
@@ -521,8 +522,8 @@ public class Patches {
     }
 
     [HarmonyPatch(typeof(SItems), nameof(SItems.OnUpdateSimu))]
-    [HarmonyDebug]
-    private static IEnumerable<CodeInstruction> SItems_OnUpdateSimu(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+    [HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> SItems_OnUpdateSimu_MiniaturizorMK6(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         static bool MiniaturizorMK6CustomLogic(CItem_Device cItem_Device, CItemCell content) {
             if (cItem_Device != CustomItems.miniaturizorMK6.Item) { return false; }
             
@@ -554,6 +555,79 @@ public class Patches {
                 new(OpCodes.Ldloc_S, (byte)18),
                 Transpilers.EmitDelegate(MiniaturizorMK6CustomLogic),
                 new(OpCodes.Brtrue, cannotDigLabel));
+        return codeMatcher.Instructions();
+    }
+
+    [HarmonyPatch(typeof(CItem_Device), nameof(CItem_Device.Use_Local))]
+    [HarmonyPostfix]
+    private static void CItem_Device_Use_Local(CItem_Device __instance, CPlayer player, Vector2 mousePos, bool isShift) {
+        if (__instance == CustomItems.portableTeleport.Item) {
+            Console.WriteLine("inside portableTeleport");
+
+            CItem_MachineTeleport.m_teleportersPos.Clear();
+            CItem_MachineTeleport.m_teleportersPos.Add(player.m_unitPlayer.PosCell);
+            for (int i = 0; i < SWorld.Gs.x; i++) {
+                for (int j = 0; j < SWorld.Gs.y; j++) {
+                    if (SWorld.Grid[i, j].GetContent() == GItems.teleport) {
+                        CItem_MachineTeleport.m_teleportersPos.Add(new int2(i, j));
+                    }
+                }
+            }
+            Console.WriteLine($"count: {CItem_MachineTeleport.m_teleportersPos.Count}");
+        }
+    }
+    [HarmonyPatch(typeof(SItems), nameof(SItems.OnUpdateSimu))]
+    [HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> SItems_OnUpdateSimu_PortableTeleport(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+        codeMatcher.Start()
+            .MatchForward(useEnd: true,
+                new(OpCodes.Call, typeof(SSingleton<SWorld>).Method("get_Inst")),
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Callvirt, typeof(SWorld).Method("GetCellContent", [typeof(int2)])),
+                new(OpCodes.Isinst),
+                new(OpCodes.Brtrue))
+            .ThrowIfInvalid("(1)")
+            .GetOperand(out Label skipLabel)
+            .Advance(1)
+            .Insert(
+                Transpilers.EmitDelegate(() => {
+                    return G.m_player.PosCell == CItem_MachineTeleport.m_teleportersPos[0];
+                }),
+                new(OpCodes.Brtrue, skipLabel));
+        return codeMatcher.Instructions();
+    }
+    [HarmonyPatch(typeof(CItem_MachineTeleport), nameof(CItem_MachineTeleport.Teleport))]
+    [HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> CItem_MachineTeleport_Teleport_PortableTeleport(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldsfld, typeof(G).StaticField("m_player")),
+                new(OpCodes.Ldloc_1),
+                new(OpCodes.Call, typeof(int2).Method("op_Implicit", [typeof(int2)])))
+            .ThrowIfInvalid("(1)")
+            .CreateLabel(out Label teleportLabel)
+            .Start()
+            .MatchForward(useEnd: false,
+                new(OpCodes.Call, typeof(SWorld).Method("get_Grid")),
+                new(OpCodes.Ldloca_S),
+                new(OpCodes.Ldfld, typeof(int2).Field("x")),
+                new(OpCodes.Ldloca_S),
+                new(OpCodes.Ldfld, typeof(int2).Field("y")),
+                new(OpCodes.Call, typeof(CCell[,]).Method("Address", [typeof(int), typeof(int)])),
+
+                new(OpCodes.Call, typeof(CCell).Method("GetContent")),
+                new(OpCodes.Ldsfld, typeof(GItems).StaticField("teleport")),
+                new(OpCodes.Bne_Un))
+            .ThrowIfInvalid("(2)")
+            .Insert(
+                Transpilers.EmitDelegate(() => {
+                    return G.m_player.PosCell == CItem_MachineTeleport.m_teleportersPos[0];
+                }),
+                new(OpCodes.Brtrue, teleportLabel));
+            
         return codeMatcher.Instructions();
     }
 }
