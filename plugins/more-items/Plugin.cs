@@ -4,6 +4,34 @@ using ModUtils;
 using System.Reflection;
 using UnityEngine;
 
+public class FlashEffect : MonoBehaviour {
+    private static Texture2D flashTexture;
+    private static float flashIntensity = 0f;
+
+    private void Start() {
+        flashTexture = new Texture2D(1, 1);
+        flashTexture.SetPixel(0, 0, Color.white);
+        flashTexture.Apply();
+    }
+
+    private void Update() {
+        if (flashIntensity <= 0) { return; }
+
+        flashIntensity -= Time.deltaTime * 2f;
+    }
+    private void OnGUI() {
+        if (flashIntensity <= 0) { return; }
+
+        var color = Color.white;
+        color.a = Mathf.Clamp(flashIntensity, 0f, 1f);
+        GUI.color = color;
+        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), flashTexture);
+    }
+    public static void TriggerFlash(float intensity) {
+        flashIntensity = intensity;
+    }
+}
+
 [BepInPlugin("more-items", "More Items", "0.0.0")]
 public class MoreItemsPlugin : BaseUnityPlugin {
     private void Start() {
@@ -19,5 +47,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
         Harmony.CreateAndPatchAll(typeof(Patches));
 
         Utils.RunStaticConstructor(typeof(CustomItems));
+
+        gameObject.AddComponent<FlashEffect>();
     }
 }

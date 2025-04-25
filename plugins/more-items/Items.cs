@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using ModUtils;
+using System.Collections;
 
 public sealed class ModCTile : CTile {
     public static readonly string texturePath = "mod-more-items";
@@ -43,8 +45,71 @@ public sealed class ExtCItem_Explosive : CItem_Defense {
     public float shockWaveRange = 0f;
     public float shockWaveKnockback = 0f;
     public float shockWaveDamage = 0f;
+    public float explosionFlashIntensity = 0f;
+    public float explosionFireAroundRadius = 0f;
 
     public static Dictionary<ushort, float> lastTimeMap = new Dictionary<ushort, float>();
+
+    public void DoFireAround(Vector2 pos) {
+        if (this.explosionFireAroundRadius <= 0f) { return; }
+
+        SWorld.SetFireAround(pos, this.explosionFireAroundRadius);
+        Utils.SetUnitBurningAround(pos, this.explosionFireAroundRadius);
+    }
+    public void DoShockWave(Vector2 pos) {
+        if (this.shockWaveRange <= 0f) { return; }
+
+        Utils.DoShockWave(pos, this.shockWaveRange, this.shockWaveDamage, this.shockWaveKnockback);
+    }
+    public void DoExplosionFlash() {
+        if (this.explosionFlashIntensity <= 0f) { return; }
+
+        FlashEffect.TriggerFlash(this.explosionFlashIntensity);
+    }
+    public void DoExplosionLavaRelease(ref CCell currentCell) {
+        if (this.lavaReleaseTime >= 0f) { return; }
+
+        Utils.AddLava(ref currentCell, this.lavaQuantity);
+    }
+    public void DoExplosionBgChange(int2 posCell) {
+        var range = this.destroyBackgroundRadius + this.explosionBasaltBgRadius;
+        if (range <= 0) { return; }
+
+        for (int i = posCell.x - range; i <= posCell.x + range; ++i) {
+            for (int j = posCell.y - range; j <= posCell.y + range; ++j) {
+                int2 relative = new int2(i, j) - posCell;
+                if (relative.sqrMagnitude > range * range) {
+                    continue;
+                }
+                if (!Utils.IsValidCell(i, j)) { return; }
+
+                ref var cell = ref SWorld.Grid[i, j];
+                if (relative.sqrMagnitude > this.destroyBackgroundRadius * this.destroyBackgroundRadius) {
+                    if (cell.GetBgSurface() != null) {
+                        cell.SetBgSurface(GSurfaces.bgLava);
+                    }
+                } else {
+                    cell.SetBgSurface(null);
+                }
+            }
+        }
+    }
+    public void StartVolcanoEruption() {
+        if (!this.alwaysStartEruption || (GVars.m_eruptionTime != 0f && GVars.SimuTime <= GVars.m_eruptionTime + SOutgame.Params.m_eruptionDurationTotal)) {
+            return;
+        }
+        SAudio.Get("lavaEruption").Play(G.m_player.Pos, volumeMult: 1.5f);
+        GVars.m_eruptionStartPressure = SGame.LavaPressure;
+        GVars.m_eruptionTime = GVars.SimuTime;
+    }
+    public void DoDamageAround(Vector2 explosionPos, CAttackDesc attack) {
+        SUnits.DoDamageAOE(explosionPos, attack.m_range, attack.m_damage);
+        SWorld.DoDamageAOE(explosionPos, (int)attack.m_range, attack.m_damage);
+        SParticles.common_Explosion.EmitNb(explosionPos, nb: 100, isLighted: false, speed: 10f);
+    }
+    public void PlayExplosionSound(CSound sound, Vector2 explosionPos) {
+        sound.Play(explosionPos, this.explosionSoundMultiplier);
+    }
 }
 public sealed class ExtCBulletDesc : CBulletDesc {
     public ExtCBulletDesc(string spriteTextureName, string spriteName, float radius, float dispersionAngleRad, float speedStart, float speedEnd, uint light = 0)
@@ -116,7 +181,8 @@ public static class CItemDeviceGroupIds {
 
 public static class CustomItems {
     public static readonly ModItem flashLightMK3 = new(codeName: "flashLightMK3",
-        name: "Flashlight MK3", description: "Even more light!",
+        name: "Flashlight MK3",
+        description: "The brightest handheld light ever engineered. Uses self-charging photon amplification to outshine even the void of deep caves.",
         item: new CItem_Device(tile: new ModCTile(0, 0), tileIcon: new ModCTile(0, 0),
             groupId: CItemDeviceGroupIds.flashLight, type: CItem_Device.Type.Passive, customValue: 10f
         ),
@@ -128,7 +194,8 @@ public static class CustomItems {
     );
     
     public static readonly ModItem miniaturizorMK6 = new(codeName: "miniaturizorMK6",
-        name: "Miniaturizor MK VI", description: "Absolutely the best Miniaturizor ever invented.",
+        name: "Miniaturizor MK VI",
+        description: "The final word in portable matter compression. Matter compression device utilizing quantum-locked deatomization fields. Warning: Do not use on black holes.",
         item: new CItem_Device(tile: new ModCTile(2, 0), tileIcon: new ModCTile(1, 0),
             groupId: CItemDeviceGroupIds.miniaturizor, type: CItem_Device.Type.None, customValue: 1500f
         ) { m_pickupDuration = -1 },
@@ -141,7 +208,7 @@ public static class CustomItems {
     
     public static readonly ModItem betterPotionHpRegen = new(codeName: "betterPotionHpRegen",
         name: "Better Health Regeneration Potion", 
-        description: "The high radioactivity mixed with a multiple specials chemical ingredients helps the tissues to regenerate. Heals 400% of your HP over 60s.",
+        description: "Advanced bio-stimulant compound (400% HP restoration over 60s). Rebuilds cells faster than they can die.",
         item: new CItem_Device(tile: new ModCTile(3, 0), tileIcon: new ModCTile(3, 0),
             groupId: CItemDeviceGroupIds.potionHPRegen, type: CItem_Device.Type.Consumable, customValue: 3f
         ) { m_cooldown = 120f, m_duration = 60f },
@@ -152,7 +219,7 @@ public static class CustomItems {
     
     public static readonly ModItem defenseShieldMK2 = new(codeName: "defenseShieldMK2",
         name: "Defense Shield MK2", 
-        description: "Creates a strong magnetic field around you that can absorb your maximum health points from projectiles. Refreshes in 2s.",
+        description: "Projected quantum barrier capable of absorbing kinetic impacts equal to user's maximum HP. Recharges in 2s.",
         item: new CItem_Device(tile: new ModCTile(4, 0), tileIcon: new ModCTile(4, 0),
             groupId: CItemDeviceGroupIds.shield, type: CItem_Device.Type.Passive, customValue: 1f
         ),
@@ -164,7 +231,7 @@ public static class CustomItems {
     
     public static readonly ModItem waterBreatherMK2 = new(codeName: "waterBreatherMK2",
         name: "Rebreather MK2", 
-        description: "This small device can get a large amount of oxygen from the water.",
+        description: "High-yield electrolytic filtration system extracts breathable gases from liquid environments.",
         item: new CItem_Device(tile: new ModCTile(5, 0), tileIcon: new ModCTile(5, 0),
             groupId: CItemDeviceGroupIds.waterBreather, type: CItem_Device.Type.Passive, customValue: 7f
         ),
@@ -177,7 +244,7 @@ public static class CustomItems {
     
     public static readonly ModItem jetpackMK2 = new(codeName: "jetpackMK2",
         name: "Jetpack MK2", 
-        description: "Portable double mini-rockets attached to a pack. Very heavy when walking or swimming. Doesn't work very well near volcanic Basalt (radiations and heat causing interferences).",
+        description: "Dual-thrust VTOL propulsion system. Features reinforced heat shielding for volcanic environments.",
         item: new CItem_Device(tile: new ModCTile(6, 0), tileIcon: new ModCTile(6, 0),
             groupId: CItemDeviceGroupIds.jetpack, type: CItem_Device.Type.Passive, customValue: 1f
         ),
@@ -188,7 +255,8 @@ public static class CustomItems {
     );
     
     public static readonly ModItem antiGravityWall = new(codeName: "antiGravityWall",
-        name: "Anti-Gravity Wall", description: "How???",
+        name: "Anti-Gravity Wall",
+        description: "Defies conventional physics by emitting a repulsive wave of synthesized negative mass. Installation requires chrono-stabilized anchoring.",
         item: new CItem_Wall(tile: new ModCTile(7, 0), tileIcon: new ModCTile(7, 0),
             hpMax: 100, mainColor: 12173251U, forceResist: int.MaxValue - 10000, weight: 1000f, type: CItem_Wall.Type.WallBlock
         ),
@@ -197,7 +265,7 @@ public static class CustomItems {
     
     public static readonly ModItem turretReparatorMK3 = new(codeName: "turretReparatorMK3",
         name: "Auto-Repair Turret MK3",
-        description: "Quickly repairs nearby damaged walls, turrets and machines. Consumes 2kW.",
+        description: "Deploys nano-assembler drones with 7.5m operational radius. Repair rate: 10 HP/s. Consumes 2kW.",
         item: new CItem_Defense(tile: new ModCTile(10, 0), tileIcon: new ModCTile(9, 0),
             hpMax: 200, mainColor: 8947848U, rangeDetection: 8.5f,
             angleMin: -9999f, angleMax: 9999f,
@@ -220,7 +288,8 @@ public static class CustomItems {
     );
     
     public static readonly ModItem megaExplosive = new(codeName: "megaExplosive",
-        name: "Mega Explosive", description: "Nuke.",
+        name: "Mega Explosive",
+        description: "Thermonuclear demolition charge (yield: 3000 damage, 10m blast radius).",
         item: new ExtCItem_Explosive(tile: new ModCTile(11, 0), tileIcon: new ModCTile(11, 0),
             hpMax: 250, mainColor: 8947848U, rangeDetection: 0f, angleMin: 0f, angleMax: 360f,
             attack: new CAttackDesc(
@@ -241,14 +310,16 @@ public static class CustomItems {
             explosionSoundMultiplier = 5f,
             destroyBackgroundRadius = 2,
             explosionBasaltBgRadius = 5,
-            m_light = new Color24(10, 240, 71)
+            explosionFlashIntensity = 1f,
+            explosionFireAroundRadius = 35f,
+            m_light = new Color24(10, 240, 71),
         },
         recipe: new(groupId: "ULTIMATE")
     );
     
     public static readonly ModItem turretParticlesMK2 = new(codeName: "turretParticlesMK2",
         name: "Particle Turret MK2",
-        description: "Long range and very incredibly powerful turret.",
+        description: "Magnetized plasma accelerator turret which fires superheated particle bolts.",
         item: new CItem_Defense(tile: new CTile(0, 0) { m_textureName = "items_defenses" }, tileIcon: new ModCTile(12, 0),
             hpMax: 350, mainColor: 8947848U, rangeDetection: 10f,
             angleMin: -9999f, angleMax: 9999f,
@@ -274,7 +345,7 @@ public static class CustomItems {
     
     public static readonly ModItem turretTeslaMK2 = new(codeName: "turretTeslaMK2",
         name: "Tesla Turret MK2",
-        description: "Creates a very powerful lightning strike on nearby monsters, with a area damage effect. Consumes 5kW.",
+        description: "Summons artificial lightning from ionized atmosphere, chaining between targets with fractal precision. Consumes 5kW.",
         item: new CItem_Defense(tile: new ModCTile(14, 0), tileIcon: new ModCTile(14, 0),
             hpMax: 350, mainColor: 8947848U, rangeDetection: 12.5f,
             angleMin: -9999f, angleMax: 9999f,
@@ -296,7 +367,8 @@ public static class CustomItems {
     );
     
     public static readonly ModItem collector = new(codeName: "collector",
-        name: "Collector", description: "-Plants.",
+        name: "Collector",
+        description: "Automated botanical harvesting unit. Deploys precision cutting beams, compatible with all known flora.",
         item: new ExtCItem_Collector(tile: new ModCTile(15, 0), tileIcon: new ModCTile(16, 0),
             hpMax: 100, mainColor: 8947848U, rangeDetection: 5f,
             angleMin: -9999f, angleMax: 9999f,
@@ -353,7 +425,8 @@ public static class CustomItems {
     );
     
     public static readonly ModItem basaltCollector = new(codeName: "basaltCollector",
-        name: "Basalt Collector", description: "-Basalt.",
+        name: "Basalt Collector",
+        description: "Industrial-grade mineral extraction unit optimized for volcanic rock.",
         item: new ExtCItem_Collector(tile: new ModCTile(15, 0), tileIcon: new ModCTile(24, 0),
             hpMax: 100, mainColor: 8947848U, rangeDetection: 5f,
             angleMin: -9999f, angleMax: 9999f,
@@ -379,7 +452,7 @@ public static class CustomItems {
     
     public static readonly ModItem turretLaser360 = new(codeName: "turretLaser360",
         name: "Rotating Laser Turret",
-        description: "Much more efficient than plasma technology with rotation! Burn through all organic material.",
+        description: "360-degree photon emitter. Penetrates organic matter completely.",
         item: new CItem_Defense(tile: new CTile(0, 0) { m_textureName = "items_defenses" }, tileIcon: new ModCTile(26, 0),
             hpMax: 250, mainColor: 8947848U, rangeDetection: 10f,
             angleMin: -9999f, angleMax: 9999f,
@@ -397,7 +470,8 @@ public static class CustomItems {
     );
     
     public static readonly ModItem gunMeltdown = new(codeName: "gunMeltdown",
-        name: "Gun \"Meltdown\"", description: "The true power...",
+        name: "Gun \"Meltdown\"",
+        description: "Fires a condensed bolt of pure thermodynamic chaos, forcing targets into rapid atomic decay. The recoil has been known to send users sliding backwards through time (approx. 0.3 nanoseconds).",
         item: new CItem_Weapon(tile: new ModCTile(27, 0), tileIcon: new ModCTile(28, 0),
             heatingPerShot: 2f, isAuto: false,
             attackDesc: new CAttackDesc(
@@ -415,7 +489,8 @@ public static class CustomItems {
     );
     
     public static readonly ModItem volcanicExplosive = new(codeName: "volcanicExplosive",
-        name: "Volcanic Explosive", description: "A explosive that powerful, that it creates a mini volcan and can awake an actual volcan at any location.",
+        name: "Volcanic Explosive",
+        description: "Tectonic induction device. Upon detonation, generates a localized subduction zone and summons an artificial magma plume. Could potentially trigger an eruption of nearby volcanoes.",
         item: new ExtCItem_Explosive(tile: new ModCTile(29, 0), tileIcon: new ModCTile(29, 0),
             hpMax: 500, mainColor: 8947848U, rangeDetection: 0f, angleMin: 0f, angleMax: 360f,
             attack: new CAttackDesc(
@@ -433,7 +508,7 @@ public static class CustomItems {
             m_isActivable = true,
             m_neverUnspawn = true,
             explosionTime = 10f,
-            explosionSoundMultiplier = 30f,
+            explosionSoundMultiplier = 25f,
             alwaysStartEruption = true,
             destroyBackgroundRadius = 3,
             explosionBasaltBgRadius = 18,
@@ -446,12 +521,14 @@ public static class CustomItems {
             shockWaveDamage = 30f,
             shockWaveKnockback = 30f,
             shockWaveRange = 50f,
+            explosionFlashIntensity = 1.6f,
         },
         recipe: new(groupId: "ULTIMATE")
     );
     
     public static readonly ModItem wallCompositeReinforced = new(codeName: "wallCompositeReinforced",
-        name: "Composite Reinforced Wall", description: "Better than Composite Wall!",
+        name: "Composite Reinforced Wall",
+        description: "Ultra-dense construction material. Layered graphene-ceramic alloy with shock dispersion matrix.",
         item: new CItem_Wall(tile: new ModCTile(30, 0), tileIcon: new ModCTile(30, 0),
             hpMax: 700, mainColor: 12039872U, forceResist: 11000, weight: 560f,
             type: CItem_Wall.Type.WallBlock
@@ -460,7 +537,8 @@ public static class CustomItems {
     );
     
     public static readonly ModItem gunNukeLauncher = new(codeName: "gunNukeLauncher",
-        name: "Mini-Nuke Launcher", description: "Laundes nukes!",
+        name: "Mini-Nuke Launcher",
+        description: "Compact nuclear delivery system (1000 damage, 15m radius). Fires stabilized micro-fusion warheads. Backblast not included.",
         item: new CItem_Weapon(tile: new ModCTile(31, 0), tileIcon: new ModCTile(32, 0),
             heatingPerShot: 0f, isAuto: false,
             attackDesc: new CAttackDesc(
@@ -490,7 +568,8 @@ public static class CustomItems {
     );
     
     public static readonly ModItem generatorSunMK2 = new(codeName: "generatorSunMK2",
-        name: "Solar Panel MK2", description: "Produces even more electricity from sun light than regular Solar Panel (3kW).",
+        name: "Solar Panel MK2",
+        description: "High-efficiency photovoltaic array (3kW output). Self-cleaning surface maintains 98% light absorption in all conditions.",
         item: new CItem_Machine(tile: new ModCTile(33, 0), tileIcon: new ModCTile(33, 0),
             hpMax: 200, mainColor: 10066329U,
             anchor: CItemCell.Anchor.Bottom_Small
@@ -502,7 +581,7 @@ public static class CustomItems {
     
     public static readonly ModItem RTG = new(codeName: "RTG",
         name: "Radioisotope Thermoelectric Generator", 
-        description: "A type of nuclear battery that uses an array of thermocouples to convert the heat released by the decay of a suitable radioactive material into electricity by the Seebeck effect (15kW).",
+        description: "Radioactive decay-powered generator (15kW output). Utilizes plutonium-238 core with 87-year half-life. Shielded housing prevents contamination.",
         item: new CItem_Machine(tile: new ModCTile(34, 0), tileIcon: new ModCTile(34, 0),
             hpMax: 200, mainColor: 10066329U,
             anchor: CItemCell.Anchor.Bottom_Small
@@ -514,14 +593,16 @@ public static class CustomItems {
     );
     
     public static readonly ModItem indestructibleLavaOld = new(codeName: "indestructibleLavaOld",
-        name: "Indestructible Ancient Basalt", description: "Impossible to destory.",
+        name: "Indestructible Ancient Basalt",
+        description: "Metastable mineral formation. No known force can compromise structural integrity.",
         item: new ExtCItem_IndestructibleMineral(tile: null, tileIcon: new CTile(3, 5),
             hpMax: 1000, mainColor: 6118492U, surface: GSurfaces.lavaOld, isReplacable: false
         )
     );
     
     public static readonly ModItem gunRocketGatling = new(codeName: "gunRocketGatling",
-        name: "Rocket Launcher Gatling", description: "Very powerful explosive impact.",
+        name: "Rocket Launcher Gatling",
+        description: "Rotary micro-missile array. Gatling version of standard rocket launcher fires 40-damage projectiles.",
         item: new CItem_Weapon(tile: new CTile(2, 1) { m_textureName = "items_weapons" }, tileIcon: new CTile(6, 3) { m_textureName = "items_icons" },
             heatingPerShot: 0.1f, isAuto: true,
             attackDesc: new CAttackDesc(
@@ -536,7 +617,8 @@ public static class CustomItems {
     );
     
     public static readonly ModItem gunRailgun = new(codeName: "gunRailgun",
-        name: "Railgun", description: "TODO.",
+        name: "Railgun",
+        description: "Electromagnetic projectile accelerator. Requires capacitor cooling between discharges.",
         item: new CItem_Weapon(tile: new CTile(3, 0) { m_textureName = "items_weapons" }, tileIcon: new CTile(3, 3) { m_textureName = "items_icons" },
             heatingPerShot: 1f, isAuto: false,
             attackDesc: new CAttackDesc(
@@ -556,7 +638,8 @@ public static class CustomItems {
     );
     
     public static readonly ModItem gunBeamLaser = new(codeName: "gunBeamLaser",
-        name: "Laser Beam Gun", description: "TODO.",
+        name: "Laser Beam Gun",
+        description: "Continuous-wave photon emitter. Improved over standard laser guns with infinite penetration capability.",
         item: new CItem_Weapon(tile: new CTile(0, 1) { m_textureName = "items_weapons" }, tileIcon: new CTile(4, 3) { m_textureName = "items_icons" },
             heatingPerShot: 0f, isAuto: true,
             attackDesc: new CAttackDesc(
@@ -577,7 +660,8 @@ public static class CustomItems {
     );
     
     public static readonly ModItem gunZF0Shotgun = new(codeName: "gunZF0Shotgun",
-        name: "ZF-0 Shotgun", description: "TODO.",
+        name: "ZF-0 Shotgun",
+        description: "Multi-barrel flechette disperser. Upgraded ZF-0 model fires 10 armor-piercing rounds per trigger pull.",
         item: new CItem_Weapon(tile: new CTile(3, 1) { m_textureName = "items_weapons" }, tileIcon: new CTile(7, 3) { m_textureName = "items_icons" },
             heatingPerShot: 0.4f, isAuto: false,
             attackDesc: new CAttackDesc(
@@ -591,7 +675,8 @@ public static class CustomItems {
     );
 
     public static readonly ModItem portableTeleport = new(codeName: "portableTeleport",
-        name: "Portable Teleporter", description: "TODO.",
+        name: "Portable Teleporter",
+        description: "Personal quantum translocation device utilizing folded-space technology, which is a compact version of a standard teleporter. Safety protocols prevent matter reintegration errors",
         item: new CItem_Device(tile: new ModCTile(37, 0), tileIcon: new ModCTile(37, 0),
             groupId: null, type: CItem_Device.Type.Activable
         ),

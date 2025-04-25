@@ -33,6 +33,18 @@ public static class Utils {
         cell.m_water += lavaQuantity;
         cell.SetFlag(CCell.Flag_IsLava, true);
     }
+    public static void SetUnitBurningAround(Vector2 center, float radius) {
+        foreach (CUnit unit in SUnits.Units) {
+            if (unit is null || !unit.IsAlive() || unit.m_uDesc.m_immuneToFire) {
+                continue;
+            }
+
+            if ((unit.PosCenter - center).sqrMagnitude <= radius * radius
+                && SMiscCols.CheckCol_SegmentGround(center, unit.PosCenter) == Vector2.zero) {
+                unit.m_burnStartTime = GVars.SimuTime;
+            }
+        }
+    }
     public static T MakeMemberwiseClone<T>(T obj) where T : class {
         return (T)AccessTools.Method(typeof(T), "MemberwiseClone").Invoke(obj, []);
     }
@@ -48,6 +60,16 @@ public static class Utils {
     }
     public static void RunStaticConstructor(Type type) {
         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(type.TypeHandle);
+    }
+    public static void EvaporateWaterAround(int range, int2 pos, float evaporationRate) {
+        Utils.ApplyInCircle(range, pos, (int x, int y) => {
+            if (!Utils.IsValidCell(x, y)) { return; }
+
+            ref var cell = ref SWorld.Grid[x, y];
+            if (!cell.IsLava() && cell.m_water > 0) {
+                cell.m_water = Mathf.Max(0f, cell.m_water - SMain.SimuDeltaTime * evaporationRate);
+            }
+        });
     }
     public static int HashCombine(int first, int second) {
         unchecked {

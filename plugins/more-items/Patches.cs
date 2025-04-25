@@ -122,13 +122,13 @@ public class Patches {
         return codeMatcher.Instructions();
     }
     private static void PatchExplosive(CodeMatcher codeMatcher) {
-        void ExplosiveLogic(CUnitDefense self) {
+        static void ExplosiveLogic(CUnitDefense self) {
             if (self.GetLastFireTime() <= 0f) {
                 return;
             }
             var item = (ExtCItem_Explosive)self.m_item;
 
-            ref var current_cell = ref SWorld.Grid[self.PosCell.x, self.PosCell.y];
+            ref var currentCell = ref SWorld.Grid[self.PosCell.x, self.PosCell.y];
 
             if (item.lavaReleaseTime >= 0
                 && GVars.SimuTime >= self.GetLastFireTime() + item.lavaReleaseTime
@@ -140,76 +140,28 @@ public class Patches {
                 float releaseTime = GVars.SimuTime - (self.GetLastFireTime() + item.lavaReleaseTime);
                 float completionPercentage = releaseTime / (item.explosionTime - item.lavaReleaseTime);
 
-                Utils.AddLava(ref current_cell,
-                    item.lavaQuantity * Mathf.Pow(3f, releaseTime)
-                );
-                // Console.WriteLine($"a: {item.lavaQuantity}, time: {releaseTime}, +: {item.lavaQuantity * Mathf.Pow(3f, releaseTime)}, lava: {current_cell.m_water}");
+                Utils.AddLava(ref currentCell, item.lavaQuantity * Mathf.Pow(3f, releaseTime));
 
                 var fireRange = Mathf.Lerp(0f, item.m_attack.m_range * 5f, completionPercentage);
                 SWorld.SetFireAround(self.PosCell, fireRange);
 
                 var evaporationRange = Mathf.Lerp(0f, item.m_attack.m_range * 4f, completionPercentage);
-                Utils.ApplyInCircle(Mathf.CeilToInt(evaporationRange), self.PosCell, (int x, int y) => {
-                    if (!Utils.IsValidCell(x, y)) { return; }
+                Utils.EvaporateWaterAround(Mathf.CeilToInt(evaporationRange), self.PosCell, evaporationRate: 0.6f);
 
-                    ref var cell = ref SWorld.Grid[x, y];
-                    if (!cell.IsLava() && cell.m_water > 0) {
-                        cell.m_water = Mathf.Max(0f, cell.m_water - SMain.SimuDeltaTime * 0.6f);
-                    }
-                });
                 var destructionRange = Mathf.CeilToInt(Mathf.Lerp(0f, item.m_attack.m_range / 3f, completionPercentage));
                 SWorld.DoDamageAOE(self.Pos, destructionRange, Utils.CeilDiv(item.m_attack.m_damage, 20));
             }
             if (GVars.m_simuTimeD <= (double)(self.GetLastFireTime() + item.explosionTime)) {
                 return;
             }
-
-            var attack = item.m_attack;
-
-            Vector2 explosionPos = self.PosCell + int2.up * 0.4f;
-
-            SSingleton<SWorld>.Inst.DestroyCell(self.PosCell, 0, false, null);
-            SSingleton<SWorld>.Inst.DestroyCell(self.PosCell - int2.up, 0, false, null);
-
-            SUnits.DoDamageAOE(explosionPos, attack.m_range, attack.m_damage);
-            SWorld.DoDamageAOE(explosionPos, (int)attack.m_range, attack.m_damage);
-            SParticles.common_Explosion.EmitNb(explosionPos, 100, false, 10f);
-            attack.Sound.Play(explosionPos, item.explosionSoundMultiplier);
-
-            if (item.shockWaveRange > 0f) {
-                Utils.DoShockWave(explosionPos, item.shockWaveRange, item.shockWaveDamage, item.shockWaveKnockback);
-            }
-
-            if (item.alwaysStartEruption && (GVars.m_eruptionTime == 0f || GVars.SimuTime > GVars.m_eruptionTime + SOutgame.Params.m_eruptionDurationTotal)) {
-                SAudio.Get("lavaEruption").Play(G.m_player.Pos, 1.5f);
-                GVars.m_eruptionStartPressure = SGame.LavaPressure;
-                GVars.m_eruptionTime = GVars.SimuTime;
-            }
-            if (item.destroyBackgroundRadius > 0 || item.explosionBasaltBgRadius > 0) {
-                var range = item.destroyBackgroundRadius + item.explosionBasaltBgRadius;
-
-                for (int i = self.PosCell.x - range; i <= self.PosCell.x + range; ++i) {
-                    for (int j = self.PosCell.y - range; j <= self.PosCell.y + range; ++j) {
-                        int2 relative = new int2(i, j) - self.PosCell;
-                        if (relative.sqrMagnitude > range * range) {
-                            continue;
-                        }
-                        if (!Utils.IsValidCell(i, j)) { return; }
-
-                        ref var cell = ref SWorld.Grid[i, j];
-                        if (relative.sqrMagnitude > item.destroyBackgroundRadius * item.destroyBackgroundRadius) {
-                            if (cell.GetBgSurface() != null) {
-                                cell.SetBgSurface(GSurfaces.bgLava);
-                            }
-                        } else {
-                            cell.SetBgSurface(null);
-                        }
-                    }
-                }
-            }
-            if (item.lavaReleaseTime < 0) {
-                Utils.AddLava(ref current_cell, item.lavaQuantity);
-            }
+            item.DoDamageAround(self.PosCenter, item.m_attack);
+            item.PlayExplosionSound(item.m_attack.Sound, self.PosCenter);
+            item.StartVolcanoEruption();
+            item.DoExplosionBgChange(self.PosCell);
+            item.DoExplosionLavaRelease(ref currentCell);
+            item.DoExplosionFlash();
+            item.DoShockWave(self.m_pos);
+            item.DoFireAround(self.m_pos);
         }
 
         codeMatcher.Start()
@@ -347,32 +299,16 @@ public class Patches {
     [HarmonyPostfix]
     [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.OnActivate))]
     private static void CUnitDefense_OnActivate(CUnitDefense __instance, ref float ___m_lastFireTime) {
-        if (__instance.m_item is ExtCItem_Explosive && ___m_lastFireTime < 0f) {
+        if (__instance.m_item is ExtCItem_Explosive expItem && ___m_lastFireTime < 0f) {
             ___m_lastFireTime = GVars.SimuTime;
 
-            SSingleton<SWorld>.Inst.SetContent(
-                pos: __instance.PosCell - int2.up,
-                item: (CItemCell)CustomItems.indestructibleLavaOld.Item
-            );
+            if (expItem.indestructible) {
+                SSingleton<SWorld>.Inst.SetContent(
+                    pos: __instance.PosCell - int2.up,
+                    item: (CItemCell)CustomItems.indestructibleLavaOld.Item
+                );
+            }
             ExtCItem_Explosive.lastTimeMap[__instance.Id] = 0f;
-        }
-    }
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(CBullet), nameof(CBullet.Explosion))]
-    private static void CBullet_Explosion(CBullet __instance) {
-        if (__instance.Desc is not ExtCBulletDesc cbulletdesc) { return; }
-
-        if (cbulletdesc.explosionBasaltBgRadius > 0) {
-            Utils.ApplyInCircle(cbulletdesc.explosionBasaltBgRadius, new int2(__instance.m_pos), (int x, int y) => {
-                if (!Utils.IsValidCell(x, y)) { return; }
-
-                if (SWorld.Grid[x, y].GetBgSurface() != null) {
-                    SWorld.Grid[x, y].SetBgSurface(GSurfaces.bgLava);
-                }
-            });
-        }
-        if (cbulletdesc.shockWaveRange > 0) {
-            Utils.DoShockWave(__instance.m_pos, cbulletdesc.shockWaveRange, cbulletdesc.shockWaveDamage, cbulletdesc.shockWaveKnockback);
         }
     }
     [HarmonyTranspiler]
@@ -562,8 +498,6 @@ public class Patches {
     [HarmonyPostfix]
     private static void CItem_Device_Use_Local(CItem_Device __instance, CPlayer player, Vector2 mousePos, bool isShift) {
         if (__instance == CustomItems.portableTeleport.Item) {
-            Console.WriteLine("inside portableTeleport");
-
             CItem_MachineTeleport.m_teleportersPos.Clear();
             CItem_MachineTeleport.m_teleportersPos.Add(player.m_unitPlayer.PosCell);
             for (int i = 0; i < SWorld.Gs.x; i++) {
@@ -573,7 +507,6 @@ public class Patches {
                     }
                 }
             }
-            Console.WriteLine($"count: {CItem_MachineTeleport.m_teleportersPos.Count}");
         }
     }
     [HarmonyPatch(typeof(SItems), nameof(SItems.OnUpdateSimu))]
