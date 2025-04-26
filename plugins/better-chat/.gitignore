@@ -1,7 +1,7 @@
 *
 
 !.gitignore
-!extra-commands.csproj
+!better-chat.csproj
 !Plugin.cs
 !Commands.cs
 !ExpressionEvaluator.cs
