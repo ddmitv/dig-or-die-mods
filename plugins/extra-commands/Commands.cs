@@ -361,8 +361,8 @@ public static class CustomCommands {
             if (!Utils.IsInWorld(to)) {
                 throw new InvalidCommandArgument($"The cell 'to' position is out of the world {to}");
             }
-            if (from.x > to.x) { Utils.Swap(ref to.x, ref from.x); }
-            if (from.y > to.x) { Utils.Swap(ref to.y, ref from.y); }
+            if (to.x < from.x) { Utils.Swap(ref to.x, ref from.x); }
+            if (to.y < from.y) { Utils.Swap(ref to.y, ref from.y); }
 
             int replacedCellsNum = Math.Max(0, to.x - from.x + 1) * Math.Max(0, to.y - from.y + 1);
 
