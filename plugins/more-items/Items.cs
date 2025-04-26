@@ -61,10 +61,12 @@ public sealed class ExtCItem_Explosive : CItem_Defense {
 
         Utils.DoShockWave(pos, this.shockWaveRange, this.shockWaveDamage, this.shockWaveKnockback);
     }
-    public void DoExplosionFlash() {
+    public void DoFlashEffect(Vector2 pos) {
         if (this.explosionFlashIntensity <= 0f) { return; }
 
-        FlashEffect.TriggerFlash(this.explosionFlashIntensity);
+        if ((G.m_player.PosCenter - pos).sqrMagnitude <= this.m_attack.m_range * this.m_attack.m_range * 6) {
+            FlashEffect.TriggerFlash(this.explosionFlashIntensity);
+        }
     }
     public void DoExplosionLavaRelease(ref CCell currentCell) {
         if (this.lavaReleaseTime >= 0f) { return; }
@@ -105,10 +107,18 @@ public sealed class ExtCItem_Explosive : CItem_Defense {
     public void DoDamageAround(Vector2 explosionPos, CAttackDesc attack) {
         SUnits.DoDamageAOE(explosionPos, attack.m_range, attack.m_damage);
         SWorld.DoDamageAOE(explosionPos, (int)attack.m_range, attack.m_damage);
-        SParticles.common_Explosion.EmitNb(explosionPos, nb: 100, isLighted: false, speed: 10f);
+
+        SParticles.common_Explosion.EmitNb(explosionPos, nb: 150, isLighted: false, speed: 50f);
+        SParticles.common_Smoke.EmitNb(explosionPos, nb: 120, isLighted: false, speed: 60f);
     }
     public void PlayExplosionSound(CSound sound, Vector2 explosionPos) {
         sound.Play(explosionPos, this.explosionSoundMultiplier);
+    }
+    public void DestoryItself(int2 posCell) {
+        SSingleton<SWorld>.Inst.DestroyCell(posCell, loot: 0);
+        if (this.indestructible) {
+            SSingleton<SWorld>.Inst.DestroyCell(posCell - int2.up, loot: 0);
+        }
     }
 }
 public sealed class ExtCBulletDesc : CBulletDesc {
@@ -495,7 +505,7 @@ public static class CustomItems {
             hpMax: 500, mainColor: 8947848U, rangeDetection: 0f, angleMin: 0f, angleMax: 360f,
             attack: new CAttackDesc(
                 range: 25f,
-                damage: 5000,
+                damage: 2000,
                 nbAttacks: 0,
                 cooldown: -1f,
                 knockbackOwn: 0f,

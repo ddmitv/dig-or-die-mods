@@ -17,7 +17,7 @@ public class FlashEffect : MonoBehaviour {
     private void Update() {
         if (flashIntensity <= 0) { return; }
 
-        flashIntensity -= Time.deltaTime * 2f;
+        flashIntensity -= SMain.SimuDeltaTime * 2f;
     }
     private void OnGUI() {
         if (flashIntensity <= 0) { return; }

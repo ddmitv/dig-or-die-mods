@@ -154,12 +154,13 @@ public class Patches {
             if (GVars.m_simuTimeD <= (double)(self.GetLastFireTime() + item.explosionTime)) {
                 return;
             }
+            item.DestoryItself(self.PosCell);
             item.DoDamageAround(self.PosCenter, item.m_attack);
             item.PlayExplosionSound(item.m_attack.Sound, self.PosCenter);
             item.StartVolcanoEruption();
             item.DoExplosionBgChange(self.PosCell);
             item.DoExplosionLavaRelease(ref currentCell);
-            item.DoExplosionFlash();
+            item.DoFlashEffect(self.PosCenter);
             item.DoShockWave(self.m_pos);
             item.DoFireAround(self.m_pos);
         }
