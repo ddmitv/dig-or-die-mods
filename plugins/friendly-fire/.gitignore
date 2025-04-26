@@ -2,5 +2,5 @@
 
 !.gitignore
 !friendly-fire.csproj
-!FriendlyFire.cs
+!Plugin.cs
 !README.md

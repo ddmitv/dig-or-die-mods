@@ -24,6 +24,7 @@ public class FlashEffect : MonoBehaviour {
 
         var color = Color.white;
         color.a = Mathf.Clamp(flashIntensity, 0f, 1f);
+
         GUI.color = color;
         GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), flashTexture);
     }

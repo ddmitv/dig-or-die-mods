@@ -2,5 +2,5 @@
 
 !.gitignore
 !debug-mode.csproj
-!DebugMode.cs
+!Plugin.cs
 !README.md

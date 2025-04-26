@@ -2,5 +2,5 @@
 
 !.gitignore
 !settable-seed.csproj
-!SettableSeed.cs
+!Plugin.cs
 !README.md

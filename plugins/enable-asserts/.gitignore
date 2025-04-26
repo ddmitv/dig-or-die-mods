@@ -2,5 +2,5 @@
 
 !.gitignore
 !enable-asserts.csproj
-!EnableAsserts.cs
+!Plugin.cs
 !README.md

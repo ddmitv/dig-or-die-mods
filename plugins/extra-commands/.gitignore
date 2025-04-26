@@ -2,7 +2,7 @@
 
 !.gitignore
 !extra-commands.csproj
-!ExtraCommands.cs
+!Plugin.cs
 !Commands.cs
 !ExpressionEvaluator.cs
 !README.md
