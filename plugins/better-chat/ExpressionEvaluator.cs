@@ -142,14 +142,16 @@ public sealed class ExpressionEvaluator {
         public FloatValue Water = new(cell.m_water);
         public IdValue Id = new(cell.m_contentId);
         public IntVectorValue Force = new(cell.m_forceX, cell.m_forceY);
+        public StringValue CodeName = cell.m_contentId != 0 ? new(cell.GetContent().m_codeName) : new("-");
+        public StringValue Name = cell.m_contentId != 0 ? new(cell.GetContent().m_name) : new("-");
 
         string IValue.TypeName() => "cell";
         string IValue.String() =>
             $"cell{{flags={IValueString(Flags)},hp={IValueString(Hp)},water={IValueString(Water)}," +
-            $"id={IValueString(Id)},force={IValueString(Force)}}}";
+            $"id={IValueString(Id)},force={IValueString(Force)},codename={IValueString(CodeName)},name={IValueString(Name)}}}";
 
         string[] FieldAccessibleValue.FieldNames() {
-            return ["flags", "hp", "water", "id", "force"];
+            return ["flags", "hp", "water", "id", "force", "codename", "name"];
         }
         IValue FieldAccessibleValue.ReadField(string name) {
             return name switch {
@@ -158,6 +160,8 @@ public sealed class ExpressionEvaluator {
                 "water" => Water,
                 "id" => Id,
                 "force" => Force,
+                "codename" => CodeName,
+                "name" => Name,
                 _ => null,
             };
         }
