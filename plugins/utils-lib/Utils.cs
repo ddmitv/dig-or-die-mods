@@ -233,11 +233,10 @@ public static class Utils {
 
         string result = null;
         int resultDist = int.MaxValue;
-        foreach (string src in sources.Skip(1)) {
-            int dist = DamerauLevenshteinDistance(src, target,
-                insertionCost: 1, deletionCost: 2, substitutionCost: 3, transpositionCost: 2
+        foreach (string src in sources) {
+            int dist = DamerauLevenshteinDistance(src.ToLowerInvariant(), target.ToLowerInvariant(),
+                insertionCost: 2, deletionCost: 1, substitutionCost: 3, transpositionCost: 1
             );
-            // Console.WriteLine($"ClosestStringMatch {src}: {dist}");
             if (dist < resultDist) {
                 resultDist = dist;
                 result = src;

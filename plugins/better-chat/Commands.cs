@@ -1,5 +1,6 @@
 using HarmonyLib;
 using ModUtils;
+using Mono.Cecil.Cil;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -53,7 +54,10 @@ public static class CustomCommands {
         }
         var item = GItems.Items.Skip(1).FirstOrDefault(x => x.m_codeName == codeName);
         if (item is null) {
-            throw new FormatException("Unknown item code name");
+            var closestCodeName = Utils.ClosestStringMatch(codeName,
+                GItems.Items.Skip(1).Select(x => x.m_codeName)
+            );
+            throw new FormatException($"Unknown item code name. Did you mean '{closestCodeName}'?");
         }
         return item;
     }
@@ -109,11 +113,11 @@ public static class CustomCommands {
         string codeName = str.Substring(0, codeNameEnd == -1 ? str.Length : codeNameEnd);
 
         CItem item = ParseItem(codeName);
-        if (item is null) {
-            throw new FormatException("Unknown item code name");
-        }
         if (item is not CItemCell itemCell) {
-            throw new FormatException("Expected item cell, not regular item");
+            var closestCodeName = Utils.ClosestStringMatch(codeName,
+                GItems.Items.Skip(1).Where(x => x is CItemCell).Select(x => x.m_codeName)
+            );
+            throw new FormatException($"Expected item cell, not regular item. Did you mean '{closestCodeName}'?");
         }
         var result = new ParseCellResult() { item = itemCell };
         result.parameters.hp = itemCell.m_hpMax;
@@ -186,7 +190,10 @@ public static class CustomCommands {
 
         var unit = GUnits.UDescs.Skip(1).FirstOrDefault(x => x.m_codeName == codeName);
         if (unit is null) {
-            throw new FormatException("Unknown unit code name");
+            var closestCodeName = Utils.ClosestStringMatch(codeName,
+                GUnits.UDescs.Skip(1).Select(x => x.m_codeName)
+            );
+            throw new FormatException($"Unknown unit code name. Did you mean '{closestCodeName}'?");
         }
         return unit;
     }
@@ -282,7 +289,8 @@ public static class CustomCommands {
             if (args.Length == 1) {
                 CPlayer targetPlayer = GetPlayerByName(args[0]);
                 if (targetPlayer == null) {
-                    throw new InvalidCommandArgument("Unknown player name", 1);
+                    var closestPlayerName = Utils.ClosestStringMatch(args[0], SNetwork.Players.Select(x => x.m_name));
+                    throw new InvalidCommandArgument($"Unknown player name. Did you mean '{closestPlayerName}'?", 1);
                 }
                 player.m_unitPlayer.Pos = targetPlayer.m_unitPlayer.Pos;
             } else {
