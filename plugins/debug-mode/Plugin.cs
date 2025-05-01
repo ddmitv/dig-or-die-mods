@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
 using ModUtils.Extensions;
+using System;
 
 public static class EnableDebugModePatch {
     [HarmonyTranspiler]
@@ -47,9 +48,9 @@ public static class NoWorldPresimulationPatch {
             .MatchForward(useEnd: false,
                 new(OpCodes.Call, typeof(UnityEngine.Application).Method("get_isEditor")),
                 new(OpCodes.Brfalse),
-                new(OpCodes.Ldsfld, typeof(G).Field("m_autoCreateMode")),
+                new(OpCodes.Ldsfld, typeof(G).StaticField("m_autoCreateMode")),
                 new(OpCodes.Brfalse),
-                new(OpCodes.Ldsfld, typeof(G).Field("m_autoCreateMode_Fast")),
+                new(OpCodes.Ldsfld, typeof(G).StaticField("m_autoCreateMode_Fast")),
                 new(OpCodes.Brfalse),
                 new(OpCodes.Call, typeof(UnityEngine.Time).Method("get_time")),
                 new(OpCodes.Ldc_R4, 5.0f),
@@ -60,9 +61,9 @@ public static class NoWorldPresimulationPatch {
             .MatchForward(useEnd: false,
                 new(OpCodes.Call, typeof(UnityEngine.Application).Method("get_isEditor")),
                 new(OpCodes.Brfalse),
-                new(OpCodes.Ldsfld, typeof(G).Field("m_autoCreateMode")),
+                new(OpCodes.Ldsfld, typeof(G).StaticField("m_autoCreateMode")),
                 new(OpCodes.Brfalse),
-                new(OpCodes.Ldsfld, typeof(G).Field("m_autoCreateMode_Fast")),
+                new(OpCodes.Ldsfld, typeof(G).StaticField("m_autoCreateMode_Fast")),
                 new(OpCodes.Brfalse),
                 new(OpCodes.Call, typeof(UnityEngine.Time).Method("get_time")),
                 new(OpCodes.Ldc_R4, 5.0f),
@@ -75,61 +76,109 @@ public static class NoWorldPresimulationPatch {
     }
 }
 
+public static class DebugDrawLinePatch {
+    public static readonly List<LineData> _activeLines = [];
+
+    public struct LineData {
+        public Vector3 start;
+        public Vector3 end;
+        public UnityEngine.Color color;
+        public float endTime;
+    }
+
+    public class DebugLineRenderer : MonoBehaviour {
+        private Material _lineMaterial;
+
+        private void Start() {
+            _lineMaterial = new Material(Shader.Find("Hidden/Internal-Colored")) {
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            _lineMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            _lineMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            _lineMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
+            _lineMaterial.SetInt("_ZWrite", 1);
+            _lineMaterial.SetInt("_ZTest", (int)UnityEngine.Rendering.CompareFunction.LessEqual);
+        }
+        private void Update() {
+            float currentTime = Time.time;
+            _activeLines.RemoveAll(line => line.endTime <= currentTime);
+        }
+        private void OnRenderObject() {
+            _lineMaterial.SetPass(0);
+            GL.Begin(GL.LINES);
+            foreach (var line in _activeLines) {
+                GL.Color(line.color);
+                GL.Vertex(line.start);
+                GL.Vertex(line.end);
+            }
+            GL.End();
+        }
+    }
+
+#pragma warning disable Harmony003 // Harmony non-ref patch parameters modified
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(UnityEngine.Debug), nameof(UnityEngine.Debug.DrawLine),
+        typeof(Vector3), typeof(Vector3), typeof(UnityEngine.Color), typeof(float)
+    )]
+    private static bool UnityEngine_Debug_DrawLine(Vector3 start, Vector3 end, UnityEngine.Color color, float duration) {
+        _activeLines.Add(new LineData() {
+            start = start, end = end, color = color, endTime = Time.time + duration
+        });
+        return false;
+    }
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(UnityEngine.Debug), nameof(UnityEngine.Debug.DrawLine),
+        typeof(Vector3), typeof(Vector3), typeof(UnityEngine.Color)
+    )]
+    private static bool UnityEngine_Debug_DrawLine(Vector3 start, Vector3 end, UnityEngine.Color color) {
+        _activeLines.Add(new LineData() {
+            start = start, end = end, color = color, endTime = Time.time + 0.001f
+        });
+        return false;
+    }
+#pragma warning restore Harmony003 // Harmony non-ref patch parameters modified
+}
+
 [BepInPlugin("debug-mode", "Debug Mode", "1.0.0")]
 public class DebugMode : BaseUnityPlugin
 {
-    private void OnChangedSetting() {
-        var configDrawAllBackgrounds = Config.Bind<bool>(
-            section: "Debug", key: "drawAllBackgrounds", defaultValue: false
-        );
-        var configBullets = Config.Bind<bool>(
-            section: "Debug", key: "bullets", defaultValue: false
-        );
-        var configPathfinding = Config.Bind<bool>(
-            section: "Debug", key: "pathfinding", defaultValue: false
-        );
-        var configPathfindingDetails = Config.Bind<bool>(
-            section: "Debug", key: "pathfindingDetails", defaultValue: false
-        );
-        var configCollisions = Config.Bind<bool>(
-            section: "Debug", key: "collisions", defaultValue: false
-        );
-        var configUnits = Config.Bind<bool>(
-            section: "Debug", key: "units", defaultValue: false
-        );
-        var configUnitNetworkControl = Config.Bind<bool>(
-            section: "Debug", key: "unitNetworkControl", defaultValue: false
-        );
-        var configDefenses = Config.Bind<bool>(
-            section: "Debug", key: "defenses", defaultValue: false
-        );
-        var configWater = Config.Bind<bool>(
-            section: "Debug", key: "water", defaultValue: false
-        );
-        var configLight = Config.Bind<bool>(
-            section: "Debug", key: "light", defaultValue: false
-        );
-        var configCrashes = Config.Bind<bool>(
-            section: "Debug", key: "crashes", defaultValue: false
-        );
-        var configCrashesFull = Config.Bind<bool>(
-            section: "Debug", key: "crashesFull", defaultValue: false
-        );
-        G.m_debugDrawAllBackgrounds = configDrawAllBackgrounds.Value;
-        G.m_debugBullets = configBullets.Value;
-        G.m_debugPF = configPathfinding.Value;
-        G.m_debugPFDetails = configPathfindingDetails.Value;
-        G.m_debugCols = configCollisions.Value;
-        G.m_debugUnits = configUnits.Value;
-        G.m_debugUnitNetworkControl = configUnitNetworkControl.Value;
-        G.m_debugDefenses = configDefenses.Value;
-        G.m_debugWater = configWater.Value;
-        G.m_debugLight = configLight.Value;
-        G.m_debugCrashes = configCrashes.Value;
-        G.m_debugCrashesFull = configCrashesFull.Value;
+    private void BindAndAutoUpdate<T>(string section, string key, T defaultValue, ConfigDescription description, Action<T> setter) {
+        var entry = Config.Bind<T>(section, key, defaultValue, description);
+        entry.SettingChanged += (sender, args) => setter(entry.Value);
+        setter(entry.Value);
+    }
+    private void BindAndAutoUpdate<T>(string section, string key, T defaultValue, Action<T> setter) {
+        BindAndAutoUpdate<T>(section, key, defaultValue, ConfigDescription.Empty, setter); 
     }
 
-    private void Start() {
+    private void InitDebugVarsConfig() {
+        BindAndAutoUpdate("Debug", "drawAllBackgrounds", false,
+            v => G.m_debugDrawAllBackgrounds = v);
+        BindAndAutoUpdate("Debug", "bullets", false,
+            v => G.m_debugBullets = v);
+        BindAndAutoUpdate("Debug", "pathfinding", false,
+            v => G.m_debugPF = v);
+        BindAndAutoUpdate("Debug", "pathfindingDetails", false,
+            v => G.m_debugPFDetails = v);
+        BindAndAutoUpdate("Debug", "collisions", false,
+            v => G.m_debugCols = v);
+        BindAndAutoUpdate("Debug", "units", false,
+            v => G.m_debugUnits = v);
+        BindAndAutoUpdate("Debug", "unitNetworkControl", false,
+            v => G.m_debugUnitNetworkControl = v);
+        BindAndAutoUpdate("Debug", "defenses", false,
+            v => G.m_debugDefenses = v);
+        BindAndAutoUpdate("Debug", "water", false,
+            v => G.m_debugWater = v);
+        BindAndAutoUpdate("Debug", "light", false,
+            v => G.m_debugLight = v);
+        BindAndAutoUpdate("Debug", "crashes", false,
+            v => G.m_debugCrashes = v);
+        BindAndAutoUpdate("Debug", "crashesFull", false,
+            v => G.m_debugCrashesFull = v);
+    }
+
+    private void Awake() {
         var configEnable = Config.Bind<bool>(
             section: "General", key: "Enable", defaultValue: true,
             description: "Enables the plugin"
@@ -142,6 +191,13 @@ public class DebugMode : BaseUnityPlugin
             section: "StartUp", key: "NoWorldPresimulation", defaultValue: false,
             description: "Disables world presimulation (e.g. no initial water and plants are generated)"
         );
+        var configInterceptDebugRendering = Config.Bind<bool>(
+            section: "StartUp", key: "InterceptDebugRendering", defaultValue: true,
+            description: "Use custom drawer for UnityEngine.Debug.DrawLine methods. " +
+                         "Note that without intercepting Debug.DrawLine calls they do basically nothing"
+        );
+        InitDebugVarsConfig();
+
         if (!configEnable.Value) {
             return;
         }
@@ -154,11 +210,10 @@ public class DebugMode : BaseUnityPlugin
         if (configIsEditor.Value) {
             harmony.PatchAll(typeof(ApplicationIsEditorPatch));
         }
-
-        OnChangedSetting();
-        Config.SettingChanged += (object _, SettingChangedEventArgs _) => {
-            OnChangedSetting();
-        };
+        if (configInterceptDebugRendering.Value) {
+            gameObject.AddComponent<DebugDrawLinePatch.DebugLineRenderer>();
+            harmony.PatchAll(typeof(DebugDrawLinePatch));
+        }
     }
 }
 
