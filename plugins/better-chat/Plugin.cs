@@ -132,6 +132,7 @@ public static class ChatExpressionEvaluationPatch {
                 }
                 if (i - 1 >= 0 && text[i - 1] == '\\') {
                     text = text.Remove(i - 1, 1);
+                    i -= 1;
                     continue;
                 }
                 bool displayExpression = i + prefix.Length < text.Length && text[i + prefix.Length] == '=';
@@ -164,8 +165,10 @@ public static class ChatExpressionEvaluationPatch {
                     return false;
                 }
                 text = text.Remove(start, i - start).Insert(start, exprResult);
+                i += -(i - start) + exprResult.Length; // adjust index for evaluated expression character difference
                 if (displayExpression) {
                     text = text.Insert(start, exprString + "=");
+                    i += exprString.Length + 1;
                 }
             }
             return true;
