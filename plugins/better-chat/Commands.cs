@@ -1,10 +1,7 @@
-using HarmonyLib;
 using ModUtils;
-using Mono.Cecil.Cil;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using UnityEngine;
 
 public class AirCItemCell : CItemCell {
@@ -172,6 +169,16 @@ public static class CustomCommands {
             }
         }
         return result;
+    }
+    private static CItemCell ParseCell(string codeName) {
+        CItem item = ParseItem(codeName);
+        if (item is not CItemCell itemCell) {
+            var closestCodeName = Utils.ClosestStringMatch(codeName,
+                GItems.Items.Skip(1).Where(x => x is CItemCell).Select(x => x.m_codeName)
+            );
+            throw new FormatException($"Expected item cell, not regular item. Did you mean '{closestCodeName}'?");
+        }
+        return itemCell;
     }
 
     private static List<string> GetListOfCCellItemNames() {
@@ -469,6 +476,80 @@ public static class CustomCommands {
                 int destIdx = dest.y + (i + dest.x) * SWorld.Gs.y;
                 Array.Copy(SWorld.Grid, srcIdx, SWorld.Grid, destIdx, copyLength);
             }
+        });
+        AddCommand("/replace", (string[] args, CPlayer player) => {
+            int2 from = ArgParseXYCoordinateInt(args, argXIndex: 0, argYIndex: 1, player);
+            int2 to = ArgParseXYCoordinateInt(args, argXIndex: 2, argYIndex: 3, player);
+
+            if (args.Length <= 4) { throw new InvalidCommandArgument("Expected item cell code name", 4); }
+            CItemCell srcCell;
+            try {
+                srcCell = ParseCell(args[4]);
+            } catch (FormatException formatException) {
+                throw new InvalidCommandArgument(formatException.Message, argIndex: 4);
+            }
+            if (args.Length <= 5) { throw new InvalidCommandArgument("Expected item cell code name", 5); }
+            ParseCellResult destCell;
+            try {
+                destCell = ParseCellParameters(args[5]);
+            } catch (FormatException formatException) {
+                throw new InvalidCommandArgument(formatException.Message, argIndex: 5);
+            }
+
+            if (!Utils.IsInWorld(from)) {
+                throw new InvalidCommandArgument($"The start position is out of the world {from}");
+            }
+            if (!Utils.IsInWorld(to)) {
+                throw new InvalidCommandArgument($"The end position is out of the world {to}");
+            }
+            if (from.x > to.x) { Utils.Swap(ref to.x, ref from.x); }
+            if (from.y > to.y) { Utils.Swap(ref to.y, ref from.y); }
+
+            var grid = SWorld.Grid;
+            var srcCellId = srcCell.m_id;
+
+            var destParams = destCell.parameters;
+            var destCellData = new CCell() {
+                m_contentId = destCell.item.m_id,
+                m_contentHP = destParams.hp == ushort.MaxValue ? destCell.item.m_hpMax : destParams.hp,
+                m_forceX = destParams.forceX,
+                m_forceY = destParams.forceY,
+                m_water = destParams.water,
+                m_light = destParams.light,
+                m_elecProd = destParams.elecProd,
+                m_elecCons = destParams.elecCons,
+                m_temp = destParams.temp,
+                m_flags = destParams.flags,
+            };
+            int replacedCellsNum = 0;
+            for (int x = from.x; x <= to.x; ++x) {
+                for (int y = from.y; y <= to.y; ++y) {
+                    if (grid[x, y].m_contentId != srcCellId) {
+                        continue;
+                    }
+                    replacedCellsNum += 1;
+                    ref var currect = ref grid[x, y];
+
+                    CItemCell prevContent = currect.GetContent();
+                    uint oldFlags = currect.m_flags;
+
+                    currect = destCellData;
+                    if (!destParams.replaceBackground) {
+                        oldFlags &= (CCell.Flag_BackWall_0 | CCell.Flag_BgSurface_0 | CCell.Flag_BgSurface_1 | CCell.Flag_BgSurface_2);
+                        currect.m_flags = oldFlags | destParams.flags;
+                    } else {
+                        currect.m_flags = destParams.flags;
+                    }
+                    SWorldNetwork.OnSetContent(x, y, checkTeleportAndAutoBuilder: true, prevContent);
+                }
+            }
+            int checkedCellsNum = Math.Max(0, to.x - from.x + 1) * Math.Max(0, to.y - from.y + 1);
+            Utils.AddChatMessageLocal(
+                $"Replaced cells from {from} to {to} of type {srcCell.Name} to {destCell.item.Name}. " +
+                $"Total replaced cells: {replacedCellsNum}, total checked cells: {checkedCellsNum}"
+            );
+        }, tabCommandFn: (int argIndex) => {
+            return GetListOfCCellItemNames();
         });
     }
 }
