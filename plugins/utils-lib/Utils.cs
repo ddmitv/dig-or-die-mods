@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using UnityEngine;
 
 namespace ModUtils;
@@ -48,6 +49,7 @@ public static class Utils {
     public static T MakeMemberwiseClone<T>(T obj) where T : class {
         return (T)AccessTools.Method(typeof(T), "MemberwiseClone").Invoke(obj, []);
     }
+
     public static byte[] ReadAllBytes(Stream stream) {
         byte[] buffer = new byte[16 * 1024];
         using MemoryStream ms = new MemoryStream();
@@ -235,7 +237,7 @@ public static class Utils {
         int resultDist = int.MaxValue;
         foreach (string src in sources) {
             int dist = DamerauLevenshteinDistance(src.ToLowerInvariant(), target.ToLowerInvariant(),
-                insertionCost: 2, deletionCost: 1, substitutionCost: 3, transpositionCost: 1
+                insertionCost: 1, deletionCost: 2, substitutionCost: 3, transpositionCost: 3
             );
             if (dist < resultDist) {
                 resultDist = dist;
@@ -252,5 +254,19 @@ public static class Utils {
     }
     public static double Hypot(int2 vec) {
         return Math.Sqrt(vec.x * vec.x + vec.y * vec.y);
+    }
+    public static string DumpAllFieldsAndProps(object obj) {
+        const BindingFlags allFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.GetField | BindingFlags.SetField | BindingFlags.GetProperty | BindingFlags.SetProperty;
+        StringBuilder sb = new();
+        var type = obj.GetType();
+        foreach (var field in type.GetFields(allFlags)) {
+            sb.AppendLine($"{type.Name}.{field.Name} = {field.GetValue(obj)}");
+        }
+        foreach (var prop in type.GetProperties(allFlags)) {
+            try { sb.AppendLine($"{type.Name}.{prop.Name} = {prop.GetValue(obj, null)}"); }
+            catch { }
+        }
+        sb.Length -= 1; // remove newline character from last iteration
+        return sb.ToString();
     }
 }
