@@ -1,11 +1,11 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
+using ModUtils.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
-using ModUtils.Extensions;
-using System;
 
 public static class EnableDebugModePatch {
     [HarmonyTranspiler]
@@ -122,7 +122,10 @@ public static class DebugDrawLinePatch {
     )]
     private static bool UnityEngine_Debug_DrawLine(Vector3 start, Vector3 end, UnityEngine.Color color, float duration) {
         _activeLines.Add(new LineData() {
-            start = start, end = end, color = color, endTime = Time.time + duration
+            start = start,
+            end = end,
+            color = color,
+            endTime = Time.time + duration
         });
         return false;
     }
@@ -132,7 +135,10 @@ public static class DebugDrawLinePatch {
     )]
     private static bool UnityEngine_Debug_DrawLine(Vector3 start, Vector3 end, UnityEngine.Color color) {
         _activeLines.Add(new LineData() {
-            start = start, end = end, color = color, endTime = Time.time + 0.001f
+            start = start,
+            end = end,
+            color = color,
+            endTime = Time.time + 0.001f
         });
         return false;
     }
@@ -140,15 +146,14 @@ public static class DebugDrawLinePatch {
 }
 
 [BepInPlugin("debug-mode", "Debug Mode", "1.0.0")]
-public class DebugMode : BaseUnityPlugin
-{
+public class DebugMode : BaseUnityPlugin {
     private void BindAndAutoUpdate<T>(string section, string key, T defaultValue, ConfigDescription description, Action<T> setter) {
         var entry = Config.Bind<T>(section, key, defaultValue, description);
         entry.SettingChanged += (sender, args) => setter(entry.Value);
         setter(entry.Value);
     }
     private void BindAndAutoUpdate<T>(string section, string key, T defaultValue, Action<T> setter) {
-        BindAndAutoUpdate<T>(section, key, defaultValue, ConfigDescription.Empty, setter); 
+        BindAndAutoUpdate<T>(section, key, defaultValue, ConfigDescription.Empty, setter);
     }
 
     private void InitDebugVarsConfig() {

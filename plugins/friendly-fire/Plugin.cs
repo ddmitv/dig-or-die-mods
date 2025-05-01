@@ -1,10 +1,10 @@
 ﻿using BepInEx;
 using HarmonyLib;
+using ModUtils;
+using ModUtils.Extensions;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
-using ModUtils;
-using ModUtils.Extensions;
 
 public static class PlayersDamagePlayersPatch {
     [HarmonyTranspiler]
@@ -177,8 +177,7 @@ public static class PlayerDamageToGroundPatch {
 
 
 [BepInPlugin("friendly-fire", "Friendly Fire", "1.0.0")]
-public class FriendlyFire : BaseUnityPlugin
-{
+public class FriendlyFire : BaseUnityPlugin {
     private void Start() {
         Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
 

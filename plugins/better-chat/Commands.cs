@@ -442,7 +442,7 @@ public static class CustomCommands {
             int2 srcFrom = ArgParseXYCoordinateInt(args, argXIndex: 0, argYIndex: 1, player);
             int2 srcTo = ArgParseXYCoordinateInt(args, argXIndex: 2, argYIndex: 3, player);
             int2 dest = ArgParseXYCoordinateInt(args, argXIndex: 4, argYIndex: 5, player);
-            
+
             if (!Utils.IsInWorld(srcFrom)) {
                 throw new InvalidCommandArgument($"The start source position is out of the world {srcFrom}");
             }

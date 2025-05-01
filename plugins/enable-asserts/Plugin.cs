@@ -3,7 +3,6 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using System;
-using System.Linq;
 
 public static class AssertPatch {
     [HarmonyPatch(typeof(SMisc), nameof(SMisc.Assert), [typeof(bool), typeof(string)])]
@@ -23,8 +22,7 @@ public static class AssertPatch {
 }
 
 [BepInPlugin("enable-asserts", "Enable Asserts", "1.0.0")]
-public class EnableAsserts : BaseUnityPlugin
-{
+public class EnableAsserts : BaseUnityPlugin {
     public static ManualLogSource Log = null;
     public static ConfigEntry<bool> configIsFatal = null;
 

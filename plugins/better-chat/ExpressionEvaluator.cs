@@ -13,12 +13,11 @@
 // cellat({600,700}).hp => 50
 // cellat(500,500).water => 0.5
 
+using ModUtils;
 using System;
-using System.Linq;
 using System.Collections.Generic;
 using System.Globalization;
-using ModUtils;
-using UnityEngine;
+using System.Linq;
 
 public sealed class ExpressionEvaluator {
     [Serializable]
@@ -464,7 +463,7 @@ public sealed class ExpressionEvaluator {
             }
             var evalArguments = arguments.Select(expr => expr.Evaluate(env)).ToArray();
             try {
-               return function.Invoke(evalArguments);
+                return function.Invoke(evalArguments);
             } catch (EvaluationException evaluationException) {
                 throw new EvaluationException($"Function '{functionName}': {evaluationException.Message}");
             }
@@ -481,7 +480,7 @@ public sealed class ExpressionEvaluator {
                 return new IntVectorValue((int)xInt.Value, (int)yInt.Value);
             }
             throw new EvaluationException($"The vector can only be created with integer values, got '{xVal.TypeName()}' as first and '{yVal.TypeName()}' as second");
-        } 
+        }
     }
     private sealed class AbsoluteValueExpression(IExpression expr) : IExpression {
         private readonly IExpression expr = expr;

@@ -1,9 +1,9 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
+using ModUtils.Extensions;
 using System.Collections.Generic;
 using System.Reflection.Emit;
-using ModUtils.Extensions;
 
 public static class InputSeedPatch {
     private static CGuiOptionInput multiGuiSeed = null;
@@ -117,8 +117,7 @@ public static class InputSeedPatch {
 }
 
 [BepInPlugin("settable-seed", "Settable Seed", "0.0.0")]
-public class SettableSeed : BaseUnityPlugin
-{
+public class SettableSeed : BaseUnityPlugin {
     private static ConfigEntry<int> configMaxSeed = null;
 
     private static void AddLocText(string id, string text) {

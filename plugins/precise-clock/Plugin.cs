@@ -1,10 +1,10 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
+using ModUtils.Extensions;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reflection.Emit;
-using ModUtils.Extensions;
 
 public static class PreciseTimePatch {
     [HarmonyTranspiler]
@@ -78,7 +78,7 @@ public static class PreciseTimePatch {
         if (PreciseClock.configClockPosition.Value == ClockPosition.AboveTimer) {
             __instance.m_txtWarning.m_y += 27;
         }
-        
+
     }
     [HarmonyPostfix]
     [HarmonyPatch(typeof(SScreenHud), nameof(SScreenHud.OnUpdate))]
@@ -95,8 +95,7 @@ public enum ClockPosition {
 }
 
 [BepInPlugin("precise-clock", "Precise Clock", "1.0.0")]
-public class PreciseClock : BaseUnityPlugin
-{
+public class PreciseClock : BaseUnityPlugin {
     public static ConfigEntry<UnityEngine.Color> configColor = null;
     public static ConfigEntry<ClockPosition> configClockPosition = null;
 

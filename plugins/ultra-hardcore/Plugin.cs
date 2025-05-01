@@ -1,18 +1,18 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
+using ModUtils;
+using ModUtils.Extensions;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
-using ModUtils;
-using ModUtils.Extensions;
 
 public static class HpMaxPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CUnitPlayer.CDesc), nameof(CUnitPlayer.CDesc.GetHpMax))]
     private static IEnumerable<CodeInstruction> CUnitPlayer_CDesc_GetHpMax(IEnumerable<CodeInstruction> instructions) {
         return [
-            new(OpCodes.Ldc_R4, UltraHardcorePlugin.configPlayerHpMax.Value), 
+            new(OpCodes.Ldc_R4, UltraHardcorePlugin.configPlayerHpMax.Value),
             new(OpCodes.Ret)
         ];
     }
@@ -299,8 +299,7 @@ public static class UnitInstantObservation {
 }
 
 [BepInPlugin("ultra-hardcore", "Ultra Hardcore", "0.0.0")]
-public class UltraHardcorePlugin : BaseUnityPlugin
-{
+public class UltraHardcorePlugin : BaseUnityPlugin {
     public static ConfigEntry<float> configPlayerHpMax;
     public static ConfigEntry<bool> configPermanentMist;
     public static ConfigEntry<bool> configPermanentAcidWater;
