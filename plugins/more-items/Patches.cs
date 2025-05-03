@@ -1,21 +1,60 @@
 ﻿
 using HarmonyLib;
-using System.Collections.Generic;
-using System.Reflection.Emit;
-using System;
-using UnityEngine;
 using ModUtils;
 using ModUtils.Extensions;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Diagnostics.SymbolStore;
+using System.Reflection.Emit;
+using UnityEngine;
 
 public class Patches {
+    [HarmonyPatch(typeof(CTile), nameof(CTile.CreateSprite))]
+    [HarmonyPrefix]
+    private static void CTile_CreateSprite(CTile __instance, ref string textureName) {
+        if (__instance.m_textureName != null) {
+            textureName = __instance.m_textureName;
+        }
+    }
+    [HarmonyPatch(typeof(CSurface), nameof(CSurface.InitSprites))]
+    [HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> CSurface_InitSprites(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        static string ReplaceTextureStr(string origStr, CSurface self) {
+            if (self is ModCSurface.TaggedCSurface) {
+                return $"{ModCSurface.surfacePath}/{ModCSurface.surfaceTopsPath}";
+            } else {
+                return origStr;
+            }
+        }
+        return new CodeMatcher(instructions, generator)
+            .Start()
+            .MatchForward(useEnd: false,
+                new CodeMatch(OpCodes.Ldstr, "surfaces/_surface_tops"))
+            .ThrowIfInvalid("(1)")
+            .Advance(1)
+            .Insert(
+                new(OpCodes.Ldarg_0),
+                Transpilers.EmitDelegate(ReplaceTextureStr))
+            .Instructions();
+    }
+
     [HarmonyPatch(typeof(UnityEngine.Resources), nameof(UnityEngine.Resources.Load), [typeof(string)])]
     [HarmonyPrefix]
     private static bool Resources_Load(string path, ref UnityEngine.Object __result) {
-        if (path == $"Textures/{ModCTile.texturePath}") {
+        if (!path.StartsWith("Textures/")) { return true; }
+        string prefixlessPath = path.Substring("Textures/".Length);
+
+        if (prefixlessPath == ModCTile.texturePath) {
             __result = ModCTile.texture;
+            return false;
+        }
+        if (prefixlessPath == $"{ModCSurface.surfacePath}/{ModCSurface.fertileDirtTexturePath}") {
+            __result = ModCSurface.fertileDirtTexture;
+            return false;
+        }
+        if (prefixlessPath == $"{ModCSurface.surfacePath}/{ModCSurface.surfaceTopsPath}") {
+            __result = ModCSurface.surfaceTops;
             return false;
         }
         return true;
@@ -57,6 +96,10 @@ public class Patches {
     private static void SDataLua_OnInit() {
         // SOutgame.Mode is "Solo"
 
+        foreach (var recipeGroupField in typeof(CustomRecipeGroups).GetFields(BindingFlags.Static | BindingFlags.Public)) {
+            var recipeGroup = (ModRecipeGroup)recipeGroupField.GetValue(null);
+            ItemTools.RegisterRecipeGroup(recipeGroup.GroupId, recipeGroup.Autobuilders);
+        }
         foreach (var itemField in typeof(CustomItems).GetFields(BindingFlags.Static | BindingFlags.Public)) {
             var modItem = (ModItem)itemField.GetValue(null);
             if (modItem.Recipe is null) { continue; }
@@ -76,13 +119,6 @@ public class Patches {
             return false;
         }
         return true;
-    }
-    [HarmonyPatch(typeof(CTile), nameof(CTile.CreateSprite))]
-    [HarmonyPrefix]
-    private static void CTile_CreateSprite(CTile __instance, ref string textureName) {
-        if (__instance.m_textureName != null) {
-            textureName = __instance.m_textureName;
-        }
     }
     [HarmonyPatch(typeof(CItem), nameof(CItem.Init))]
     [HarmonyTranspiler]
@@ -463,7 +499,7 @@ public class Patches {
     private static IEnumerable<CodeInstruction> SItems_OnUpdateSimu_MiniaturizorMK6(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         static bool MiniaturizorMK6CustomLogic(CItem_Device cItem_Device, CItemCell content) {
             if (cItem_Device != CustomItems.miniaturizorMK6.Item) { return false; }
-            
+
             return content.m_hpMax > GItems.miniaturizorMK5.m_customValue;
         }
 
@@ -561,7 +597,63 @@ public class Patches {
                     return G.m_player.PosCell == CItem_MachineTeleport.m_teleportersPos[0];
                 }),
                 new(OpCodes.Brtrue, teleportLabel));
-            
+
         return codeMatcher.Instructions();
+    }
+    [HarmonyPatch(typeof(SWorldDll), nameof(SWorldDll.ProcessSimu))]
+    [HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> SWorldDll_ProcessSimu(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        static float ComputePlantGrowChange(CItem_Mineral mineral) {
+            if (mineral is ExtCItem_FertileMineralDirt fertileDirt) {
+                return fertileDirt.plantGrowChange;
+            }
+            return 0.15f;
+        }
+        var codeMatcher = new CodeMatcher(instructions, generator);
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new(OpCodes.Call, typeof(CCell).Method("GetContent")),
+                new(OpCodes.Brtrue),
+                new(OpCodes.Call, typeof(UnityEngine.Random).Method("get_value")),
+                new(OpCodes.Ldc_R4, 0.15f),
+                new(OpCodes.Bge_Un))
+            .ThrowIfInvalid("(1)")
+            .Advance(3)
+            .RemoveInstruction()
+            .Insert(
+                new(OpCodes.Ldloc_S, (byte)8),
+                Transpilers.EmitDelegate(ComputePlantGrowChange));
+        return codeMatcher.Instructions();
+    }
+    [HarmonyPatch(typeof(SScreenCrafting), nameof(SScreenCrafting.OnUpdate))]
+    [HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> SScreenCrafting_OnUpdate(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        static bool IsAutobuilderPowered(CItem_MachineAutoBuilder autobuilderItem) {
+            if (autobuilderItem is not ExtCItem_ConditionalMachineAutoBuilder conditionalAutobuilder) {
+                return true;
+            }
+            var autobuilderPos = new int2(SItems.ActivableItemPos);
+            bool isPowered = SWorld.Grid[autobuilderPos.x, autobuilderPos.y].IsPowered();
+
+            if (conditionalAutobuilder.checkCondition is null) {
+                return isPowered;
+            }
+            return isPowered && conditionalAutobuilder.checkCondition(autobuilderPos.x, autobuilderPos.y);
+        }
+
+        return new CodeMatcher(instructions, generator)
+            .Start()
+            .MatchForward(useEnd: true,
+                new(OpCodes.Ldsfld, typeof(SInputs).StaticField("use")),
+                new(OpCodes.Callvirt, typeof(SInputs.KeyBinding).Method("IsKeyDown")),
+                new(OpCodes.Brfalse))
+            .ThrowIfInvalid("(1)")
+            .GetOperand(out Label skipOpenPanel)
+            .Advance(1)
+            .Insert(
+                new(OpCodes.Ldloc_2),
+                Transpilers.EmitDelegate(IsAutobuilderPowered),
+                new(OpCodes.Brfalse, skipOpenPanel))
+            .Instructions();
     }
 }

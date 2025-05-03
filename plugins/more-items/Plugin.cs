@@ -1,6 +1,8 @@
-﻿using BepInEx;
+﻿
+using BepInEx;
 using HarmonyLib;
 using ModUtils;
+using System;
 using System.Reflection;
 using UnityEngine;
 
@@ -35,15 +37,47 @@ public class FlashEffect : MonoBehaviour {
 
 [BepInPlugin("more-items", "More Items", "0.0.0")]
 public class MoreItemsPlugin : BaseUnityPlugin {
+    private UnityEngine.Texture2D LoadTexture2DFromManifest(Assembly assembly, string logicalName) {
+        using var stream = assembly.GetManifestResourceStream(logicalName);
+
+        var texture = new Texture2D(width: 1, height: 1,
+            format: TextureFormat.DXT5, mipmap: true
+        );
+        if (!texture.LoadImage(Utils.ReadAllBytes(stream))) {
+            throw new InvalidOperationException($"Failed to load texture image from '{logicalName}'");
+        }
+
+        texture.filterMode = FilterMode.Bilinear;
+        texture.anisoLevel = 1;
+        texture.wrapMode = TextureWrapMode.Repeat;
+        texture.Apply(updateMipmaps: true);
+
+        return texture;
+    }
+    private UnityEngine.Texture2D LoadSurfaceFromManifest(Assembly assembly, string logicalName) {
+        using var stream = assembly.GetManifestResourceStream(logicalName);
+
+        var texture = new Texture2D(width: 512, height: 512,
+            format: TextureFormat.DXT1, mipmap: true
+        );
+        if (!texture.LoadImage(Utils.ReadAllBytes(stream))) {
+            throw new InvalidOperationException($"Failed to load texture image from '{logicalName}'");
+        }
+        texture.filterMode = FilterMode.Bilinear;
+        texture.anisoLevel = 1;
+        texture.wrapMode = TextureWrapMode.Repeat;
+        texture.Apply(updateMipmaps: true);
+
+        return texture;
+    }
+
     private void Start() {
         Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
 
-        using var textureStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("more-items.textures.combined_textures.png");
-
-        ModCTile.texture = new Texture2D(width: 1, height: 1, format: TextureFormat.ARGB32, mipmap: false);
-        ModCTile.texture.LoadImage(Utils.ReadAllBytes(textureStream));
-        ModCTile.texture.filterMode = FilterMode.Trilinear;
-        ModCTile.texture.wrapMode = TextureWrapMode.Clamp;
+        var currectAssembly = Assembly.GetExecutingAssembly();
+        ModCTile.texture = LoadTexture2DFromManifest(currectAssembly, "more-items.textures.combined_textures.png");
+        ModCSurface.fertileDirtTexture = LoadSurfaceFromManifest(currectAssembly, "more-items.textures.surfaces.surface_fertileDirt.png");
+        ModCSurface.surfaceTops = LoadSurfaceFromManifest(currectAssembly, "more-items.textures.surfaces.surface_tops.png");
 
         Harmony.CreateAndPatchAll(typeof(Patches));
 

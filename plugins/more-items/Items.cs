@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using ModUtils;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
-using ModUtils;
-using System.Collections;
 
 public sealed class ModCTile : CTile {
-    public static readonly string texturePath = "mod-more-items";
+    public const string texturePath = "mod-more-items";
     public static Texture2D texture = null;
 
     public ModCTile(int i, int j, int images = 1, int sizeX = 128, int sizeY = 128)
@@ -135,9 +136,38 @@ public sealed class ExtCItem_IndestructibleMineral : CItem_Mineral {
     public ExtCItem_IndestructibleMineral(CTile tile, CTile tileIcon, ushort hpMax, uint mainColor, CSurface surface, bool isReplacable = false)
         : base(tile, tileIcon, hpMax, mainColor, surface, isReplacable) { }
 }
+public sealed class ExtCItem_FertileMineralDirt : CItem_MineralDirt {
+    public ExtCItem_FertileMineralDirt(
+        CTile tile, CTile tileIcon, ushort hpMax, uint mainColor, CSurface surface, CLifeConditions grassConditions = null
+    ) : base(null, null, hpMax, mainColor, surface, grassConditions) {
+        this.m_tile = tile;
+        this.m_tileIcon = tileIcon;
+    }
+
+    public override void Init() {
+        base.Init();
+        m_plantsSupported = inheritedPlantsSupported?.SelectMany(x => x.m_plantsSupported ?? []).ToList();
+        // System.Console.WriteLine($"RESULT: {string.Join(", ", m_plantsSupported.Select(x => x.Name).ToArray())}");
+    }
+
+    public float plantGrowChange;
+    public CItem_Mineral[] inheritedPlantsSupported = null;
+}
+public sealed class ExtCItem_ConditionalMachineAutoBuilder : CItem_MachineAutoBuilder {
+    public ExtCItem_ConditionalMachineAutoBuilder(CTile tile, CTile tileIcon) : base(tile, tileIcon) { }
+
+    public override void Init() {
+        // skip creating a sprite for m_tileAlternative
+        Utils.GetBaseMethod<CItemCell>(this, "Init").Invoke();
+    }
+
+    public delegate bool CheckConditionFn(int x, int y);
+
+    public CheckConditionFn checkCondition = null;
+}
 
 public static class CustomBullets {
-    public static ExtCBulletDesc meltdownSnipe = new(
+    public static readonly ExtCBulletDesc meltdownSnipe = new(
         ModCTile.texturePath, "meltdownSnipe",
         radius: 0.7f, dispersionAngleRad: 0.1f,
         speedStart: 50f, speedEnd: 30f, light: 0xC0A57u
@@ -154,7 +184,7 @@ public static class CustomBullets {
         shockWaveDamage = 15f,
     };
 
-    public static CBulletDesc zf0shotgunBullet = new(
+    public static readonly CBulletDesc zf0shotgunBullet = new(
         "particles/particles", "bullet",
         radius: 0.15f,
         dispersionAngleRad: 0.65f,
@@ -166,27 +196,18 @@ public static class CustomBullets {
     };
 }
 
-public static class CItemDeviceGroupIds {
-    public static readonly string miniaturizor = "Miniaturizor";
-    public static readonly string potionHP = "PotionHP";
-    public static readonly string potionHPRegen = "PotionHPRegen";
-    public static readonly string potionArmor = "PotionArmor";
-    public static readonly string potionPheromones = "PotionPheromones";
-    public static readonly string potionCritics = "PotionCritics";
-    public static readonly string potionInvisibility = "PotionInvisibility";
-    public static readonly string potionSpeed = "PotionSpeed";
-    public static readonly string armor = "Armor";
-    public static readonly string shield = "Shield";
-    public static readonly string drone = "Drone";
-    public static readonly string flashLight = "FlashLight";
-    public static readonly string minimapper = "Minimapper";
-    public static readonly string effeilGlasses = "EffeilGlasses";
-    public static readonly string metalDetector = "MetalDetector";
-    public static readonly string waterDetector = "WaterDetector";
-    public static readonly string waterBreather = "WaterBreather";
-    public static readonly string jetpack = "Jetpack";
-    public static readonly string invisibility = "Invisibility";
-    public static readonly string brush = "Brush";
+public static class CustomSurfaces {
+    public static readonly ModCSurface fertileDirt = new(
+        surfaceTexture: ModCSurface.fertileDirtTexturePath, surfaceSortingOrder: 30,
+        topTileI: 0, topTileJ: 0, hasAltTop: true
+    );
+}
+
+public static class CustomRecipeGroups {
+    public static readonly ModRecipeGroup mk6 = new("MK VI", [
+        // GItems.autoBuilderMK1 //, GItems.autoBuilderMK2, GItems.autoBuilderMK3, GItems.autoBuilderMK4, GItems.autoBuilderMK5
+        (CItem_MachineAutoBuilder)CustomItems.autoBuilderMK6
+    ]);
 }
 
 public static class CustomItems {
@@ -202,7 +223,7 @@ public static class CustomItems {
             in3 = GItems.masterGem, nb3 = 1
         }
     );
-    
+
     public static readonly ModItem miniaturizorMK6 = new(codeName: "miniaturizorMK6",
         name: "Miniaturizor MK VI",
         description: "The final word in portable matter compression. Matter compression device utilizing quantum-locked deatomization fields. Warning: Do not use on black holes.",
@@ -215,9 +236,9 @@ public static class CustomItems {
             in3 = GItems.lootBalrog, nb3 = 1
         }
     );
-    
+
     public static readonly ModItem betterPotionHpRegen = new(codeName: "betterPotionHpRegen",
-        name: "Better Health Regeneration Potion", 
+        name: "Better Health Regeneration Potion",
         description: "Advanced bio-stimulant compound (400% HP restoration over 60s). Rebuilds cells faster than they can die.",
         item: new CItem_Device(tile: new ModCTile(3, 0), tileIcon: new ModCTile(3, 0),
             groupId: CItemDeviceGroupIds.potionHPRegen, type: CItem_Device.Type.Consumable, customValue: 3f
@@ -226,9 +247,9 @@ public static class CustomItems {
             in1 = GItems.bloodyFlesh2, nb1 = 5
         }
     );
-    
+
     public static readonly ModItem defenseShieldMK2 = new(codeName: "defenseShieldMK2",
-        name: "Defense Shield MK2", 
+        name: "Defense Shield MK2",
         description: "Projected quantum barrier capable of absorbing kinetic impacts equal to user's maximum HP. Recharges in 2s.",
         item: new CItem_Device(tile: new ModCTile(4, 0), tileIcon: new ModCTile(4, 0),
             groupId: CItemDeviceGroupIds.shield, type: CItem_Device.Type.Passive, customValue: 1f
@@ -238,9 +259,9 @@ public static class CustomItems {
             in2 = GItems.diamonds, nb2 = 1
         }
     );
-    
+
     public static readonly ModItem waterBreatherMK2 = new(codeName: "waterBreatherMK2",
-        name: "Rebreather MK2", 
+        name: "Rebreather MK2",
         description: "High-yield electrolytic filtration system extracts breathable gases from liquid environments.",
         item: new CItem_Device(tile: new ModCTile(5, 0), tileIcon: new ModCTile(5, 0),
             groupId: CItemDeviceGroupIds.waterBreather, type: CItem_Device.Type.Passive, customValue: 7f
@@ -251,9 +272,9 @@ public static class CustomItems {
             in3 = GItems.reactor, nb3 = 1
         }
     );
-    
+
     public static readonly ModItem jetpackMK2 = new(codeName: "jetpackMK2",
-        name: "Jetpack MK2", 
+        name: "Jetpack MK2",
         description: "Dual-thrust VTOL propulsion system. Features reinforced heat shielding for volcanic environments.",
         item: new CItem_Device(tile: new ModCTile(6, 0), tileIcon: new ModCTile(6, 0),
             groupId: CItemDeviceGroupIds.jetpack, type: CItem_Device.Type.Passive, customValue: 1f
@@ -263,7 +284,7 @@ public static class CustomItems {
             in2 = GItems.masterGem, nb2 = 1
         }
     );
-    
+
     public static readonly ModItem antiGravityWall = new(codeName: "antiGravityWall",
         name: "Anti-Gravity Wall",
         description: "Defies conventional physics by emitting a repulsive wave of synthesized negative mass. Installation requires chrono-stabilized anchoring.",
@@ -272,7 +293,7 @@ public static class CustomItems {
         ),
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem turretReparatorMK3 = new(codeName: "turretReparatorMK3",
         name: "Auto-Repair Turret MK3",
         description: "Deploys nano-assembler drones with 7.5m operational radius. Repair rate: 10 HP/s. Consumes 2kW.",
@@ -296,7 +317,7 @@ public static class CustomItems {
         },
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem megaExplosive = new(codeName: "megaExplosive",
         name: "Mega Explosive",
         description: "Thermonuclear demolition charge (yield: 3000 damage, 10m blast radius).",
@@ -326,7 +347,7 @@ public static class CustomItems {
         },
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem turretParticlesMK2 = new(codeName: "turretParticlesMK2",
         name: "Particle Turret MK2",
         description: "Magnetized plasma accelerator turret which fires superheated particle bolts.",
@@ -352,7 +373,7 @@ public static class CustomItems {
         },
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem turretTeslaMK2 = new(codeName: "turretTeslaMK2",
         name: "Tesla Turret MK2",
         description: "Summons artificial lightning from ionized atmosphere, chaining between targets with fractal precision. Consumes 5kW.",
@@ -375,7 +396,7 @@ public static class CustomItems {
         },
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem collector = new(codeName: "collector",
         name: "Collector",
         description: "Automated botanical harvesting unit. Deploys precision cutting beams, compatible with all known flora.",
@@ -400,7 +421,7 @@ public static class CustomItems {
         },
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem blueLightSticky = new(codeName: "blueLightSticky",
         name: "Blue Wall Light",
         description: "You can attach this lamp to any surface and it will glow BLUE!",
@@ -411,7 +432,7 @@ public static class CustomItems {
         },
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem redLightSticky = new(codeName: "redLightSticky",
         name: "Red Wall Light",
         description: "You can attach this lamp to any surface and it will glow RED!",
@@ -422,7 +443,7 @@ public static class CustomItems {
         },
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem greenLightSticky = new(codeName: "greenLightSticky",
         name: "Green Wall Light",
         description: "You can attach this lamp to any surface and it will glow GREEN!",
@@ -433,7 +454,7 @@ public static class CustomItems {
         },
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem basaltCollector = new(codeName: "basaltCollector",
         name: "Basalt Collector",
         description: "Industrial-grade mineral extraction unit optimized for volcanic rock.",
@@ -459,7 +480,7 @@ public static class CustomItems {
         },
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem turretLaser360 = new(codeName: "turretLaser360",
         name: "Rotating Laser Turret",
         description: "360-degree photon emitter. Penetrates organic matter completely.",
@@ -478,7 +499,7 @@ public static class CustomItems {
         ),
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem gunMeltdown = new(codeName: "gunMeltdown",
         name: "Gun \"Meltdown\"",
         description: "Fires a condensed bolt of pure thermodynamic chaos, forcing targets into rapid atomic decay. The recoil has been known to send users sliding backwards through time (approx. 0.3 nanoseconds).",
@@ -497,7 +518,7 @@ public static class CustomItems {
         ),
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem volcanicExplosive = new(codeName: "volcanicExplosive",
         name: "Volcanic Explosive",
         description: "Tectonic induction device. Upon detonation, generates a localized subduction zone and summons an artificial magma plume. Could potentially trigger an eruption of nearby volcanoes.",
@@ -535,7 +556,7 @@ public static class CustomItems {
         },
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem wallCompositeReinforced = new(codeName: "wallCompositeReinforced",
         name: "Composite Reinforced Wall",
         description: "Ultra-dense construction material. Layered graphene-ceramic alloy with shock dispersion matrix.",
@@ -545,7 +566,7 @@ public static class CustomItems {
         ),
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem gunNukeLauncher = new(codeName: "gunNukeLauncher",
         name: "Mini-Nuke Launcher",
         description: "Compact nuclear delivery system (1000 damage, 15m radius). Fires stabilized micro-fusion warheads. Backblast not included.",
@@ -576,7 +597,7 @@ public static class CustomItems {
         ),
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem generatorSunMK2 = new(codeName: "generatorSunMK2",
         name: "Solar Panel MK2",
         description: "High-efficiency photovoltaic array (3kW output). Self-cleaning surface maintains 98% light absorption in all conditions.",
@@ -588,9 +609,9 @@ public static class CustomItems {
         },
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem RTG = new(codeName: "RTG",
-        name: "Radioisotope Thermoelectric Generator", 
+        name: "Radioisotope Thermoelectric Generator",
         description: "Radioactive decay-powered generator (15kW output). Utilizes plutonium-238 core with 87-year half-life. Shielded housing prevents contamination.",
         item: new CItem_Machine(tile: new ModCTile(34, 0), tileIcon: new ModCTile(34, 0),
             hpMax: 200, mainColor: 10066329U,
@@ -601,7 +622,7 @@ public static class CustomItems {
         },
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem indestructibleLavaOld = new(codeName: "indestructibleLavaOld",
         name: "Indestructible Ancient Basalt",
         description: "Metastable mineral formation. No known force can compromise structural integrity.",
@@ -609,7 +630,7 @@ public static class CustomItems {
             hpMax: 1000, mainColor: 6118492U, surface: GSurfaces.lavaOld, isReplacable: false
         )
     );
-    
+
     public static readonly ModItem gunRocketGatling = new(codeName: "gunRocketGatling",
         name: "Rocket Launcher Gatling",
         description: "Rotary micro-missile array. Gatling version of standard rocket launcher fires 40-damage projectiles.",
@@ -625,7 +646,7 @@ public static class CustomItems {
         ),
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem gunRailgun = new(codeName: "gunRailgun",
         name: "Railgun",
         description: "Electromagnetic projectile accelerator. Requires capacitor cooling between discharges.",
@@ -646,7 +667,7 @@ public static class CustomItems {
         ),
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem gunBeamLaser = new(codeName: "gunBeamLaser",
         name: "Laser Beam Gun",
         description: "Continuous-wave photon emitter. Improved over standard laser guns with infinite penetration capability.",
@@ -668,7 +689,7 @@ public static class CustomItems {
         ),
         recipe: new(groupId: "ULTIMATE")
     );
-    
+
     public static readonly ModItem gunZF0Shotgun = new(codeName: "gunZF0Shotgun",
         name: "ZF-0 Shotgun",
         description: "Multi-barrel flechette disperser. Upgraded ZF-0 model fires 10 armor-piercing rounds per trigger pull.",
@@ -691,6 +712,32 @@ public static class CustomItems {
             groupId: null, type: CItem_Device.Type.Activable
         ),
         recipe: new(groupId: "ULTIMATE")
+    );
+
+    public static readonly ModItem fertileDirt = new(codeName: "fertileDirt",
+        name: "Fertile Dirt",
+        description: "TODO.",
+        item: new ExtCItem_FertileMineralDirt(tile: null, tileIcon: new ModCTile(38, 0),
+            hpMax: 30, mainColor: 9465936U, surface: CustomSurfaces.fertileDirt
+        ) {
+            plantGrowChange = 0.3f,
+            inheritedPlantsSupported = [GItems.dirt, GItems.dirtRed, GItems.silt, GItems.dirtBlack, GItems.dirtSky],
+        },
+        recipe: new(groupId: "MK VI")
+    );
+
+    public static readonly ModItem autoBuilderMK6 = new(codeName: "autoBuilderMK6",
+        name: "Auto-Builder MK VI",
+        description: "TODO.",
+        item: new ExtCItem_ConditionalMachineAutoBuilder(tile: new ModCTile(39, 0), tileIcon: new ModCTile(39, 0)) {
+            m_light = new Color24(220, 20, 220),
+            m_customValue = 6f,
+            m_electricValue = -10,
+            checkCondition = (int x, int y) => {
+                return SWorld.Grid[x, y].GetBgSurface() == GSurfaces.bgOrganic;
+            }
+        },
+        recipe: new(groupId: "MK V")
     );
 
     // public static CustomItem gunPlasmaThrower = new CustomItem(name: "gunPlasmaThrower",
