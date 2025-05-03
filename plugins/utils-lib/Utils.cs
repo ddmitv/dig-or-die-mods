@@ -269,4 +269,7 @@ public static class Utils {
         sb.Length -= 1; // remove newline character from last iteration
         return sb.ToString();
     }
+    public static Action GetBaseMethod<T>(T self, string methodName) {
+        return (Action)Activator.CreateInstance(typeof(Action), self, typeof(T).GetMethod(methodName).MethodHandle.GetFunctionPointer());
+    }
 }
