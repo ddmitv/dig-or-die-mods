@@ -165,6 +165,27 @@ public sealed class ExtCItem_ConditionalMachineAutoBuilder : CItem_MachineAutoBu
 
     public CheckConditionFn checkCondition = null;
 }
+public sealed class ExtCItem_ConsumableWeapon : CItem_Weapon {
+    public ExtCItem_ConsumableWeapon(CTile tile, CTile tileIcon, float heatingPerShot, bool isAuto, CAttackDesc attackDesc)
+        : base(tile, tileIcon, heatingPerShot, isAuto, attackDesc) { }
+
+    public override void Use_Local(CPlayer player, Vector2 worldPos, bool isShift) {
+        CStack stack = player.m_inventory.GetStack(this);
+        if (stack is null || stack.m_nb <= 0) {
+            return;
+        }
+        stack.m_nb -= 1;
+
+        base.Use_Local(player, worldPos, isShift);
+    }
+}
+public sealed class ExtCItem_JetpackDevice : CItem_Device {
+    public ExtCItem_JetpackDevice(CTile tile, CTile tileIcon, bool isInfinite = false)
+        : base(tile, tileIcon, CItemDeviceGroupIds.jetpack, CItem_Device.Type.Passive, isInfinite ? 1f : 0f) {}
+
+    public float jetpackEnergyUsageMultiplier = 0.19f;
+    public float jetpackFlyForce = 85f;
+}
 
 public static class CustomBullets {
     public static readonly ExtCBulletDesc meltdownSnipe = new(
@@ -275,11 +296,12 @@ public static class CustomItems {
 
     public static readonly ModItem jetpackMK2 = new(codeName: "jetpackMK2",
         name: "Jetpack MK2",
-        description: "Dual-thrust VTOL propulsion system. Features reinforced heat shielding for volcanic environments.",
-        item: new CItem_Device(tile: new ModCTile(6, 0), tileIcon: new ModCTile(6, 0),
-            groupId: CItemDeviceGroupIds.jetpack, type: CItem_Device.Type.Passive, customValue: 1f
-        ),
-        recipe: new(groupId: "MK V") {
+        description: "Dual-thrust VTOL propulsion system.",
+        item: new ExtCItem_JetpackDevice(tile: new ModCTile(6, 0), tileIcon: new ModCTile(6, 0)) {
+            jetpackEnergyUsageMultiplier = 0.095f,
+            jetpackFlyForce = 100f,
+        },
+        recipe: new(groupId: "MK V", isUpgrade: true) {
             in1 = GItems.aluminium, nb1 = 5,
             in2 = GItems.masterGem, nb2 = 1
         }
@@ -738,6 +760,35 @@ public static class CustomItems {
             }
         },
         recipe: new(groupId: "MK V")
+    );
+
+    public static readonly ModItem gunImpactGrenade = new (codeName: "gunImpactGrenade",
+        name: "Impact granade",
+        description: "TODO.",
+        item: new ExtCItem_ConsumableWeapon(tile: new ModCTile(31, 0), tileIcon: new ModCTile(32, 0),
+            heatingPerShot: 0f, isAuto: false,
+            attackDesc: new CAttackDesc(
+                range: 25f,
+                damage: 35,
+                nbAttacks: 1,
+                cooldown: 1f,
+                knockbackOwn: 5f,
+                knockbackTarget: 50f,
+                projDesc: new ExtCBulletDesc(
+                    "particles/particles", "grenade",
+                    radius: 0.5f,
+                    dispersionAngleRad: 0f,
+                    speedStart: 20f,
+                    speedEnd: 15f,
+                    light: 0x005E19
+                ) {
+                    m_grenadeYSpeed = -40f,
+                    m_explosionRadius = 2.5f,
+                    m_explosionMaxBlockHp = 300,
+                }
+            )
+        ),
+        recipe: new(groupId: "ULTIMATE")
     );
 
     // public static CustomItem gunPlasmaThrower = new CustomItem(name: "gunPlasmaThrower",
