@@ -26,6 +26,10 @@ public static class CodeMatcherExtensions {
         labels = self.Labels;
         return self;
     }
+    public static CodeMatcher GetInstruction(this CodeMatcher self, out CodeInstruction instruction) {
+        instruction = self.Instruction;
+        return self;
+    }
     public static CodeMatcher CollapseInstructions(this CodeMatcher self, uint count) {
         List<Label> labels = new List<Label>();
         for (int i = self.Pos; i < self.Pos + count; i++) {
@@ -58,6 +62,24 @@ public static class CodeMatcherExtensions {
     public static CodeMatcher SetOpcode(this CodeMatcher self, OpCode opcode) {
         self.Opcode = opcode;
         return self;
+    }
+}
+
+public static class CodeMatchExtensions {
+    public static CodeMatch LocalIndex(this CodeMatch self, int index) {
+        return new CodeMatch(instruction => {
+            if (self.predicate is not null && !self.predicate(instruction)) { return false; }
+            if (self.opcodes.Count > 0 && !self.opcodes.Contains(instruction.opcode)) { return false; }
+            if (self.operands.Count > 0 && !self.operands.Contains(instruction.operand)) { return false; }
+            if (self.labels.Count > 0 && !self.labels.Intersect(instruction.labels).Any()) { return false; }
+            if (self.blocks.Count > 0 && !self.blocks.Intersect(instruction.blocks).Any()) { return false; }
+
+            if (instruction.operand is not LocalBuilder localBuilder) { return false; }
+            return localBuilder.LocalIndex == index;
+        }, self.name) {
+            opcodes = new(self.opcodes), operands = new(self.operands), labels = new(self.labels),
+            blocks = new(self.blocks), jumpsFrom = new(self.jumpsFrom), jumpsTo = new(self.jumpsTo),
+        };
     }
 }
 
