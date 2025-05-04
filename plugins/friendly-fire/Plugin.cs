@@ -3,6 +3,7 @@ using HarmonyLib;
 using ModUtils;
 using ModUtils.Extensions;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Reflection.Emit;
 using UnityEngine;
 
@@ -11,14 +12,14 @@ public static class PlayersDamagePlayersPatch {
     [HarmonyPatch(typeof(CBullet), nameof(CBullet.CheckColWithUnits))]
     private static IEnumerable<CodeInstruction> CBullet_CheckColWithUnits(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         var codeMatcher = new CodeMatcher(instructions, generator);
-
+        
         codeMatcher.Start()
             .MatchForward(useEnd: false,
                 new(OpCodes.Call, typeof(Vector2).Method("get_zero")),
                 new(OpCodes.Stloc_S))
             .ThrowIfInvalid("(1)")
             .CreateLabel(out var successLabel);
-
+        
         codeMatcher.Start()
             .MatchForward(useEnd: true,
                 new(OpCodes.Ldarg_0),
@@ -175,12 +176,94 @@ public static class PlayerDamageToGroundPatch {
     }
 }
 
+public static class DefenseDamagePlayersPatch {
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(CBullet), nameof(CBullet.CheckColWithUnits))]
+    private static IEnumerable<CodeInstruction> CBullet_CheckColWithUnits(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        // (Start of collision check, end of unit type check)
+        // call Vector2::get_zero()
+        // stloc.s V_7
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new(OpCodes.Call, typeof(Vector2).Method("get_zero")),
+                new(OpCodes.Stloc_S))
+            .ThrowIfInvalid("(1)")
+            .CreateLabel(out Label successLabel);
+
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Brtrue))
+            .ThrowIfInvalid("(2)")
+            // if (m_attacker is CUnitDefense && 
+            //     cunit2 is CUnitPlayer && 
+            //     m_attacker != cunit2) 
+            //     -> jump to success (bypass original checks)
+            .InjectAndAdvance(OpCodes.Ldarg_0)
+            .CreateLabel(out Label failLabel)
+            .Insert(
+                new(OpCodes.Ldfld, typeof(CBullet).Field("m_attacker")),
+                new(OpCodes.Isinst, typeof(CUnitDefense)),
+                new(OpCodes.Brfalse, failLabel),
+                new(OpCodes.Ldloc_2),
+                new(OpCodes.Isinst, typeof(CUnitPlayer)),
+                new(OpCodes.Brfalse, failLabel),
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, typeof(CBullet).Field("m_attacker")),
+                new(OpCodes.Ldloc_2),
+                new(OpCodes.Bne_Un, successLabel));
+
+        return codeMatcher.Instructions();
+
+        //          [ if (... && (m_unitsHit == null || ...) && ...) ]
+        // ldarg.0
+        // ldfld CBullet::m_unitsHit
+        // brfalse            --------------------|
+        //          [ if (... && (... || !m_unitsHit.Contains(cunit2))) && ...) ]
+        // ldarg.0                                |
+        // ldfld CBullet::m_unitsHit              |
+        // ldloc.2                                |
+        // callvirt List<CUnit>::Contains(CUnit)  |
+        // brtrue             --------------------|--------|
+        //                                        |        |
+        // |> ldfld CBullet::m_attacker  <---------X----|  |
+        // |> isinst CUnitDefense                       |  |
+        // |> brfalse         --------------------------|  |
+        // |> ldloc.2                                   |  |
+        // |> isinst CUnitPlayer                        |  |
+        // |> brfalse         --------------------------|  |
+        // |> ldarg.0                                   |  |
+        // |> ldfld CBullet::m_attacker                 |  |
+        // |> ldloc.2                                   |  |
+        // |> bne.un          -----------------------|  |  |
+        //                                           |  |  |
+        // ldloc.s   V_6             <---------------|---  |
+        // brtrue                                    |     |
+        // ...                                       |     |
+        //         [ Collision checking start ]      |     |
+        // call Vector2::get_zero()  <----------------     |
+        // stloc.s V_7                                     |
+        // ...                                             |
+        //         [ Loop end ]                            |
+        // ldloc.1                   <----------------------
+        // ldc.i4.1
+        // add
+        // stloc.1
+        // ...
+    }
+}
 
 [BepInPlugin("friendly-fire", "Friendly Fire", "1.0.0")]
 public class FriendlyFire : BaseUnityPlugin {
     private void Start() {
         Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
 
+        var configEnabled = Config.Bind<bool>(
+            section: "General", key: "Enabled", defaultValue: true,
+            description: "Enables the plugin"
+        );
         var configDamageAOE = Config.Bind<bool>(
             section: "FriendlyFire", key: "DamageAOE", defaultValue: true,
             description: "Enables damage for players from explosions/lightning"
@@ -197,6 +280,11 @@ public class FriendlyFire : BaseUnityPlugin {
             section: "FriendlyFire", key: "PlayerDamageToGround", defaultValue: false,
             description: "Allows players to do damage to tiles"
         );
+        var configDefenseDamagePlayers = Config.Bind<bool>(
+            section: "FriendlyFire", key: "DefenseDamagePlayers", defaultValue: false,
+            description: "Allows defense units (turrrets) to do damage to players"
+        );
+        if (!configEnabled.Value) { return; }
 
         var harmony = new Harmony("friendly-fire");
 
@@ -213,6 +301,9 @@ public class FriendlyFire : BaseUnityPlugin {
         }
         if (configPlayerDamageToGround.Value) {
             harmony.PatchAll(typeof(PlayerDamageToGroundPatch));
+        }
+        if (configDefenseDamagePlayers.Value) {
+            harmony.PatchAll(typeof(DefenseDamagePlayersPatch));
         }
     }
 
