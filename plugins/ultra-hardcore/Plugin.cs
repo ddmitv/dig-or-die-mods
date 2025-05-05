@@ -297,6 +297,17 @@ public static class UnitInstantObservation {
         return codeMatcher.Instructions();
     }
 }
+public static class HideClockPatch {
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(SScreenHud), nameof(SScreenHud.OnUpdate))]
+    private static void SScreenHud_OnUpdate(SScreenHud __instance) {
+        __instance.m_bmpClock.SetVisible(false);
+        __instance.m_bmpClockNeedle.SetVisible(false);
+        __instance.m_bmpClockOver.SetVisible(false);
+        __instance.m_txtWarning.SetVisible(false);
+        __instance.m_txtDays.SetVisible(false);
+    }
+}
 
 [BepInPlugin("ultra-hardcore", "Ultra Hardcore", "0.0.0")]
 public class UltraHardcorePlugin : BaseUnityPlugin {
@@ -358,6 +369,10 @@ public class UltraHardcorePlugin : BaseUnityPlugin {
             section: "UltraHardcore", key: "UnitInstantObservation", defaultValue: false,
             description: "Makes every unit target closest player regardless of distance between them"
         );
+        var configHideClock = Config.Bind<bool>(
+            section: "UltraHardcore", key: "HideClock", defaultValue: false,
+            description: "Hides the clock"
+        );
 
         var harmony = new Harmony("ultra-hardcore");
 
@@ -396,6 +411,9 @@ public class UltraHardcorePlugin : BaseUnityPlugin {
         // }
         if (configUnitInstantObservation.Value) {
             harmony.PatchAll(typeof(UnitInstantObservation));
+        }
+        if (configHideClock.Value) {
+            harmony.PatchAll(typeof(HideClockPatch));
         }
     }
 }
