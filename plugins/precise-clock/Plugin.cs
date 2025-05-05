@@ -114,6 +114,10 @@ public class PreciseClock : BaseUnityPlugin {
             section: "General", key: "ClockPosition", defaultValue: ClockPosition.Bottom,
             description: "Location of the clock"
         );
+        var configEnabled = Config.Bind<bool>(
+            section: "General", key: "Enabled", defaultValue: true
+        );
+        if (!configEnabled.Value) { return; }
 
         var harmony = new Harmony("precise-clock");
         harmony.PatchAll(typeof(PreciseTimePatch));
