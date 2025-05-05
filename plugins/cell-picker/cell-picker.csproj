@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>cell_picker</AssemblyName>
+    <Product>Cell Picker</Product>
+    <Version>0.0.0</Version>
+  </PropertyGroup>
+
+  <Import Project="../utils-lib/utils-lib.targets"/>
+</Project>
