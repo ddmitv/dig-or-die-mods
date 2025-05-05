@@ -1,6 +1,7 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
+using ModUtils;
 using ModUtils.Extensions;
 using System.Collections.Generic;
 using System.Reflection.Emit;
@@ -120,9 +121,6 @@ public static class InputSeedPatch {
 public class SettableSeed : BaseUnityPlugin {
     private static ConfigEntry<int> configMaxSeed = null;
 
-    private static void AddLocText(string id, string text) {
-        SSingleton<SLoc>.Inst.m_dico.Add(id, new SLoc.CSentence(id, text));
-    }
     public static int? SeedFromString(string str) {
         if (str.Length == 0) {
             return UnityEngine.Random.Range(0, configMaxSeed.Value);
@@ -139,7 +137,7 @@ public class SettableSeed : BaseUnityPlugin {
             new ConfigDescription("", new AcceptableValueRange<int>(0, int.MaxValue))
         );
 
-        AddLocText("SETTABLE_SEED_OPTIONS_SEED", "Seed:");
+        Utils.AddLocalizationText("SETTABLE_SEED_OPTIONS_SEED", "Seed:");
 
         var harmony = new Harmony("settable-seed");
         harmony.PatchAll(typeof(InputSeedPatch));
