@@ -78,6 +78,7 @@ public sealed class ExtCItem_Explosive : CItem_Defense {
         var range = this.destroyBackgroundRadius + this.explosionBasaltBgRadius;
         if (range <= 0) { return; }
 
+        var destroyBackgroundRadiusSqr = this.destroyBackgroundRadius * this.destroyBackgroundRadius;
         for (int i = posCell.x - range; i <= posCell.x + range; ++i) {
             for (int j = posCell.y - range; j <= posCell.y + range; ++j) {
                 int2 relative = new int2(i, j) - posCell;
@@ -87,8 +88,11 @@ public sealed class ExtCItem_Explosive : CItem_Defense {
                 if (!Utils.IsValidCell(i, j)) { return; }
 
                 ref var cell = ref SWorld.Grid[i, j];
-                if (relative.sqrMagnitude > this.destroyBackgroundRadius * this.destroyBackgroundRadius) {
-                    if (cell.GetBgSurface() != null) {
+                if (!cell.IsPassable()) { continue; }
+
+                if (relative.sqrMagnitude > destroyBackgroundRadiusSqr) {
+                    var bgSurface = cell.GetBgSurface();
+                    if (bgSurface is not null && bgSurface != GSurfaces.bgOrganic) {
                         cell.SetBgSurface(GSurfaces.bgLava);
                     }
                 } else {
@@ -158,7 +162,7 @@ public sealed class ExtCItem_ConditionalMachineAutoBuilder : CItem_MachineAutoBu
 
     public override void Init() {
         // skip creating a sprite for m_tileAlternative
-        Utils.GetBaseMethod<CItemCell>(this, "Init").Invoke();
+        Utils.GetBaseMethod<Action, CItemCell>(this, "Init").Invoke();
     }
 
     public delegate bool CheckConditionFn(int x, int y);
@@ -745,7 +749,7 @@ public static class CustomItems {
             plantGrowChange = 0.3f,
             inheritedPlantsSupported = [GItems.dirt, GItems.dirtRed, GItems.silt, GItems.dirtBlack, GItems.dirtSky],
         },
-        recipe: new(groupId: "MK VI")
+        recipe: new(groupId: "MK V")
     );
 
     public static readonly ModItem autoBuilderMK6 = new(codeName: "autoBuilderMK6",
@@ -769,7 +773,7 @@ public static class CustomItems {
             heatingPerShot: 0f, isAuto: false,
             attackDesc: new CAttackDesc(
                 range: 25f,
-                damage: 35,
+                damage: 45,
                 nbAttacks: 1,
                 cooldown: 1f,
                 knockbackOwn: 5f,
@@ -783,7 +787,7 @@ public static class CustomItems {
                     light: 0x005E19
                 ) {
                     m_grenadeYSpeed = -40f,
-                    m_explosionRadius = 2.5f,
+                    m_explosionRadius = 3f,
                     m_explosionMaxBlockHp = 300,
                 }
             )
