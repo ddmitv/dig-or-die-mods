@@ -1,3 +1,17 @@
+
+function NeedsUpdate {
+    if (-not (Test-Path "$PSScriptRoot\textures\combined_textures.png")) { return $true }
+    $outputLastWrite = (Get-Item "$PSScriptRoot\textures\combined_textures.png").LastWriteTime
+    foreach ($file in Get-ChildItem "$PSScriptRoot\textures\*.png") {
+        if ($file.LastWriteTime -gt $outputLastWrite) { return $true }
+    }
+    if ((Get-Item "$PSCommandPath").LastWriteTime -gt $outputLastWrite) { return $true }
+    return $false
+}
+if (-not (NeedsUpdate)) {
+    exit 0
+}
+
 $textures = @(
     "flashLightMK3.png",
     "miniaturizorMK6_icon.png",
