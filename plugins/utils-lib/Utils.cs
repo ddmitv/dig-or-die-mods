@@ -269,8 +269,8 @@ public static class Utils {
         sb.Length -= 1; // remove newline character from last iteration
         return sb.ToString();
     }
-    public static Action GetBaseMethod<T>(T self, string methodName) {
-        return (Action)Activator.CreateInstance(typeof(Action), self, typeof(T).GetMethod(methodName).MethodHandle.GetFunctionPointer());
+    public static Fn GetBaseMethod<Fn, T>(T self, string methodName) {
+        return (Fn)Activator.CreateInstance(typeof(Fn), self, typeof(T).GetMethod(methodName).MethodHandle.GetFunctionPointer());
     }
     public static void AddLocalizationText(string id, string text) {
         SSingleton<SLoc>.Inst.m_dico.Add(id, new SLoc.CSentence(id, text));
