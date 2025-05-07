@@ -11,4 +11,5 @@
 !utils-lib/
 !enable-asserts/
 !better-chat/
-!cell-picker
+!cell-picker/
+!max-threads/
