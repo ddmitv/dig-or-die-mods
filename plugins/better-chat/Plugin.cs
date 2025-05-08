@@ -247,6 +247,42 @@ public static class FullChatHistoryPatch {
     }
 }
 
+public static class SpectatorModePatch {
+    public static bool isInSpectatorMode = false;
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(CUnitPlayerLocal), nameof(CUnitPlayerLocal.Update))]
+    private static bool CUnit_Update_Prefix(CUnit __instance, ref bool __result) {
+        if (!isInSpectatorMode) { return true; }
+
+        float simuDeltaTime = SMain.SimuDeltaTime;
+        float playerSpeed = 100 * (SInputs.shift.IsKey() ? 0.3f : 1f);
+        if (SInputs.left.IsKey()) {
+            __instance.m_forces.x -= playerSpeed * simuDeltaTime;
+        } else if (SInputs.right.IsKey()) {
+            __instance.m_forces.x += playerSpeed * simuDeltaTime;
+        }
+        if (SInputs.up.IsKey()) {
+            __instance.m_forces.y += playerSpeed * simuDeltaTime;
+        } else if (SInputs.down.IsKey()) {
+            __instance.m_forces.y -= playerSpeed * simuDeltaTime;
+        }
+
+        __instance.m_forces -= 6 * __instance.m_speed * simuDeltaTime;
+        __instance.m_speed += __instance.m_forces + __instance.m_forcesPush;
+        __instance.m_pos += __instance.m_speed * simuDeltaTime;
+
+        __instance.m_forces = Vector2.zero;
+        __instance.m_forcesPush = Vector2.zero;
+
+        __instance.m_pos.x = Mathf.Clamp(__instance.m_pos.x, 0f, SWorld.Gs.x);
+        __instance.m_pos.y = Mathf.Clamp(__instance.m_pos.y, 0f, SWorld.Gs.y);
+
+        __result = true;
+        return false;
+    }
+}
+
 // expression evaluator test string:
 // $(((3 + 4 * 2 - (10 % 3) + (5 - 3 - 1) * (-3^2) / 0.5) ^ (2 % 3)) % 100 + (12 / 3 * 4 - 12 / (3 * 4)) * (3.5 / 0.5) - (2.1 + 3.2 - 1.5) * (2 ^ -3 ^ 2 * 100) + ((10.5 % 3) * (3 ^ -2) / (5 - 3 - 1)) + (-5 + 3) * (-4^2) - (100 / (2 + 3)^2) + ((2 ^ -3) ^ 2) * 1000)
 // this should return ~212.0494
@@ -292,6 +328,7 @@ public class ExtraCommands : BaseUnityPlugin {
         if (configRepeatLastCommand.Value.MainKey != KeyCode.None) {
             harmony.PatchAll(typeof(RepeatLastCommandPatch));
         }
+        harmony.PatchAll(typeof(SpectatorModePatch));
 
         CustomCommands.AddCustomCommands();
     }

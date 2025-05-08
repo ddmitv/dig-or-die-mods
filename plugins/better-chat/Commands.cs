@@ -551,5 +551,12 @@ public static class CustomCommands {
         }, tabCommandFn: (int argIndex) => {
             return GetListOfCCellItemNames();
         });
+        AddCommand("/spectate", (string[] args, CPlayer player) => {
+            if (args.Length > 0) {
+                throw new InvalidCommandArgument("None arguments are expected");
+            }
+
+            SpectatorModePatch.isInSpectatorMode ^= true;
+        });
     }
 }
