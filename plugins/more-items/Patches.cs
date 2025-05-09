@@ -4,12 +4,9 @@ using ModUtils;
 using ModUtils.Extensions;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
-using static SInputs;
-using static SScreenInventory;
 
 public class Patches {
     [HarmonyPatch(typeof(CTile), nameof(CTile.CreateSprite))]
@@ -64,7 +61,7 @@ public class Patches {
     [HarmonyPatch(typeof(UnityEngine.Resources), nameof(UnityEngine.Resources.LoadAll), [typeof(string), typeof(Type)])]
     [HarmonyPrefix]
     private static bool Resources_LoadAll(string path, ref UnityEngine.Object[] __result) {
-        Sprite CreateSprite(string name, Rect rect) {
+        static Sprite CreateSprite(string name, Rect rect) {
             var pivot = new Vector2(0.5f, 0.5f);
 
             var spriteRect = new Rect(rect.x, ModCTile.texture.height - rect.yMax, rect.width, rect.height);
