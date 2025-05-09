@@ -497,8 +497,8 @@ public class Patches {
     [HarmonyTranspiler]
     private static IEnumerable<CodeInstruction> SItems_OnUpdateSimu_MiniaturizorMK6(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         static bool MiniaturizorMK6CustomLogic(CItem_Device cItem_Device, CItemCell content) {
-            if (cItem_Device != CustomItems.miniaturizorMK6.Item) { return false; }
-
+            if (!ReferenceEquals(cItem_Device, CustomItems.miniaturizorMK6.Item)) { return false; }
+            
             return content.m_hpMax > GItems.miniaturizorMK5.m_customValue;
         }
 
@@ -528,6 +528,38 @@ public class Patches {
                 Transpilers.EmitDelegate(MiniaturizorMK6CustomLogic),
                 new(OpCodes.Brtrue, cannotDigLabel));
         return codeMatcher.Instructions();
+
+        //            if (content != null && ... && ...)
+        // ldloc.s V_18
+        // brfalse         --------------------------------------------------------|
+        //            if (... && !(content is CItem_Wall) && ...)                  |
+        // ldloc.s V_18                                                            |
+        // isinst CItem_Wall                                                       |
+        // brtrue          --------------------------------------------------------|
+        //                                                                         |
+        // |> ldloc.s V_16 (citem_Device: CItem_Device)                            |
+        // |> ldloc.s V_18 (content: CItemCell)                                    |
+        // |> call MiniaturizorMK6CustomLogic                                      |
+        // |> brtrue       -----------------------------------------------------|  |
+        //            if (... && ... && (float)content.m_hpMax > customValue)   |  |
+        // ldloc.s V_18                                                         |  |
+        // ldfld CItemCell::m_hpMax                                             |  |
+        // conv.r4                                                              |  |
+        // ldloc.s V_20                                                         |  |
+        // ble.un          -----------------------------------------------------|--|
+        //                 vvv Handle message cannot dig (basalt)               |  |
+        // call SSingletonScreen<SScreenMessages>.get_Inst() <-------------------  |
+        // ldloc.s V_18                                                            |
+        // ldfld CItemCell::m_hpMax                                                |
+        // ...                                                                     |
+        //                 vvv Handle miniturizor mining                           |
+        // ldloc.s V_18            <------------------------------------------------
+        // brfalse ...
+        // 
+        // ldloc.s V_18
+        // ldfld CItemCell::m_mainColor
+        // br
+        // ...
     }
 
     [HarmonyPatch(typeof(CItem_Device), nameof(CItem_Device.Use_Local))]
