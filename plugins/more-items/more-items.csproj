@@ -8,7 +8,7 @@
   
   <Import Project="../utils-lib/utils-lib.targets" />
   
-  <Target Name="MakeTextures" BeforeTargets="PrepareForBuild">
+  <Target Name="MakeTextures" BeforeTargets="BeforeBuild">
     <Exec
       Command="%WINDIR%\System32\WindowsPowerShell\v1.0\powershell.exe -NonInteractive -executionpolicy Unrestricted .\make-textures.ps1"
       LogStandardErrorAsError="True" ContinueOnError="False" WorkingDirectory="$(MSBuildProjectDirectory)"/>
