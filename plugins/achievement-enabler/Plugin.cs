@@ -6,7 +6,7 @@ using System.Reflection.Emit;
 using ModUtils.Extensions;
 
 [BepInPlugin("achievement-enabler", "Achievement Enabler", "1.0.0")]
-public class AchievementEnabler: BaseUnityPlugin
+public class AchievementEnabler : BaseUnityPlugin
 {
     private static ConfigEntry<bool> configInMultiplayer = null;
     private static ConfigEntry<bool> configAfterCommand = null;
@@ -62,6 +62,7 @@ public class AchievementEnabler: BaseUnityPlugin
         if (configInPostGameAlways.Value) {
             codeMatcher.Start()
                 .MatchForward(useEnd: false,
+                    // if (... && (!skipInPostGame || !GVars.m_postGame) ...)
                     new(OpCodes.Ldarg_2), // parameter `skipInPostGame`
                     new(OpCodes.Brfalse),
 
