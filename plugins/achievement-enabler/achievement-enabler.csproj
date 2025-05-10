@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+      <AssemblyName>achievement-enabler</AssemblyName>
+      <Product>Achievement Enabler</Product>
+      <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <Import Project="../utils-lib/utils-lib.targets"/>
+</Project>
