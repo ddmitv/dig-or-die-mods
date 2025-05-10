@@ -1,7 +1,13 @@
 
 function NeedsUpdate {
     if (-not (Test-Path "$PSScriptRoot\textures\combined_textures.png")) { return $true }
-    $outputLastWrite = (Get-Item "$PSScriptRoot\textures\combined_textures.png").LastWriteTime
+    if (-not (Test-Path "$PSScriptRoot\textures\combined_particles.png")) { return $true }
+
+    $outputLastWrite = ((
+        (Get-Item "$PSScriptRoot\textures\combined_textures.png").LastWriteTime,
+        (Get-Item "$PSScriptRoot\textures\combined_particles.png").LastWriteTime
+    ) | Measure-Object -Maximum).Maximum
+
     foreach ($file in (Get-ChildItem "$PSScriptRoot\textures\*.png") + (Get-Item $PSCommandPath)) {
         if ($file.LastWriteTime -gt $outputLastWrite) { return $true }
     }
@@ -9,6 +15,38 @@ function NeedsUpdate {
 }
 if (-not (NeedsUpdate)) {
     exit 0
+}
+
+function CreateTextureSpriteSheetCmd {
+    param($placements, $outputFile)
+
+    $canvasWidth = (($placements | ForEach-Object { $_[0] } | Measure-Object -Maximum).Maximum + 1) * 128
+    $canvasHeight = (($placements | ForEach-Object { $_[1] } | Measure-Object -Maximum).Maximum + 1) * 128
+
+    $magickCmd = "magick -size ${canvasWidth}x${canvasHeight} xc:none "
+
+    foreach ($entry in $placements) {
+        $x, $y, $file = $entry
+        $magickCmd += "`"$PSScriptRoot/textures/$file`" -geometry +$($x*128)+$($y*128) -composite "
+    }
+    $magickCmd += "`"$PSScriptRoot/textures/$outputFile`""
+
+    return $magickCmd
+}
+function CreateParticlesSpriteSheetCmd {
+    param($placements, $outputFile)
+
+    $particlesCanvasWidth = ($placements | ForEach-Object { $_[0] + $_[2] } | Measure-Object -Maximum).Maximum
+    $particlesCanvasHeight = ($placements | ForEach-Object { $_[1] + $_[3] } | Measure-Object -Maximum).Maximum
+
+    $particlesMagickCmd = "magick -size ${particlesCanvasWidth}x${particlesCanvasHeight} xc:none "
+    foreach ($entry in $placements) {
+        $x, $y, $width, $height, $file = $entry
+        $particlesMagickCmd += "`"$PSScriptRoot/textures/$file`" -geometry +${x}+${y} -composite "
+    }
+    $particlesMagickCmd += "`"$PSScriptRoot/textures/$outputFile`""
+
+    return $particlesMagickCmd
 }
 
 $texturePlacements = @(
@@ -53,15 +91,11 @@ $texturePlacements = @(
     @(6, 4, "fertileDirt.png"),
     @(7, 4, "autoBuilderMK6.png")
 )
-$canvasWidth = (($texturePlacements | Measure-Object -Property {$_[0]} -Maximum).Maximum + 1) * 128
-$canvasHeight = (($texturePlacements | Measure-Object -Property {$_[1]} -Maximum).Maximum + 1) * 128
+$particlesTexturePlacements = @(
+    @(0, 0, 255, 119, "meltdownSnipe.png"),
+    @(255, 0, 209, 98, "particlesSnipTurretMK2.png")
+)
 
-$magickCmd = "magick -size ${canvasWidth}x${canvasHeight} xc:none "
+Invoke-Expression (CreateTextureSpriteSheetCmd -placements $texturePlacements -outputFile "combined_textures.png")
+Invoke-Expression (CreateParticlesSpriteSheetCmd -placements $particlesTexturePlacements -outputFile "combined_particles.png")
 
-foreach ($entry in $texturePlacements) {
-    $magickCmd += "`"$PSScriptRoot/textures/$($entry[2])`" -geometry +$($entry[0]*128)+$($entry[1]*128) -composite "
-}
-$magickCmd += "`"$PSScriptRoot/textures/combined_textures.png`""
-
-# Write-Host $magickCmd
-Invoke-Expression $magickCmd

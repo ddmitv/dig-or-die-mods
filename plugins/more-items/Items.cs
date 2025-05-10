@@ -192,8 +192,11 @@ public sealed class ExtCItem_JetpackDevice : CItem_Device {
 }
 
 public static class CustomBullets {
+    public static readonly string particlesPath = "more-items_particles";
+    public static Texture2D particlesTexture = null;
+
     public static readonly ExtCBulletDesc meltdownSnipe = new(
-        ModCTile.texturePath, "meltdownSnipe",
+        particlesPath, "meltdownSnipe",
         radius: 0.7f, dispersionAngleRad: 0.1f,
         speedStart: 50f, speedEnd: 30f, light: 0xC0A57u
     ) {
@@ -357,7 +360,7 @@ public static class CustomItems {
                 knockbackOwn: 0f,
                 knockbackTarget: 10f,
                 projDesc: null,
-                sound: "rocketExplosion"
+                sound: SoundIds.rocketExplosion
             ),
             tileUnit: null
         ) {
@@ -387,11 +390,11 @@ public static class CustomItems {
                 cooldown: 0.5f,
                 knockbackOwn: 0f, knockbackTarget: 3f,
                 projDesc: new CBulletDesc(
-                    ModCTile.texturePath, "particlesSnipTurretMK2",
+                    CustomBullets.particlesPath, "particlesSnipTurretMK2",
                     radius: 0.45f, dispersionAngleRad: 0f,
                     speedStart: 40f, speedEnd: 30f, light: 0xE10AF5
                 ),
-                sound: "particleTurret"
+                sound: SoundIds.particleTurret
             ),
             tileUnit: new ModCTile(5, 1)
         ) {
@@ -413,7 +416,7 @@ public static class CustomItems {
                 cooldown: 2f,
                 knockbackOwn: 0f, knockbackTarget: 10f,
                 projDesc: null,
-                sound: "storm"
+                sound: SoundIds.storm
             ),
             tileUnit: null
         ) {
@@ -519,7 +522,7 @@ public static class CustomItems {
                 nbAttacks: 1,
                 cooldown: 0.3f,
                 knockbackOwn: 0f, knockbackTarget: 0f,
-                projDesc: GBullets.laser, sound: "laser"
+                projDesc: GBullets.laser, sound: SoundIds.laser
             ),
             tileUnit: new CTile(2, 2) { m_textureName = "items_defenses" }
         ),
@@ -539,7 +542,7 @@ public static class CustomItems {
                 knockbackOwn: 60f,
                 knockbackTarget: 100f,
                 projDesc: CustomBullets.meltdownSnipe,
-                sound: "plasmaSnipe"
+                sound: SoundIds.plasmaSnipe
             )
         ),
         recipe: new(groupId: "ULTIMATE")
@@ -558,7 +561,7 @@ public static class CustomItems {
                 knockbackOwn: 0f,
                 knockbackTarget: 500f,
                 projDesc: null,
-                sound: "rocketExplosion"
+                sound: SoundIds.rocketExplosion
             ),
             tileUnit: null
         ) {
@@ -618,7 +621,7 @@ public static class CustomItems {
                     m_lavaQuantity = 1f,
                     emitLavaBurstParticles = false,
                 },
-                sound: "rocketFire"
+                sound: SoundIds.rocketFire
             )
         ),
         recipe: new(groupId: "ULTIMATE")
@@ -667,7 +670,7 @@ public static class CustomItems {
                 knockbackOwn: 3f,
                 knockbackTarget: 25f,
                 projDesc: GBullets.rocket,
-                sound: "rocketFire"
+                sound: SoundIds.rocketFire
             )
         ),
         recipe: new(groupId: "ULTIMATE")
@@ -688,7 +691,7 @@ public static class CustomItems {
                     speedStart: 5000f, speedEnd: 4000f,
                     light: 11358926U
                 ),
-                sound: "plasmaSnipe"
+                sound: SoundIds.plasmaSnipe
             )
         ),
         recipe: new(groupId: "ULTIMATE")
@@ -725,7 +728,7 @@ public static class CustomItems {
                 range: 20f, damage: 8, nbAttacks: 10, cooldown: 0.25f,
                 knockbackOwn: 11f, knockbackTarget: 2f,
                 projDesc: CustomBullets.zf0shotgunBullet,
-                sound: "shotgun"
+                sound: SoundIds.shotgun
             )
         ),
         recipe: new(groupId: "ULTIMATE")

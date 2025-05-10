@@ -19,5 +19,6 @@
     <EmbeddedResource Include="textures/combined_textures.png" />
     <EmbeddedResource Include="textures/surfaces/surface_fertileDirt.png" />
     <EmbeddedResource Include="textures/surfaces/surface_tops.png" />
+    <EmbeddedResource Include="textures/combined_particles.png" />
   </ItemGroup>
 </Project>

@@ -64,16 +64,16 @@ public class Patches {
         static Sprite CreateSprite(string name, Rect rect) {
             var pivot = new Vector2(0.5f, 0.5f);
 
-            var spriteRect = new Rect(rect.x, ModCTile.texture.height - rect.yMax, rect.width, rect.height);
-            var sprite = Sprite.Create(ModCTile.texture, spriteRect, pivot, 100, 0, SpriteMeshType.FullRect);
+            var spriteRect = new Rect(rect.x, CustomBullets.particlesTexture.height - rect.yMax, rect.width, rect.height);
+            var sprite = Sprite.Create(CustomBullets.particlesTexture, spriteRect, pivot, 100, 0, SpriteMeshType.FullRect);
             sprite.name = name;
             return sprite;
         }
 
-        if (path == $"Textures/{ModCTile.texturePath}") {
+        if (path == $"Textures/{CustomBullets.particlesPath}") {
             __result = [
-                CreateSprite("meltdownSnipe", rect: new Rect(0, 128, 255, 119)),
-                CreateSprite("particlesSnipTurretMK2", rect: new Rect(0, 128 + 119, 209, 98)),
+                CreateSprite("meltdownSnipe", rect: new Rect(0, 0, 255, 119)),
+                CreateSprite("particlesSnipTurretMK2", rect: new Rect(255, 0, 209, 98)),
             ];
             return false;
         }
