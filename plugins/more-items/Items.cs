@@ -190,6 +190,12 @@ public sealed class ExtCItem_JetpackDevice : CItem_Device {
     public float jetpackEnergyUsageMultiplier = 0.19f;
     public float jetpackFlyForce = 85f;
 }
+public sealed class ExtCItem_ImpactShield : CItem_Device {
+    public static readonly string GroupId = "more-items_ImpactShield";
+
+    public ExtCItem_ImpactShield(CTile tile, CTile tileIcon, float customValue = 0f)
+        : base(tile, tileIcon, GroupId, CItem_Device.Type.Passive, customValue) { }
+}
 
 public static class CustomBullets {
     public static readonly string particlesPath = "more-items_particles";
@@ -794,6 +800,23 @@ public static class CustomItems {
                     m_explosionMaxBlockHp = 300,
                 }
             )
+        ),
+        recipe: new(groupId: "ULTIMATE")
+    );
+
+    public static readonly ModItem impactShieldMk1 = new(codeName: "impactShieldMk1",
+        name: "Impact Shield MK1",
+        description: "TODO.",
+        item: new ExtCItem_ImpactShield(tile: new ModCTile(0, 5), tileIcon: new ModCTile(0, 5),
+            customValue: 0.25f
+        ),
+        recipe: new(groupId: "ULTIMATE")
+    );
+    public static readonly ModItem impactShieldMk2 = new(codeName: "impactShieldMk2",
+        name: "Impact Shield MK2",
+        description: "TODO.",
+        item: new ExtCItem_ImpactShield(tile: new ModCTile(1, 5), tileIcon: new ModCTile(1, 5),
+            customValue: 0.5f
         ),
         recipe: new(groupId: "ULTIMATE")
     );
