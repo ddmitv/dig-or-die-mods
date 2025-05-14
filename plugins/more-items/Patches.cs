@@ -756,5 +756,60 @@ public class Patches {
         // old: ... = Mathf.MoveTowards(..., 0f, 0.19f * SMain.SimuDeltaTime * ...);
         // new: ... = Mathf.MoveTowards(..., 0f, ModifyJetpackPowerUsage(0.19f, V_1) * SMain.SimuDeltaTime * ...);
     }
+    [HarmonyPatch(typeof(CUnitPlayer), nameof(CUnitPlayer.Damage_Local))]
+    [HarmonyPrefix]
+    private static void CUnitPlayer_Damage_Local(CUnitPlayer __instance, ref float damage, string damageCause) {
+        if (damageCause is not ("hit_up" or "hit_down" or "hit_side")) { return; }
+
+        var player = __instance.GetPlayer();
+        var impactShield = (ExtCItem_ImpactShield)player?.m_inventory?.GetBestActiveOfGroup(ExtCItem_ImpactShield.GroupId);
+        if (impactShield is null) { return; }
+        damage *= 1f - impactShield.m_customValue;
+    }
+    [HarmonyPatch(typeof(SScreenCrafting), nameof(SScreenCrafting.OnUpdate))]
+    [HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> SScreenCrafting_OnUpdate_ConsumableWeapon(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        // Allows to craft multiple times ExtCItem_ConsumableWeapon item (in not m_filterAdds mode) unlike CItem_Weapon
+
+        return new CodeMatcher(instructions, generator)
+            .MatchForward(useEnd: true,
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, typeof(SScreenCrafting).Field("m_filterAdds")),
+                new(OpCodes.Brtrue)) // -> successLabel
+            .ThrowIfInvalid("(1)")
+            .GetOperand(out Label successLabel)
+            .MatchForward(useEnd: false,
+                new CodeMatch(OpCodes.Ldloc_S).LocalIndex(17),
+                new(OpCodes.Isinst, typeof(CItem_Weapon)),
+                new(OpCodes.Brtrue))
+            .ThrowIfInvalid("(2)")
+            .Insert(
+                new(OpCodes.Ldloc_S, (byte)17),
+                new(OpCodes.Isinst, typeof(ExtCItem_ConsumableWeapon)),
+                new(OpCodes.Brtrue, successLabel))
+            .Instructions();
+
+        //          if (m_filterAdds || ...)
+        // ldarg.0
+        // ldfld     SScreenCrafting::m_filterAdds
+        // brtrue       --------------------------------------------------|
+        //          if (... || item is ExtCItem_ConsumableWeapon || ...)  |
+        // |> ldloc.s V_17                                                |
+        // |> isinst ExtCItem_ConsumableWeapon                            |
+        // |> brtrue    --------------------------------------------------|
+        //          if (... || (!(item is CItem_Weapon) && ...) || ...)   |
+        // ldloc.s V_17                                                   |
+        // isinst CItem_Weapon                                            |
+        // brtrue ...                                                     |
+        // ...                                                            |
+        //          if (m_filterAdds || item != GItems.autoBuilderMK1)    |
+        // ldarg.0      <--------------------------------------------------
+        // ldfld SScreenCrafting::m_filterAdds
+        // brtrue ...
+        // ldloc.s V_17
+        // ldsfld GItems::autoBuilderMK1
+        // bne.un ...
+        // br ...
+    }
 }
 
