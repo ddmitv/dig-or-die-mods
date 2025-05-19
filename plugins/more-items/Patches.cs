@@ -74,6 +74,7 @@ public class Patches {
             __result = [
                 CreateSprite("meltdownSnipe", rect: new Rect(0, 0, 255, 119)),
                 CreateSprite("particlesSnipTurretMK2", rect: new Rect(255, 0, 209, 98)),
+                CreateSprite("impactGrenade", rect: new Rect(464, 0, 40, 40)),
             ];
             return false;
         }

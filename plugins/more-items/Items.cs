@@ -228,6 +228,19 @@ public static class CustomBullets {
         m_hasTrail = true,
         m_pierceArmor = true
     };
+
+    public static readonly CBulletDesc impactGrenadeBullet = new(
+        particlesPath, "impactGrenade",
+        radius: 0.5f,
+        dispersionAngleRad: 0f,
+        speedStart: 20f,
+        speedEnd: 15f,
+        light: 0x005E19
+    ) {
+        m_grenadeYSpeed = -40f,
+        m_explosionRadius = 3f,
+        m_explosionMaxBlockHp = 300,
+    };
 }
 
 public static class CustomSurfaces {
@@ -778,27 +791,16 @@ public static class CustomItems {
     public static readonly ModItem gunImpactGrenade = new (codeName: "gunImpactGrenade",
         name: "Impact granade",
         description: "TODO.",
-        item: new ExtCItem_ConsumableWeapon(tile: new ModCTile(7, 3), tileIcon: new ModCTile(0, 4),
+        item: new ExtCItem_ConsumableWeapon(tile: new ModCTile(2, 5), tileIcon: new ModCTile(3, 5),
             heatingPerShot: 0f, isAuto: false,
             attackDesc: new CAttackDesc(
                 range: 25f,
                 damage: 45,
                 nbAttacks: 1,
-                cooldown: 1f,
-                knockbackOwn: 5f,
-                knockbackTarget: 50f,
-                projDesc: new ExtCBulletDesc(
-                    "particles/particles", "grenade",
-                    radius: 0.5f,
-                    dispersionAngleRad: 0f,
-                    speedStart: 20f,
-                    speedEnd: 15f,
-                    light: 0x005E19
-                ) {
-                    m_grenadeYSpeed = -40f,
-                    m_explosionRadius = 3f,
-                    m_explosionMaxBlockHp = 300,
-                }
+                cooldown: 0.5f,
+                knockbackOwn: 10f,
+                knockbackTarget: 45f,
+                projDesc: CustomBullets.impactGrenadeBullet
             )
         ),
         recipe: new(groupId: "ULTIMATE")

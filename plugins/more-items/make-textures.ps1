@@ -91,11 +91,14 @@ $texturePlacements = @(
     @(6, 4, "fertileDirt.png"),
     @(7, 4, "autoBuilderMK6.png"),
     @(0, 5, "impactShieldMk1.png"),
-    @(1, 5, "impactShieldMk2.png")
+    @(1, 5, "impactShieldMk2.png"),
+    @(2, 5, "impactGrenade.png"),
+    @(3, 5, "impactGrenade_icon.png")
 )
 $particlesTexturePlacements = @(
     @(0, 0, 255, 119, "meltdownSnipe.png"),
-    @(255, 0, 209, 98, "particlesSnipTurretMK2.png")
+    @(255, 0, 209, 98, "particlesSnipTurretMK2.png"),
+    @(464, 0, 40, 40, "particleImpactGrenade.png")
 )
 
 Invoke-Expression (CreateTextureSpriteSheetCmd -placements $texturePlacements -outputFile "combined_textures.png")
