@@ -1,10 +1,12 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
+using ModUtils;
 using ModUtils.Extensions;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reflection.Emit;
+using UnityEngine;
 
 public static class PreciseTimePatch {
     [HarmonyTranspiler]
@@ -93,16 +95,30 @@ public enum ClockPosition {
     Bottom,
     AboveTimer,
 }
+public enum TimeFormat {
+    H12AmPm,
+    H24,
+    Decimal,
+}
 
 [BepInPlugin("precise-clock", "Precise Clock", "1.0.0")]
 public class PreciseClock : BaseUnityPlugin {
     public static ConfigEntry<UnityEngine.Color> configColor = null;
     public static ConfigEntry<ClockPosition> configClockPosition = null;
+    private static ConfigEntry<TimeFormat> configTimeFormat = null;
 
     public static string ToTimeString(float clock) {
         if (clock < 0f) { clock += 1f; }
-        var hour = clock * 24f;
-        return $"{(int)hour}:{(int)((hour % 1f) * 60f):00}";
+
+        if (configTimeFormat.Value == TimeFormat.H12AmPm) {
+            var hour = clock * 24f;
+            return $"{Utils.PosMod((int)hour - 1, 12) + 1}:{(int)((hour % 1f) * 60f):00} {(hour < 12f ? "AM" : "PM")}";
+        } else if (configTimeFormat.Value == TimeFormat.Decimal) {
+            return $"{(int)(clock * 10f)}.{(int)(clock * 1000f) % 100:00} ({clock})";
+        } else {
+            var hour = clock * 24f;
+            return $"{(int)hour}:{(int)((hour % 1f) * 60f):00}";
+        }
     }
 
     private void Start() {
@@ -113,6 +129,10 @@ public class PreciseClock : BaseUnityPlugin {
         configClockPosition = Config.Bind<ClockPosition>(
             section: "General", key: "ClockPosition", defaultValue: ClockPosition.Bottom,
             description: "Location of the clock"
+        );
+        configTimeFormat = Config.Bind<TimeFormat>(
+            section: "General", key: "TimeFormat", defaultValue: TimeFormat.H24,
+            description: "Format of the time in clock"
         );
         var configEnabled = Config.Bind<bool>(
             section: "General", key: "Enabled", defaultValue: true

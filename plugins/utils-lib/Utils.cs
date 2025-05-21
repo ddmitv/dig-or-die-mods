@@ -275,4 +275,8 @@ public static class Utils {
     public static void AddLocalizationText(string id, string text) {
         SSingleton<SLoc>.Inst.m_dico.Add(id, new SLoc.CSentence(id, text));
     }
+    public static int PosMod(int x, int y) {
+        int remainder = x % y;
+        return remainder < 0 ? remainder + y : remainder;
+    }
 }
