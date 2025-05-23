@@ -582,5 +582,38 @@ public static class CustomCommands {
 
             Utils.AddChatMessageLocal($"Exported world image to: '{exportPath}' ({bytes.Length} bytes)");
         });
+        AddCommand("/clock", (string[] args, CPlayer player) => {
+            if (args.Length == 0) {
+                throw new InvalidCommandArgument("One argument is expected");
+            }
+            string subcommand = args[0].ToLower();
+            if (subcommand == "pause") {
+                ClockCommandPatches.isPaused = true;
+            } else if (subcommand == "resume") {
+                ClockCommandPatches.isPaused = false;
+            } else if (subcommand == "morning") {
+                GVars.m_clock = SGame.GetNightClockHalfDuration();
+            } else if (subcommand == "night") {
+                GVars.m_clock = 1f - SGame.GetNightClockHalfDuration();
+            } else if (subcommand == "evening") {
+                GVars.m_clock = 1f - (SOutgame.Params.m_nightDuration + 120f) / (SOutgame.Params.m_dayDurationTotal * 2f);
+            } else if (subcommand == "midday") {
+                GVars.m_clock = 0.5f;
+            } else if (subcommand == "midnight") {
+                GVars.m_clock = 0f;
+            } else if (subcommand == "lavastart") {
+                GVars.m_clock = 0.45f;
+            } else if (subcommand == "lavaend") {
+                GVars.m_clock = 0.9f;
+            } else {
+                if (!float.TryParse(args[0], out float newClockTime)) {
+                    throw new InvalidCommandArgument("Expected new clock time");
+                }
+                if (newClockTime < 0f || newClockTime > 1f) {
+                    throw new InvalidCommandArgument("Clock time must be between [0, 1]");
+                }
+                GVars.m_clock = newClockTime;
+            }
+        });
     }
 }

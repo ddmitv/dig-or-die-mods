@@ -340,7 +340,25 @@ public static class FreecamModePatch {
             SInputs.down = __state.down;
         }
     }
+}
 
+public static class ClockCommandPatches {
+    public static bool isPaused = false;
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(SGame), nameof(SGame.OnUpdateSimu))]
+    private static void SGame_OnUpdateSimu_Prefix(ref float __state) {
+        if (isPaused) {
+            __state = Utils.Exchange(ref SOutgame.Params.m_dayDurationTotal, float.PositiveInfinity);
+        }
+    }
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(SGame), nameof(SGame.OnUpdateSimu))]
+    private static void SGame_OnUpdateSimu_Postfix(ref float __state) {
+        if (isPaused) {
+            SOutgame.Params.m_dayDurationTotal = __state;
+        }
+    }
 }
 
 // expression evaluator test string:
@@ -394,6 +412,7 @@ public class BetterChat : BaseUnityPlugin {
             harmony.PatchAll(typeof(RepeatLastCommandPatch));
         }
         harmony.PatchAll(typeof(FreecamModePatch));
+        harmony.PatchAll(typeof(ClockCommandPatches));
 
         CustomCommands.AddCustomCommands();
     }
