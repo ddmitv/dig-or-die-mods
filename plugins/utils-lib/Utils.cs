@@ -279,4 +279,16 @@ public static class Utils {
         int remainder = x % y;
         return remainder < 0 ? remainder + y : remainder;
     }
+    public static string GetFullPathFromBase(string path, string basePath) {
+        if (Path.IsPathRooted(path)) {
+            return Path.GetFullPath(path);
+        }
+        return Path.GetFullPath(Path.Combine(basePath, path));
+    }
+    public static string AppendExtension(string path, string extension) {
+        if (Path.HasExtension(path)) {
+            return path;
+        }
+        return path + extension;
+    }
 }
