@@ -291,4 +291,9 @@ public static class Utils {
         }
         return path + extension;
     }
+    public static T Exchange<T>(ref T obj, T newValue) {
+        T oldValue = obj;
+        obj = newValue;
+        return oldValue;
+    }
 }
