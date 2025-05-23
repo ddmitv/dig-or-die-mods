@@ -1,6 +1,7 @@
 using ModUtils;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEngine;
 
@@ -15,19 +16,19 @@ public class AirCItemCell : CItemCell {
 }
 
 public static class CustomCommands {
-    private static void AddCommand(
-        string name,
-        CustomCommandsPatch.ExecCommandFn fn,
-        CustomCommandsPatch.TabCommandFn tabCommandFn = null
-    ) {
+    private static void AddCommand(string name, bool isLocal, CustomCommandsPatch.ExecCommandFn fn, CustomCommandsPatch.TabCommandFn tabCommandFn = null) {
         if (!name.StartsWith("/")) {
             throw new ArgumentException("Command name must start with '/'", nameof(name));
         }
-        CustomCommandsPatch.customCommands.Add(name, fn);
+        CustomCommandsPatch.customCommands.Add(name, new() { fn = fn, isLocal = isLocal } );
         if (tabCommandFn is not null) {
             CustomCommandsPatch.customTabCommands.Add(name, tabCommandFn);
         }
     }
+    private static void AddCommand(string name, CustomCommandsPatch.ExecCommandFn fn, CustomCommandsPatch.TabCommandFn tabCommandFn = null) {
+        AddCommand(name, isLocal: false, fn, tabCommandFn);
+    }
+
     private static CPlayer GetPlayerByName(string name) {
         return SNetwork.Players.FirstOrDefault(player => player.m_name == name);
     }
@@ -393,7 +394,7 @@ public static class CustomCommands {
         }, tabCommandFn: (int argIndex) => {
             return GetListOfCCellItemNames();
         });
-        AddCommand("/killinfo", (string[] args, CPlayer player) => {
+        AddCommand("/killinfo", isLocal: true, (string[] args, CPlayer player) => {
             if (args.Length > 0) {
                 throw new InvalidCommandArgument("None arguments are expected");
             }
@@ -557,6 +558,26 @@ public static class CustomCommands {
             }
 
             SpectatorModePatch.isInSpectatorMode ^= true;
+        });
+        AddCommand("/exportpng", isLocal: true, (string[] args, CPlayer player) => {
+            string exportPath = Utils.AppendExtension(Utils.GetFullPathFromBase(
+                args.Length == 0 ? "SavedScreen.png" : args[0],
+                Path.Combine(Application.dataPath, "..")
+            ), extension: ".png");
+
+            Texture2D texture2D = new Texture2D(SWorld.Gs.x, SWorld.Gs.y, TextureFormat.RGB24, mipmap: false);
+            var minimapInst = SSingleton<SMinimap>.Inst;
+
+            for (int i = 0; i < SWorld.Gs.x; ++i) {
+                for (int j = 0; j < SWorld.Gs.y; ++j) {
+                    texture2D.SetPixel(i, j, minimapInst.GetColor(i, j, checkForFlagIsMapped: false));
+                }
+            }
+            texture2D.Apply();
+            byte[] bytes = texture2D.EncodeToPNG();
+            File.WriteAllBytes(exportPath, bytes);
+
+            Utils.AddChatMessageLocal($"Exported world image to: '{exportPath}' ({bytes.Length} bytes)");
         });
     }
 }

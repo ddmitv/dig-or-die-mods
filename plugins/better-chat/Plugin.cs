@@ -8,6 +8,7 @@ using System.Linq;
 using System.Reflection.Emit;
 using UnityEngine;
 using ModUtils.Extensions;
+using System.Security.Policy;
 
 [Serializable]
 public class InvalidCommandArgument : Exception {
@@ -22,9 +23,15 @@ public class InvalidCommandArgument : Exception {
 
 public static class CustomCommandsPatch {
     public delegate void ExecCommandFn(string[] args, CPlayer playerSender);
+
+    public struct CommandInfo {
+        public ExecCommandFn fn;
+        public bool isLocal;
+    }
+
     public delegate List<string> TabCommandFn(int argIndex);
 
-    public static readonly Dictionary<string, ExecCommandFn> customCommands = new();
+    public static readonly Dictionary<string, CommandInfo> customCommands = new();
 
     public static readonly Dictionary<string, TabCommandFn> customTabCommands = new();
 
@@ -38,13 +45,13 @@ public static class CustomCommandsPatch {
         static bool ExecCustomCommand(string text, CPlayer playerSender) {
             string[] commandAndArgs = ParseArgs(text);
             string command = commandAndArgs[0];
-            if (!customCommands.TryGetValue(command, out ExecCommandFn fn)) {
+            if (!customCommands.TryGetValue(command, out CommandInfo cmdInfo)) {
                 return false;
             }
             string[] args = commandAndArgs.Skip(1).ToArray();
 
             try {
-                fn(args, playerSender);
+                cmdInfo.fn(args, playerSender);
             } catch (InvalidCommandArgument exception) {
                 if (!playerSender.IsMe()) { return true; }
 
@@ -87,6 +94,16 @@ public static class CustomCommandsPatch {
         string arg = commandAndArgs.Length <= 1 ? "" : commandAndArgs[1];
         List<string> argList = tabCommand(commandAndArgs.Length);
         __result = __instance.TabOnList(__result, command, arg, argList);
+    }
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(SScreenHudChat), nameof(SScreenHudChat.AddChatMessage_Networked))]
+    private static void SScreenHudChat_AddChatMessage_Networked(string str, ref ulong steamIdRemote) {
+        if (!customCommands.TryGetValue(ParseArgs(str)[0], out CommandInfo cmdInfo)) {
+            return;
+        }
+        if (cmdInfo.isLocal) {
+            steamIdRemote = SNetwork.MySteamID;
+        }
     }
 }
 
