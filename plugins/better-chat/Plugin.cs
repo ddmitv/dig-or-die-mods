@@ -39,7 +39,7 @@ public static class CustomCommandsPatch {
     }
 
     private static void DisableAchievements() {
-        if (!ExtraCommands.configDisableAchievementsOnCommand.Value) { return; }
+        if (!BetterChat.configDisableAchievementsOnCommand.Value) { return; }
 
         if (!GVars.m_achievementsLocked) {
             GVars.m_achievementsLocked = true;
@@ -120,7 +120,7 @@ public static class RepeatLastCommandPatch {
     [HarmonyPatch(typeof(SScreenHudChat), nameof(SScreenHudChat.OnUpdate))]
     [HarmonyPostfix]
     private static void SScreenHudChat_OnUpdate() {
-        if (ExtraCommands.configRepeatLastCommand.Value.IsDown()) {
+        if (BetterChat.configRepeatLastCommand.Value.IsDown()) {
             var networkCommands = SSingleton<SNetworkCommands>.Inst;
 
             if (networkCommands.m_historyCommands.Count == 0) { return; }
@@ -150,7 +150,7 @@ public static class ChatExpressionEvaluationPatch {
     private static IEnumerable<CodeInstruction> SScreenHudChat_OnUpdate(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         static bool PatchChatMessage(SScreenHudChat screenHudChat) {
             ref string text = ref screenHudChat.m_inputChat.m_text;
-            string prefix = ExtraCommands.configChatExpressionEvaluatorPrefix.Value;
+            string prefix = BetterChat.configChatExpressionEvaluatorPrefix.Value;
 
             for (int i = 0; i < text.Length; ++i) {
                 if (string.Compare(text, i, prefix, 0, prefix.Length) != 0) {
@@ -179,7 +179,7 @@ public static class ChatExpressionEvaluationPatch {
                 string exprString = text.Substring(exprStart, i - exprStart - 1); // also remove ending ')'
                 string exprResult;
                 try {
-                    exprResult = ExtraCommands.expressionEvaluator.Evaluate(exprString);
+                    exprResult = BetterChat.expressionEvaluator.Evaluate(exprString);
                 } catch (ExpressionEvaluator.EvaluationException evaluationException) {
                     Utils.AddChatMessageLocal($"Evaluation error: {evaluationException.Message}");
                     return false;
@@ -314,7 +314,7 @@ public static class SpectatorModePatch {
 // this should return ~212.0494
 
 [BepInPlugin("extra-commands", "Extra Commands", "1.0.0")]
-public class ExtraCommands : BaseUnityPlugin {
+public class BetterChat : BaseUnityPlugin {
     public static ConfigEntry<KeyboardShortcut> configRepeatLastCommand = null;
     public static ConfigEntry<string> configChatExpressionEvaluatorPrefix = null;
     public static ConfigEntry<bool> configDisableAchievementsOnCommand = null;
