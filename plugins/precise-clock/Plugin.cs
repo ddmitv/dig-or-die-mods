@@ -99,6 +99,8 @@ public enum TimeFormat {
     H12AmPm,
     H24,
     Decimal,
+    Unit,
+    UnitPoint,
 }
 
 [BepInPlugin("precise-clock", "Precise Clock", "1.0.0")]
@@ -115,6 +117,10 @@ public class PreciseClock : BaseUnityPlugin {
             return $"{Utils.PosMod((int)hour - 1, 12) + 1}:{(int)((hour % 1f) * 60f):00} {(hour < 12f ? "AM" : "PM")}";
         } else if (configTimeFormat.Value == TimeFormat.Decimal) {
             return $"{(int)(clock * 10f)}.{(int)(clock * 1000f) % 100:00}";
+        } else if (configTimeFormat.Value == TimeFormat.Unit) {
+            return $"{clock * 100000f:00000}";
+        } else if (configTimeFormat.Value == TimeFormat.UnitPoint) {
+            return $"{clock:F4}";
         } else {
             var hour = clock * 24f;
             return $"{(int)hour}:{(int)((hour % 1f) * 60f):00}";
