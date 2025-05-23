@@ -8,7 +8,6 @@ using System.Linq;
 using System.Reflection.Emit;
 using UnityEngine;
 using ModUtils.Extensions;
-using System.Security.Policy;
 
 [Serializable]
 public class InvalidCommandArgument : Exception {
@@ -39,6 +38,15 @@ public static class CustomCommandsPatch {
         return text.Split([' ', '\t', '\r', '\n', '\v', '\f'], StringSplitOptions.RemoveEmptyEntries);
     }
 
+    private static void DisableAchievements() {
+        if (!ExtraCommands.configDisableAchievementsOnCommand.Value) { return; }
+
+        if (!GVars.m_achievementsLocked) {
+            GVars.m_achievementsLocked = true;
+            Utils.AddChatMessageLocal("Achievements have been deactivated in this game");
+        }
+    }
+
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SNetworkCommands), nameof(SNetworkCommands.ProcessCommand))]
     private static IEnumerable<CodeInstruction> SNetworkCommands_ProcessCommand(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
@@ -52,6 +60,7 @@ public static class CustomCommandsPatch {
 
             try {
                 cmdInfo.fn(args, playerSender);
+                DisableAchievements();
             } catch (InvalidCommandArgument exception) {
                 if (!playerSender.IsMe()) { return true; }
 
@@ -308,6 +317,7 @@ public static class SpectatorModePatch {
 public class ExtraCommands : BaseUnityPlugin {
     public static ConfigEntry<KeyboardShortcut> configRepeatLastCommand = null;
     public static ConfigEntry<string> configChatExpressionEvaluatorPrefix = null;
+    public static ConfigEntry<bool> configDisableAchievementsOnCommand = null;
 
     public static ExpressionEvaluator expressionEvaluator = null;
 
@@ -328,6 +338,10 @@ public class ExtraCommands : BaseUnityPlugin {
         var configFullChatHistory = Config.Bind<bool>(
             section: "General", key: "FullChatHistory",
             defaultValue: true, description: "Tracks every message in the chat and adds it to the history"
+        );
+        configDisableAchievementsOnCommand = Config.Bind<bool>(
+            section: "General", key: "DisableAchievementsOnCommand",
+            defaultValue: true, description: "Disables achievements on any command (similar to /event and /param)"
         );
 
         expressionEvaluator = new ExpressionEvaluator();
