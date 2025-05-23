@@ -552,12 +552,15 @@ public static class CustomCommands {
         }, tabCommandFn: (int argIndex) => {
             return GetListOfCCellItemNames();
         });
-        AddCommand("/spectate", (string[] args, CPlayer player) => {
+        AddCommand("/freecam", isLocal: true, (string[] args, CPlayer player) => {
             if (args.Length > 0) {
                 throw new InvalidCommandArgument("None arguments are expected");
             }
 
-            SpectatorModePatch.isInSpectatorMode ^= true;
+            FreecamModePatch.isInFreecamMode ^= true;
+            if (FreecamModePatch.isInFreecamMode) {
+                FreecamModePatch.cameraPos = G.m_player.Pos;
+            }
         });
         AddCommand("/exportpng", isLocal: true, (string[] args, CPlayer player) => {
             string exportPath = Utils.AppendExtension(Utils.GetFullPathFromBase(

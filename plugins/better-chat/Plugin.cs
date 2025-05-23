@@ -273,40 +273,74 @@ public static class FullChatHistoryPatch {
     }
 }
 
-public static class SpectatorModePatch {
-    public static bool isInSpectatorMode = false;
+public static class FreecamModePatch {
+    public static bool isInFreecamMode = false;
+    public static Vector2 cameraPos = Vector2.zero;
 
     [HarmonyPrefix]
-    [HarmonyPatch(typeof(CUnitPlayerLocal), nameof(CUnitPlayerLocal.Update))]
-    private static bool CUnit_Update_Prefix(CUnit __instance, ref bool __result) {
-        if (!isInSpectatorMode) { return true; }
-
+    [HarmonyPatch(typeof(SGame), nameof(SGame.SetCameraPos))]
+    private static bool SGame_SetCameraPos() {
+        if (!isInFreecamMode) { return true; }
         float simuDeltaTime = SMain.SimuDeltaTime;
         float playerSpeed = 100 * (SInputs.shift.IsKey() ? 0.3f : 1f);
         if (SInputs.left.IsKey()) {
-            __instance.m_forces.x -= playerSpeed * simuDeltaTime;
+            cameraPos.x -= playerSpeed * simuDeltaTime;
         } else if (SInputs.right.IsKey()) {
-            __instance.m_forces.x += playerSpeed * simuDeltaTime;
+            cameraPos.x += playerSpeed * simuDeltaTime;
         }
         if (SInputs.up.IsKey()) {
-            __instance.m_forces.y += playerSpeed * simuDeltaTime;
+            cameraPos.y += playerSpeed * simuDeltaTime;
         } else if (SInputs.down.IsKey()) {
-            __instance.m_forces.y -= playerSpeed * simuDeltaTime;
+            cameraPos.y -= playerSpeed * simuDeltaTime;
         }
+        Vector2 cameraSize = new Vector2(G.m_cameraWorld.orthographicSize * G.m_cameraWorld.aspect, G.m_cameraWorld.orthographicSize);
+        cameraPos = SMisc.Clamp(cameraPos, cameraSize + Vector2.one * 2f, SWorld.Gs - cameraSize - Vector2.one * 4f);
 
-        __instance.m_forces -= 6 * __instance.m_speed * simuDeltaTime;
-        __instance.m_speed += __instance.m_forces + __instance.m_forcesPush;
-        __instance.m_pos += __instance.m_speed * simuDeltaTime;
+        G.m_cameraWorld.orthographicSize = 12f / G.m_zoom;
+        G.m_cameraWorld.transform.position = new Vector3(cameraPos.x, cameraPos.y, -10f);
 
-        __instance.m_forces = Vector2.zero;
-        __instance.m_forcesPush = Vector2.zero;
+        G.m_camMin = G.m_cameraWorld.ViewportToWorldPoint(Vector3.zero);
+        G.m_camMax = G.m_cameraWorld.ViewportToWorldPoint(Vector3.one);
+        G.m_camMin = SMisc.Clamp(G.m_camMin, SWorld.GridRectM2.min, SWorld.GridRectM2.max);
+        G.m_camMax = SMisc.Clamp(G.m_camMax, SWorld.GridRectM2.min, SWorld.GridRectM2.max);
 
-        __instance.m_pos.x = Mathf.Clamp(__instance.m_pos.x, 0f, SWorld.Gs.x);
-        __instance.m_pos.y = Mathf.Clamp(__instance.m_pos.y, 0f, SWorld.Gs.y);
-
-        __result = true;
         return false;
     }
+    private class FakeKeyBinding : SInputs.KeyBinding {
+        public FakeKeyBinding() : base("", KeyCode.None, KeyCode.None, hideFromOptions: true, activeInMenus: false) { }
+
+        public static FakeKeyBinding Inst = new();
+    }
+    private struct PrevKeyBindings {
+        public SInputs.KeyBinding left;
+        public SInputs.KeyBinding right;
+        public SInputs.KeyBinding up;
+        public SInputs.KeyBinding down;
+    }
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(CUnitPlayerLocal), nameof(CUnitPlayerLocal.Update))]
+    private static void CUnitPlayerLocal_Update_Prefix(ref PrevKeyBindings __state) {
+        if (isInFreecamMode) {
+            __state = new() {
+                left = SInputs.left, right = SInputs.right, up = SInputs.up, down = SInputs.down
+            };
+            SInputs.left = FakeKeyBinding.Inst;
+            SInputs.right = FakeKeyBinding.Inst;
+            SInputs.up = FakeKeyBinding.Inst;
+            SInputs.down = FakeKeyBinding.Inst;
+        }
+    }
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(CUnitPlayerLocal), nameof(CUnitPlayerLocal.Update))]
+    private static void CUnitPlayerLocal_Update_Postfix(ref PrevKeyBindings __state) {
+        if (isInFreecamMode) {
+            SInputs.left = __state.left;
+            SInputs.right = __state.right;
+            SInputs.up = __state.up;
+            SInputs.down = __state.down;
+        }
+    }
+
 }
 
 // expression evaluator test string:
@@ -359,7 +393,7 @@ public class BetterChat : BaseUnityPlugin {
         if (configRepeatLastCommand.Value.MainKey != KeyCode.None) {
             harmony.PatchAll(typeof(RepeatLastCommandPatch));
         }
-        harmony.PatchAll(typeof(SpectatorModePatch));
+        harmony.PatchAll(typeof(FreecamModePatch));
 
         CustomCommands.AddCustomCommands();
     }
