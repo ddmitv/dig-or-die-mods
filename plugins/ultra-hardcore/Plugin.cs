@@ -3,7 +3,10 @@ using BepInEx.Configuration;
 using HarmonyLib;
 using ModUtils;
 using ModUtils.Extensions;
+using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
 
@@ -308,12 +311,42 @@ public static class HideClockPatch {
         __instance.m_txtDays.SetVisible(false);
     }
 }
+public static class IngredientMultiplierPatch {
+    private static readonly CItem[] excludedIngredients = [
+        GItems.bossMadCrabMaterial, GItems.bossMadCrabSonar, GItems.masterGem,
+        GItems.lootBalrog, GItems.lootDwellerLord
+    ];
+
+    private static void ApplyMult(CStack stack, int mult) {
+        if (Array.IndexOf(excludedIngredients, stack.m_item) >= 0) {
+            return;
+        }
+        stack.m_nb *= mult;
+    }
+
+    [HarmonyPatch(typeof(SDataLua), nameof(SDataLua.OnInit))]
+    [HarmonyPostfix]
+    private static void SDataLua_OnInit() {
+        // SOutgame.Mode is "Solo"
+        int mult = (int)UltraHardcorePlugin.configIngredientMultiplier.Value;
+        foreach (CRecipesGroup recipeGroup in SDataLua.GetDescList<CRecipesGroup>("list_recipesgroups")) {
+            foreach (CRecipe recipe in recipeGroup.m_recipes) {
+                if (!recipe.m_isUpgrade || recipe.m_in1.m_nb > 1) {
+                    ApplyMult(recipe.m_in1, mult);
+                }
+                ApplyMult(recipe.m_in2, mult);
+                ApplyMult(recipe.m_in3, mult);
+            }
+        }
+    }
+}
 
 [BepInPlugin("ultra-hardcore", "Ultra Hardcore", "0.0.0")]
 public class UltraHardcorePlugin : BaseUnityPlugin {
     public static ConfigEntry<float> configPlayerHpMax;
     public static ConfigEntry<bool> configPermanentMist;
     public static ConfigEntry<bool> configPermanentAcidWater;
+    public static ConfigEntry<uint> configIngredientMultiplier;
 
     private void Start() {
         Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
@@ -373,6 +406,10 @@ public class UltraHardcorePlugin : BaseUnityPlugin {
             section: "UltraHardcore", key: "HideClock", defaultValue: false,
             description: "Hides the clock"
         );
+        configIngredientMultiplier = Config.Bind<uint>(
+            section: "UltraHardcore", key: "IngredientMultiplier", defaultValue: 1,
+            description: "Multiplies all recipe's ingredients (ignoring unique) by provided number"
+        );
 
         var harmony = new Harmony("ultra-hardcore");
 
@@ -414,6 +451,9 @@ public class UltraHardcorePlugin : BaseUnityPlugin {
         }
         if (configHideClock.Value) {
             harmony.PatchAll(typeof(HideClockPatch));
+        }
+        if (configIngredientMultiplier.Value != 1) {
+            harmony.PatchAll(typeof(IngredientMultiplierPatch));
         }
     }
 }
