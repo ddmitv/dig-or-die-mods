@@ -279,6 +279,10 @@ public static class Utils {
         int remainder = x % y;
         return remainder < 0 ? remainder + y : remainder;
     }
+    public static float PosMod(float x, float y) {
+        float remainder = x % y;
+        return remainder < 0 ? remainder + y : remainder;
+    }
     public static string GetFullPathFromBase(string path, string basePath) {
         if (Path.IsPathRooted(path)) {
             return Path.GetFullPath(path);
@@ -295,5 +299,11 @@ public static class Utils {
         T oldValue = obj;
         obj = newValue;
         return oldValue;
+    }
+    public static RectInt ClampRect(RectInt rect, int minX, int minY, int maxX, int maxY) {
+        return new RectInt(
+            Math.Max(rect.x, minX), Math.Max(rect.y, minY),
+            Math.Min(rect.width, maxX), Math.Min(rect.height, maxY)
+        );
     }
 }
