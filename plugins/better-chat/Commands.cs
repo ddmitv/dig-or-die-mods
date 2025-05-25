@@ -1,6 +1,7 @@
 using ModUtils;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using UnityEngine;
@@ -286,6 +287,18 @@ public static class CustomCommands {
             throw new InvalidCommandArgument($"Invalid Y coordinate (integer)", argYIndex + 1);
         }
         return new int2(coordX, coordY);
+    }
+    private static bool TryParseClockTime(string str, out float result) {
+        string[] timeParts = str.Split(':');
+        if (timeParts.Length == 2) {
+            result = default;
+            if (!int.TryParse(timeParts[0], out int hoursPart)) { return false; }
+            if (!float.TryParse(timeParts[1], NumberStyles.Float & ~NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out float minutesPart)) { return false; }
+            if (minutesPart < 0 || minutesPart > 60) { return false; }
+            result = (hoursPart + Math.Sign(hoursPart) * minutesPart / 60f) / 24f;
+            return true;
+        }
+        return float.TryParse(str, out result);
     }
 
     static public void AddCustomCommands() {
@@ -606,12 +619,12 @@ public static class CustomCommands {
             } else if (subcommand == "lavaend") {
                 GVars.m_clock = 0.9f;
             } else if (args[0].StartsWith("+") || args[0].StartsWith("-")) {
-                if (!float.TryParse(args[0], out float clockDelta)) {
+                if (!TryParseClockTime(args[0], out float clockDelta)) {
                     throw new InvalidCommandArgument("Expected delta clock time");
                 }
                 GVars.m_clock = Utils.PosMod(GVars.m_clock + clockDelta, 1f);
             } else {
-                if (!float.TryParse(args[0], out float newClockTime)) {
+                if (!TryParseClockTime(args[0], out float newClockTime)) {
                     throw new InvalidCommandArgument("Expected new clock time");
                 }
                 if (newClockTime < 0f || newClockTime > 1f) {
