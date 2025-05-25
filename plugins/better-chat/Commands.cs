@@ -605,6 +605,11 @@ public static class CustomCommands {
                 GVars.m_clock = 0.45f;
             } else if (subcommand == "lavaend") {
                 GVars.m_clock = 0.9f;
+            } else if (args[0].StartsWith("+") || args[0].StartsWith("-")) {
+                if (!float.TryParse(args[0], out float clockDelta)) {
+                    throw new InvalidCommandArgument("Expected delta clock time");
+                }
+                GVars.m_clock = Utils.PosMod(GVars.m_clock + clockDelta, 1f);
             } else {
                 if (!float.TryParse(args[0], out float newClockTime)) {
                     throw new InvalidCommandArgument("Expected new clock time");
