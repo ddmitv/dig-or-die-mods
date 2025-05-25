@@ -246,7 +246,11 @@ public static class FullChatHistoryPatch {
     private static IEnumerable<CodeInstruction> SScreenHudChat_OnUpdate(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         static void AddToChatHistory(SScreenHudChat self) {
             var networkCommands = SSingleton<SNetworkCommands>.Inst;
-            networkCommands.m_historyCommands.Add(self.m_inputChat.m_text);
+            var historyCommands = networkCommands.m_historyCommands;
+
+            if (historyCommands.Count == 0 || historyCommands[historyCommands.Count - 1] != self.m_inputChat.m_text) {
+                networkCommands.m_historyCommands.Add(self.m_inputChat.m_text);
+            }
             networkCommands.m_historyIndex = networkCommands.m_historyCommands.Count;
         }
 
