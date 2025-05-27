@@ -137,6 +137,14 @@ public sealed class ExtCBulletDesc : CBulletDesc {
     public float shockWaveRange = 0f;
     public float shockWaveKnockback = 0f;
     public float shockWaveDamage = 0f;
+
+    public float explosionEnergyRadius = 0f;
+    public float explosionEnergyDamage = 0f;
+
+    public void DoEnergyExplosion(CBullet bullet) {
+        SUnits.DoDamageAOE(bullet.m_pos, explosionEnergyRadius, explosionEnergyDamage,
+            strikeMode: SItems.LightningStrikeMode.Big);
+    }
 }
 public sealed class ExtCItem_IndestructibleMineral : CItem_Mineral {
     public ExtCItem_IndestructibleMineral(CTile tile, CTile tileIcon, ushort hpMax, uint mainColor, CSurface surface, bool isReplacable = false)
@@ -289,6 +297,19 @@ public static class CustomBullets {
         m_grenadeYSpeed = -40f,
         m_explosionRadius = 3f,
         m_explosionMaxBlockHp = 300,
+    };
+
+    public static readonly ExtCBulletDesc particleEnergyDiffuser = new(
+        particlesPath, "particleEnergyDiffuser",
+        radius: 0.5f,
+        dispersionAngleRad: 0f,
+        speedStart: 15f,
+        speedEnd: 10f,
+        light: 0x05B7ED
+    ) {
+        explosionEnergyRadius = 6f,
+        explosionEnergyDamage = 60f,
+        m_explosionRadius = 1f,
     };
 }
 
@@ -879,7 +900,7 @@ public static class CustomItems {
         item: new ExtCItem_WaterVaporizer(tile: new ModCTile(4, 5), tileIcon: new ModCTile(4, 5),
             hpMax: 10, mainColor: 13731096U
         ) {
-            evaporationRate = 10f,
+            evaporationRate = 5f,
             m_electricValue = -5
         },
         recipe: new(groupId: "ULTIMATE")
@@ -891,7 +912,7 @@ public static class CustomItems {
             hpMax: 300, mainColor: 8947848U, rangeDetection: 3.8f, angleMin: -120f, angleMax: -60f,
             attack: new CAttackDesc(
                 range: 4f, damage: 60, nbAttacks: 2, cooldown: 1f, knockbackOwn: 0f, knockbackTarget: 0f,
-                projDesc: null, sound: "ceilingTurret"
+                projDesc: null, sound: SoundIds.ceilingTurret
             )
         ) {
             m_colRect = new Rect(0.1f, 0.6f, 0.8f, 0.4f)
@@ -905,12 +926,36 @@ public static class CustomItems {
             hpMax: 400, mainColor: 8947848U, rangeDetection: 1.5f, angleMin: 0f, angleMax: 180f,
             attack: new CAttackDesc(
                 range: 1.5f, damage: 30, nbAttacks: 2, cooldown: 0.5f, knockbackOwn: 0f, knockbackTarget: 0f,
-                projDesc: null, sound: "stormLight"
+                projDesc: null, sound: SoundIds.stormLight
             )
         ) {
             m_colRect = new Rect(0.1f, 0f, 0.8f, 0.35f),
             m_electricValue = -3,
             m_light = new Color24(9724047U)
+        },
+        recipe: new(groupId: "ULTIMATE")
+    );
+    public static readonly ModItem gunEnergyDiffuser = new(codeName: "gunEnergyDiffuser",
+        name: "MB-X Plasma Diffuser",
+        description: "TODO.",
+        item: new CItem_Weapon(tile: new ModCTile(0, 6), tileIcon: new ModCTile(7, 5),
+            heatingPerShot: 0.4f, isAuto: true,
+            attackDesc: new CAttackDesc(
+                range: 15f, damage: 20, nbAttacks: 1,
+                cooldown: 1f, knockbackOwn: 5f, knockbackTarget: 10f,
+                projDesc: CustomBullets.particleEnergyDiffuser, sound: SoundIds.storm
+            )
+        ),
+        recipe: new(groupId: "ULTIMATE")
+    );
+    public static readonly ModItem waterVaporizerMK2 = new(codeName: "waterVaporizerMK2",
+        name: "Water Vaporizer MK2",
+        description: "TODO.",
+        new ExtCItem_WaterVaporizer(tile: new ModCTile(1, 6), tileIcon: new ModCTile(1, 6),
+            hpMax: 20, mainColor: 13731096U
+        ) {
+            evaporationRate = 8f,
+            m_electricValue = -10
         },
         recipe: new(groupId: "ULTIMATE")
     );

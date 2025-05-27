@@ -76,6 +76,7 @@ public class Patches {
                 CreateSprite("meltdownSnipe", rect: new Rect(0, 0, 255, 119)),
                 CreateSprite("particlesSnipTurretMK2", rect: new Rect(255, 0, 209, 98)),
                 CreateSprite("impactGrenade", rect: new Rect(464, 0, 40, 40)),
+                CreateSprite("particleEnergyDiffuser", rect: new Rect(504, 0, 100, 100)),
             ];
             return false;
         }
@@ -394,7 +395,7 @@ public class Patches {
                 new(OpCodes.Brfalse, failLabel)
             );
 
-        PatchZF0Bullet(codeMatcher.Start(), "(2)");
+        PatchZF0Bullet(codeMatcher, "(2)");
 
         return codeMatcher.Instructions();
     }
@@ -472,7 +473,7 @@ public class Patches {
     }
 
     private static void PatchZF0Bullet(CodeMatcher codeMatcher, string explanation) {
-        codeMatcher
+        codeMatcher.Start()
             .MatchForward(useEnd: true,
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Call, typeof(CBullet).Method("get_Desc")),
@@ -894,7 +895,7 @@ public class Patches {
     }
     [HarmonyPostfix]
     [HarmonyPatch(typeof(CBullet), nameof(CBullet.Explosion))]
-    private static void CBullet_Explosion(CBullet __instance) {
+    private static void CBullet_Explosion(CBullet __instance, CUnit unitHit) {
         if (__instance.Desc is not ExtCBulletDesc extDesc) { return; }
 
         if (extDesc.explosionBasaltBgRadius > 0) {
@@ -906,6 +907,9 @@ public class Patches {
         }
         if (extDesc.shockWaveRange > 0) {
             Utils.DoShockWave(__instance.m_pos, extDesc.shockWaveRange, extDesc.shockWaveDamage, extDesc.shockWaveKnockback);
+        }
+        if (extDesc.explosionEnergyRadius > 0f) {
+            extDesc.DoEnergyExplosion(__instance);
         }
     }
 }
