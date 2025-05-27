@@ -892,5 +892,21 @@ public class Patches {
                 new(OpCodes.Brtrue, successLabel))
             .Instructions();
     }
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(CBullet), nameof(CBullet.Explosion))]
+    private static void CBullet_Explosion(CBullet __instance) {
+        if (__instance.Desc is not ExtCBulletDesc extDesc) { return; }
+
+        if (extDesc.explosionBasaltBgRadius > 0) {
+            Utils.ForEachInCircleClamped(extDesc.explosionBasaltBgRadius, new int2(__instance.m_pos), (int x, int y) => {
+                if (SWorld.Grid[x, y].GetBgSurface() != null) {
+                    SWorld.Grid[x, y].SetBgSurface(GSurfaces.bgLava);
+                }
+            });
+        }
+        if (extDesc.shockWaveRange > 0) {
+            Utils.DoShockWave(__instance.m_pos, extDesc.shockWaveRange, extDesc.shockWaveDamage, extDesc.shockWaveKnockback);
+        }
+    }
 }
 
