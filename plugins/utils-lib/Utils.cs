@@ -11,10 +11,12 @@ using UnityEngine;
 namespace ModUtils;
 
 public static class Utils {
-    public static void ApplyInCircle(int range, int2 pos, Action<int, int> fn) {
+    public static void ForEachInCircleClamped(int range, int2 pos, Action<int, int> fn) {
         int sqrRange = range * range;
-        for (int i = pos.x - range; i <= pos.x + range; ++i) {
-            for (int j = pos.y - range; j <= pos.y + range; ++j) {
+        int minX = Math.Max(pos.x - range, 0), maxX = Math.Min(pos.x + range, SWorld.Gs.x - 1);
+        int minY = Math.Max(pos.y - range, 0), maxY = Math.Min(pos.y + range, SWorld.Gs.y - 1);
+        for (int i = minX; i <= maxX; ++i) {
+            for (int j = minY; j <= maxY; ++j) {
                 int2 relative = new int2(i, j) - pos;
                 if (relative.sqrMagnitude <= sqrRange) {
                     fn(i, j);
@@ -64,9 +66,7 @@ public static class Utils {
         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(type.TypeHandle);
     }
     public static void EvaporateWaterAround(int range, int2 pos, float evaporationRate) {
-        Utils.ApplyInCircle(range, pos, (int x, int y) => {
-            if (!Utils.IsValidCell(x, y)) { return; }
-
+        Utils.ForEachInCircleClamped(range, pos, (int x, int y) => {
             ref var cell = ref SWorld.Grid[x, y];
             if (!cell.IsLava() && cell.m_water > 0) {
                 cell.m_water = Mathf.Max(0f, cell.m_water - SMain.SimuDeltaTime * evaporationRate);
