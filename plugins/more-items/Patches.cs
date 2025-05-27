@@ -4,6 +4,7 @@ using ModUtils;
 using ModUtils.Extensions;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
@@ -207,6 +208,7 @@ public class Patches {
                 new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
                 new(OpCodes.Ldsfld, typeof(GItems).StaticField("explosive")),
                 new(OpCodes.Bne_Un))
+            .ThrowIfInvalid("(1)")
             .Advance(1)
             .Insert(new CodeInstruction(OpCodes.Ldarg_0))
             .CreateLabel(out var nextLabel)
@@ -242,6 +244,7 @@ public class Patches {
             .MatchForward(useEnd: true,
                 new(OpCodes.Call, typeof(Mathf).Method("MoveTowardsAngle")),
                 new(OpCodes.Stfld, typeof(CUnitDefense).Field("m_angleDeg")))
+            .ThrowIfInvalid("(1)")
             .Advance(1)
             .CreateLabel(out var skipLabel)
             .Insert(
@@ -263,6 +266,7 @@ public class Patches {
                 new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
                 new(OpCodes.Ldsfld, typeof(GItems).StaticField("turretTesla")),
                 new(OpCodes.Bne_Un))
+            .ThrowIfInvalid("(1)")
             .CreateLabelAt(codeMatcher.Pos + 4, out var teslaCond) // after bne.un
             .Advance(1)
             .InsertAndAdvance(
@@ -298,6 +302,21 @@ public class Patches {
         }
         return result;
     }
+    private static void PatchSpikesTurretClass(CodeMatcher codeMatcher) {
+        codeMatcher.Start()
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
+                new(OpCodes.Ldsfld, typeof(GItems).StaticField("turretSpikes")),
+                new(OpCodes.Bne_Un))
+            .ThrowIfInvalid("(1)")
+            .CreateLabelAtOffset(4, out Label successLabel)
+            .InjectAndAdvance(OpCodes.Ldarg_0)
+            .Insert(
+                new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
+                new(OpCodes.Isinst, typeof(ExtCItem_SpikesTurret)),
+                new(OpCodes.Brtrue, successLabel));
+    }
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.GetUnitTargetPos))]
@@ -318,6 +337,7 @@ public class Patches {
         PatchTeslaTurretMK2(codeMatcher);
         PatchExplosive(codeMatcher);
         PatchCollector(codeMatcher);
+        PatchSpikesTurretClass(codeMatcher);
 
         return codeMatcher.Instructions();
     }
@@ -811,6 +831,66 @@ public class Patches {
         // ldsfld GItems::autoBuilderMK1
         // bne.un ...
         // br ...
+    }
+    [HarmonyPatch(typeof(SUnits), nameof(SUnits.OnUpdateSimu))]
+    [HarmonyPrefix]
+    private static void SUnits_OnUpdateSimu(SUnits __instance) {
+        if (SNetwork.IsClient()) { return; }
+
+        byte tag = (byte)(Time.frameCount % 255);
+        foreach (CUnit unit in __instance.m_units) {
+            if (unit is not ExtCUnitWaterVaporizer) { continue; }
+
+            if (SWorld.Grid[unit.PosCell.x, unit.PosCell.y].GetContent() is not ExtCItem_WaterVaporizer) {
+                SUnits.RemoveUnit(unit);
+                continue;
+            }
+            SWorld.Grid[unit.PosCell.x, unit.PosCell.y].m_temp.r = tag;
+        }
+        foreach (CPlayer player in SNetwork.Players) {
+            RectInt updateRect = Utils.ClampRect(player.GetRectAroundScreen(12), 0, 0, SWorld.Gs.x, SWorld.Gs.y);
+            for (int x = updateRect.x; x < updateRect.xMax; x++) {
+                for (int y = updateRect.y; y < updateRect.yMax; y++) {
+                    if (SWorld.Grid[x, y].GetContent() is ExtCItem_WaterVaporizer waterVaporizerItem
+                        && SWorld.Grid[x, y].m_temp.r != tag) {
+                        var unit = (ExtCUnitWaterVaporizer)SUnits.SpawnUnit(
+                            uDesc: CustomUnits.unitDesc, new Vector2(x + 0.5f, y));
+                        unit.waterVaporizerItem = waterVaporizerItem;
+                    }
+                }
+            }
+        }
+    }
+    [HarmonyPatch(typeof(SUnits), nameof(SUnits.OnInit))]
+    [HarmonyPostfix]
+    private static void SUnits_OnInit() {
+        foreach (var uDescField in typeof(CustomUnits).GetFields(BindingFlags.Static | BindingFlags.Public)) {
+            var uDesc = (CUnit.CDesc)uDescField.GetValue(null);
+            if (uDesc.m_codeName is null) { throw new InvalidOperationException($"{uDescField.DeclaringType.FullName}.{uDescField.Name}.m_codeName is null"); }
+            uDesc.m_id = (byte)GUnits.UDescs.Count;
+            GUnits.UDescs.Add(uDesc);
+            if (GUnits.UDescs.Count >= 255) {
+                throw new InvalidOperationException($"GUnits.UDescs can only have 255 elements");
+            }
+        }
+    }
+    [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.OnDisplayWorld))]
+    [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.Update))]
+    [HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> CUnitDefense_OnDisplayWorld(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        return new CodeMatcher(instructions, generator).Start()
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
+                new(OpCodes.Ldsfld, typeof(GItems).StaticField("turretCeiling")),
+                new(OpCodes.Bne_Un))
+            .CreateLabelAtOffset(4, out Label successLabel)
+            .InjectAndAdvance(OpCodes.Ldarg_0)
+            .Insert(
+                new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
+                new(OpCodes.Isinst, typeof(ExtCItem_CeilingTurret)),
+                new(OpCodes.Brtrue, successLabel))
+            .Instructions();
     }
 }
 

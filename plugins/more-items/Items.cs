@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Security.Permissions;
 using UnityEngine;
 
 public sealed class ModCTile : CTile {
@@ -196,6 +198,53 @@ public sealed class ExtCItem_ImpactShield : CItem_Device {
     public ExtCItem_ImpactShield(CTile tile, CTile tileIcon, float customValue = 0f)
         : base(tile, tileIcon, GroupId, CItem_Device.Type.Passive, customValue) { }
 }
+public sealed class ExtCUnitWaterVaporizer : CUnit {
+    private ExtCUnitWaterVaporizer(CDesc desc, Vector2 pos)
+        : base(desc, pos) {
+        m_hp = (float)SWorld.Grid[(int)pos.x, (int)pos.y].m_contentHP;
+    }
+
+    public override bool Update() {
+        ref var cell = ref SWorld.Grid[PosCell.x, PosCell.y];
+        waterVaporizerItem ??= (ExtCItem_WaterVaporizer)cell.GetContent();
+
+        if (cell.IsPowered() && !cell.IsLava()) {
+            cell.m_water = Mathf.Max(cell.m_water - waterVaporizerItem.evaporationRate * SMain.SimuDeltaTime, 0f);
+        }
+        return true;
+    }
+    public ExtCItem_WaterVaporizer waterVaporizerItem = null;
+
+    public new class CDesc : CUnit.CDesc {
+        public CDesc(int tier, float speed, Vector2 size, int hpMax, int armor)
+            : base(tier, speed, size, hpMax, armor) {}
+
+        public override void LoadSprites(string texture) {}
+    }
+}
+public sealed class ExtCItem_WaterVaporizer : CItem_Machine {
+    public ExtCItem_WaterVaporizer(CTile tile, CTile tileIcon, ushort hpMax, uint mainColor)
+        : base(tile, tileIcon, hpMax, mainColor, CItemCell.Anchor.Bottom_Small) { }
+
+    public float evaporationRate;
+}
+public sealed class ExtCItem_CeilingTurret : CItem_Defense {
+    public ExtCItem_CeilingTurret(CTile tile, ushort hpMax, uint mainColor, float rangeDetection, float angleMin, float angleMax, CAttackDesc attack)
+        : base(tile, tile, hpMax, mainColor, rangeDetection, angleMin, angleMax, attack, tileUnit: null) {
+        m_anchor = CItemCell.Anchor.Top_Small;
+    }
+}
+public sealed class ExtCItem_SpikesTurret : CItem_Defense {
+    public ExtCItem_SpikesTurret(CTile tile, ushort hpMax, uint mainColor, float rangeDetection, float angleMin, float angleMax, CAttackDesc attack)
+        : base(tile, tile, hpMax, mainColor, rangeDetection, angleMin, angleMax, attack, tileUnit: null) {}
+}
+
+// REFLECTION: Method Patches.SUnits_OnInit iterates all public static fields and expects they has type CUnit.CDesc
+public static class CustomUnits {
+    public static readonly ExtCUnitWaterVaporizer.CDesc unitDesc = new(tier: -1, speed: 0, size: Vector2.zero, hpMax: 10, armor: 0) {
+        m_codeName = "more-items_waterVaporizer"
+    };
+}
 
 public static class CustomBullets {
     public static readonly string particlesPath = "more-items_particles";
@@ -223,7 +272,7 @@ public static class CustomBullets {
         radius: 0.15f,
         dispersionAngleRad: 0.65f,
         speedStart: 35f, speedEnd: 25f,
-        light: 13619151U
+        light: 13619151U 
     ) {
         m_hasTrail = true,
         m_pierceArmor = true
@@ -257,6 +306,8 @@ public static class CustomRecipeGroups {
     ]);
 }
 
+// REFLECTION: Methods Patches.SItems_OnInit and Patches.SDataLua_OnInit iterates all public static fields
+// and expects they has type ModItem
 public static class CustomItems {
     public static readonly ModItem flashLightMK3 = new(codeName: "flashLightMK3",
         name: "Flashlight MK3",
@@ -820,6 +871,47 @@ public static class CustomItems {
         item: new ExtCItem_ImpactShield(tile: new ModCTile(1, 5), tileIcon: new ModCTile(1, 5),
             customValue: 0.5f
         ),
+        recipe: new(groupId: "ULTIMATE")
+    );
+    public static readonly ModItem waterVaporizer = new(codeName: "waterVaporizer",
+        name: "Water Vaporizer",
+        description: "TODO.",
+        item: new ExtCItem_WaterVaporizer(tile: new ModCTile(4, 5), tileIcon: new ModCTile(4, 5),
+            hpMax: 10, mainColor: 13731096U
+        ) {
+            evaporationRate = 10f,
+            m_electricValue = -5
+        },
+        recipe: new(groupId: "ULTIMATE")
+    );
+    public static readonly ModItem turretCeilingMK2 = new(codeName: "turretCeilingMK2",
+        name: "Death Pulse Turret MK2",
+        description: "TODO.",
+        item: new ExtCItem_CeilingTurret(tile: new ModCTile(5, 5), 
+            hpMax: 300, mainColor: 8947848U, rangeDetection: 3.8f, angleMin: -120f, angleMax: -60f,
+            attack: new CAttackDesc(
+                range: 4f, damage: 60, nbAttacks: 2, cooldown: 1f, knockbackOwn: 0f, knockbackTarget: 0f,
+                projDesc: null, sound: "ceilingTurret"
+            )
+        ) {
+            m_colRect = new Rect(0.1f, 0.6f, 0.8f, 0.4f)
+        },
+        recipe: new(groupId: "ULTIMATE")
+    );
+    public static readonly ModItem turretSpikesMK2 = new(codeName: "turretSpikesMK2",
+        name: "Electrified Spikes MK2",
+        description: "TODO.",
+        item: new ExtCItem_SpikesTurret(tile: new ModCTile(6, 5),
+            hpMax: 400, mainColor: 8947848U, rangeDetection: 1.5f, angleMin: 0f, angleMax: 180f,
+            attack: new CAttackDesc(
+                range: 1.5f, damage: 30, nbAttacks: 2, cooldown: 0.5f, knockbackOwn: 0f, knockbackTarget: 0f,
+                projDesc: null, sound: "stormLight"
+            )
+        ) {
+            m_colRect = new Rect(0.1f, 0f, 0.8f, 0.35f),
+            m_electricValue = -3,
+            m_light = new Color24(9724047U)
+        },
         recipe: new(groupId: "ULTIMATE")
     );
 
