@@ -1,9 +1,8 @@
 ﻿using ModUtils;
+using ModUtils.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Security.Permissions;
 using UnityEngine;
 
 public sealed class ModCTile : CTile {
@@ -246,7 +245,100 @@ public sealed class ExtCItem_SpikesTurret : CItem_Defense {
     public ExtCItem_SpikesTurret(CTile tile, ushort hpMax, uint mainColor, float rangeDetection, float angleMin, float angleMax, CAttackDesc attack)
         : base(tile, tile, hpMax, mainColor, rangeDetection, angleMin, angleMax, attack, tileUnit: null) {}
 }
+public sealed class ExtCItem_MetalDetector : CItem_Device {
+    public ExtCItem_MetalDetector(CTile tile, float range)
+        : base(tile, tile, CItemDeviceGroupIds.metalDetector, CItem_Device.Type.Activable, range) {}
 
+    public CItemCell[] detectableItems = [];
+
+    public override void OnDisplayHud(SScreen screen) {
+        CItemVars myVars = base.GetMyVars();
+        float pulseDuration = this.m_customValue / 80f;
+        float timeSinceLastUse = GVars.SimuTime - myVars.TimeLastUse;
+
+        List<Vector2> itemsDetectedPos = myVars.ItemsDetectedPos;
+        if (itemsDetectedPos is null || timeSinceLastUse < 0f || timeSinceLastUse >= pulseDuration * 2f) {
+            return;
+        }
+        CAssetSprite assetSprite = SResources.GetSprite("particles/particles_big", "radar");
+        foreach (var itemDetectedPos in itemsDetectedPos) {
+            float travelTime = (itemDetectedPos - itemsDetectedPos[0]).magnitude / 80f;
+
+            if (timeSinceLastUse < travelTime || timeSinceLastUse >= travelTime + pulseDuration) {
+                continue;
+            }
+            if (timeSinceLastUse < travelTime + SMain.SimuDeltaTime) {
+                SAudio.Get("ceilingTurret").Play(itemDetectedPos, 1f);
+            }
+
+            Vector2 guiPosition = SMisc.WorldToGuiPoint(itemDetectedPos);
+            float pulseRadius = SMisc.WorldToGuiDist((timeSinceLastUse - travelTime) * 80f);
+
+            Color pulseColor = new Color(1f, 1f, 1f,
+                0.5f * (1f - travelTime / pulseDuration) * Mathf.Clamp01((travelTime + pulseDuration - timeSinceLastUse) / pulseDuration));
+            Rect guiRect = new Rect(
+                x: guiPosition.x - pulseRadius, y: guiPosition.y - pulseRadius,
+                height: 2f * pulseRadius, width: 2f * pulseRadius);
+
+            CMesh<CMeshSprite>.Get(screen, false).DrawGui(guiRect, assetSprite.Sprite, pulseColor);
+        }
+    }
+    public override void Use_Local(CPlayer player, Vector2 mousePos, bool isShift) {
+        CStack stack = player.m_inventory.GetStack(this);
+        CUnitPlayer unitPlayer = player.m_unitPlayer;
+        if (m_groupId is null || stack is null || stack.m_nb <= 0 || unitPlayer is null) {
+            return;
+        }
+        CItemVars vars = base.GetVars(player);
+        List<Vector2> detectedPositions = [unitPlayer.PosCenter];
+
+        float range = SInputs.shift.IsKey() ? this.m_customValue / 3f : this.m_customValue;
+        float detectionRangeSqr = range * range;
+        int detectionRange = Mathf.CeilToInt(range);
+        SMisc.DrawRect(SWorld.GridRectCam, Color.red, 1f);
+
+        RectInt scanRect = Utils.CreateCenterRectInt(unitPlayer.PosCell, detectionRange).Intersection(Utils.GridRectCamInt);
+        byte tag = (byte)(Time.frameCount & 255);
+
+        for (int x = scanRect.x; x <= scanRect.xMax; x++) {
+            for (int y = scanRect.y; y <= scanRect.yMax; y++) {
+                int2 cellPos = new int2(x, y);
+
+                ref CCell cell = ref SWorld.Grid[x, y];
+                if (cell.m_temp.r == tag) { continue; }
+
+                CItemCell itemCell = cell.GetContent();
+                if (itemCell is null || !detectableItems.Contains(itemCell) || (cellPos - unitPlayer.PosCell).sqrMagnitude >= detectionRangeSqr) {
+                    continue;
+                }
+                detectedPositions.Add(new Vector2(cellPos.x + UnityEngine.Random.value, cellPos.y + UnityEngine.Random.value));
+
+                cell.m_temp.r = tag;
+                _bfsQueue.Enqueue(cellPos);
+                while (_bfsQueue.Count > 0) {
+                    int2 current = _bfsQueue.Dequeue();
+                    foreach (int2 dir in SMisc.Dirs0to3) {
+                        int2 neighborPos = current + dir;
+                        if (!scanRect.Contains(neighborPos)) { continue; }
+
+                        ref CCell neighborCell = ref SWorld.Grid[neighborPos.x, neighborPos.y];
+                        if (neighborCell.m_temp.r == tag) { continue; }
+
+                        CItemCell neighborItem = neighborCell.GetContent();
+                        if (neighborItem is not null && detectableItems.Contains(neighborItem)) {
+                            neighborCell.m_temp.r = tag;
+                            _bfsQueue.Enqueue(neighborPos);
+                        }
+                    }
+                }
+            }
+        }
+        vars.ItemsDetectedPos = detectedPositions;
+        this.ActivateDevice(player, stack, SAudio.Get("ceilingTurret"));
+    }
+
+    private static readonly Queue<int2> _bfsQueue = new();
+}
 // REFLECTION: Method Patches.SUnits_OnInit iterates all public static fields and expects they has type CUnit.CDesc
 public static class CustomUnits {
     public static readonly ExtCUnitWaterVaporizer.CDesc unitDesc = new(tier: -1, speed: 0, size: Vector2.zero, hpMax: 10, armor: 0) {
@@ -951,11 +1043,20 @@ public static class CustomItems {
     public static readonly ModItem waterVaporizerMK2 = new(codeName: "waterVaporizerMK2",
         name: "Water Vaporizer MK2",
         description: "TODO.",
-        new ExtCItem_WaterVaporizer(tile: new ModCTile(1, 6), tileIcon: new ModCTile(1, 6),
+        item: new ExtCItem_WaterVaporizer(tile: new ModCTile(1, 6), tileIcon: new ModCTile(1, 6),
             hpMax: 20, mainColor: 13731096U
         ) {
             evaporationRate = 8f,
             m_electricValue = -10
+        },
+        recipe: new(groupId: "ULTIMATE")
+    );
+    public static readonly ModItem advancedMetalDetector = new(codeName: "advancedMetalDetector",
+        name: "Advanced Metal Detector",
+        description: "TODO.",
+        item: new ExtCItem_MetalDetector(tile: new ModCTile(2, 6), range: 120f) {
+            m_cooldown = 3f,
+            detectableItems = [GItems.iron, GItems.copper, GItems.gold, GItems.aluminium, GItems.uranium, GItems.titanium, GItems.thorium, GItems.sulfur, GItems.sapphire, GItems.diamonds]
         },
         recipe: new(groupId: "ULTIMATE")
     );
