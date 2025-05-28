@@ -306,4 +306,16 @@ public static class Utils {
             Math.Min(rect.width, maxX), Math.Min(rect.height, maxY)
         );
     }
+    public static RectInt CreateCenterRectInt(int2 center, int range) {
+        return new RectInt(center.x - range, center.y - range, range << 1, range << 1);
+    }
+    public static RectInt CreateCenterRectInt(int x, int y, int range) {
+        return new RectInt(x - range, y - range, range << 1, range << 1);
+    }
+    public static RectInt CreateMinMaxRectInt(int xMin, int yMin, int xMax, int yMax) {
+        return new RectInt(xMin, yMin, xMax - xMin, yMax - yMin);
+    }
+    public static RectInt GridRectCamInt => CreateMinMaxRectInt(13, 13, SWorld.Gs.x - 26, SWorld.Gs.y - 26);
+    public static RectInt GridRectM2Int => CreateMinMaxRectInt(2, 2, SWorld.Gs.x - 4, SWorld.Gs.y - 4);
+    public static RectInt GridRectInt => CreateMinMaxRectInt(0, 0, SWorld.Gs.x, SWorld.Gs.y);
 }

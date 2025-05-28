@@ -102,3 +102,13 @@ public static class TypeExtensions {
         return fieldInfo ?? throw new MissingFieldException($"Static field '{name}' not found in {type.FullName}.");
     }
 }
+
+public static class RectIntExtensions {
+    public static RectInt Intersection(this RectInt self, RectInt other) {
+        int x = Math.Max(self.x, other.x);
+        int y = Math.Max(self.y, other.y);
+        int width = Math.Min(self.xMax, other.xMax) - x;
+        int height = Math.Min(self.yMax, other.yMax) - y;
+        return new RectInt(x, y, width, height);
+    }
+}
