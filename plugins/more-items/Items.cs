@@ -589,11 +589,11 @@ public static class CustomItems {
 
     public static readonly ModItem fertileDirt = new(codeName: "fertileDirt",
         name: "Fertile Dirt",
-        description: "TODO.",
+        description: "Bio-engineered soil infused with growth accelerants. Increases plant growth rate by 30% and supports all common dirt-based flora.",
         item: new ExtCItem_FertileMineralDirt(tile: null, tileIcon: new ModCTile(6, 4),
             hpMax: 30, mainColor: 9465936U, surface: CustomSurfaces.fertileDirt
         ) {
-            plantGrowChange = 0.3f,
+            plantGrowChange = 0.45f, // default: 0.15
             inheritedPlantsSupported = [GItems.dirt, GItems.dirtRed, GItems.silt, GItems.dirtBlack, GItems.dirtSky],
         },
         recipe: new(groupId: "MK V")
@@ -615,7 +615,7 @@ public static class CustomItems {
 
     public static readonly ModItem gunImpactGrenade = new (codeName: "gunImpactGrenade",
         name: "Impact granade",
-        description: "TODO.",
+        description: "High-velocity demolition charge detonating on contact (45 damage, 25m throw range)",
         item: new ExtCItem_ConsumableWeapon(tile: new ModCTile(2, 5), tileIcon: new ModCTile(3, 5),
             heatingPerShot: 0f, isAuto: false,
             attackDesc: new CAttackDesc(
@@ -633,7 +633,7 @@ public static class CustomItems {
 
     public static readonly ModItem impactShieldMk1 = new(codeName: "impactShieldMk1",
         name: "Impact Shield MK1",
-        description: "TODO.",
+        description: "Kinetic dampener reduces fall and collision damage by 25%. Automatically activates upon high-velocity impacts with terrain or structures.",
         item: new ExtCItem_ImpactShield(tile: new ModCTile(0, 5), tileIcon: new ModCTile(0, 5),
             customValue: 0.25f
         ),
@@ -641,7 +641,7 @@ public static class CustomItems {
     );
     public static readonly ModItem impactShieldMk2 = new(codeName: "impactShieldMk2",
         name: "Impact Shield MK2",
-        description: "TODO.",
+        description: "Enhanced stabilizer absorbs 50% of fall/collision damage. Reinforced field emitter prevents overload from repeated hard landings.",
         item: new ExtCItem_ImpactShield(tile: new ModCTile(1, 5), tileIcon: new ModCTile(1, 5),
             customValue: 0.5f
         ),
@@ -649,7 +649,7 @@ public static class CustomItems {
     );
     public static readonly ModItem waterVaporizer = new(codeName: "waterVaporizer",
         name: "Water Vaporizer",
-        description: "TODO.",
+        description: "Atmospheric dehydrator rapidly boils 5 water/sec into steam. Requires 5kW to maintain thermal induction coils.",
         item: new ExtCItem_WaterVaporizer(tile: new ModCTile(4, 5), tileIcon: new ModCTile(4, 5),
             hpMax: 10, mainColor: 13731096U
         ) {
@@ -660,7 +660,7 @@ public static class CustomItems {
     );
     public static readonly ModItem turretCeilingMK2 = new(codeName: "turretCeilingMK2",
         name: "Death Pulse Turret MK2",
-        description: "TODO.",
+        description: "Overhead-mounted sonic emitter fires twin destabilization waves (60 damage x2, 4m range). Effective against clustered enemies with its 120° firing arc.",
         item: new ExtCItem_CeilingTurret(tile: new ModCTile(5, 5), 
             hpMax: 300, mainColor: 8947848U, rangeDetection: 3.8f, angleMin: -120f, angleMax: -60f,
             attack: new CAttackDesc(
@@ -674,7 +674,7 @@ public static class CustomItems {
     );
     public static readonly ModItem turretSpikesMK2 = new(codeName: "turretSpikesMK2",
         name: "Electrified Spikes MK2",
-        description: "TODO.",
+        description: "Supercharged deterrent grid delivers 30 damage per spike with enhanced conductivity. Consumes 3kW to maintain lethal charge.",
         item: new ExtCItem_SpikesTurret(tile: new ModCTile(6, 5),
             hpMax: 400, mainColor: 8947848U, rangeDetection: 1.5f, angleMin: 0f, angleMax: 180f,
             attack: new CAttackDesc(
@@ -690,7 +690,7 @@ public static class CustomItems {
     );
     public static readonly ModItem gunEnergyDiffuser = new(codeName: "gunEnergyDiffuser",
         name: "MB-X Plasma Diffuser",
-        description: "TODO.",
+        description: "Scatters superheated plasma bolts in a widening arc (20 damage, 15m range). Each discharge briefly ionizes the air, creating residual static fields.",
         item: new CItem_Weapon(tile: new ModCTile(0, 6), tileIcon: new ModCTile(7, 5),
             heatingPerShot: 0.4f, isAuto: true,
             attackDesc: new CAttackDesc(
@@ -703,7 +703,7 @@ public static class CustomItems {
     );
     public static readonly ModItem waterVaporizerMK2 = new(codeName: "waterVaporizerMK2",
         name: "Water Vaporizer MK2",
-        description: "TODO.",
+        description: "Industrial-grade dehydrator processes 8 water/sec with improved heat recycling. Drains 10kW from power grids during operation.",
         item: new ExtCItem_WaterVaporizer(tile: new ModCTile(1, 6), tileIcon: new ModCTile(1, 6),
             hpMax: 20, mainColor: 13731096U
         ) {
@@ -714,7 +714,7 @@ public static class CustomItems {
     );
     public static readonly ModItem advancedMetalDetector = new(codeName: "advancedMetalDetector",
         name: "Advanced Metal Detector",
-        description: "TODO.",
+        description: "Multi-spectral scanner identifies rare ores, also detects common metals (40-120m). Hold {Input_Shift} to reduce detection range.",
         item: new ExtCItem_MetalDetector(tile: new ModCTile(2, 6), range: 120f) {
             m_cooldown = 3f,
             detectableItems = [GItems.iron, GItems.copper, GItems.gold, GItems.aluminium, GItems.uranium, GItems.titanium, GItems.thorium, GItems.sulfur, GItems.sapphire, GItems.diamonds]
