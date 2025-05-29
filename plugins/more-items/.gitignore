@@ -3,6 +3,8 @@
 !.gitignore
 !Plugin.cs
 !Items.cs
+!ItemTools.cs
+!ItemTypes.cs
 !Patches.cs
 !more-items.csproj
 !ModResources.resx
