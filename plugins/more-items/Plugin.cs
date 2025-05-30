@@ -1,5 +1,6 @@
 ﻿
 using BepInEx;
+using BepInEx.Configuration;
 using HarmonyLib;
 using ModUtils;
 using System;
@@ -37,6 +38,8 @@ public class FlashEffect : MonoBehaviour {
 
 [BepInPlugin("more-items", "More Items", "0.0.0")]
 public class MoreItemsPlugin : BaseUnityPlugin {
+    public static ConfigEntry<float> configBossRespawnDelay = null;
+
     private UnityEngine.Texture2D LoadTexture2DFromManifest(Assembly assembly, string logicalName) {
         using var stream = assembly.GetManifestResourceStream(logicalName);
 
@@ -72,7 +75,15 @@ public class MoreItemsPlugin : BaseUnityPlugin {
     }
 
     private void Start() {
-        Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
+        configBossRespawnDelay = Config.Bind<float>("General", "BossRespawnDelay", defaultValue: 360f,
+            "Respawn delay for bosses. Can't be turned off because boss's loot is used in multiple recipes"
+        );
+        var configUniqualizeVersionBuild = Config.Bind<bool>("General", "UniqualizeVersionBuild", defaultValue: true,
+            "Safe guard to prevent joining to server with different mod version"
+        );
+        if (configUniqualizeVersionBuild.Value) {
+            Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
+        }
 
         var currectAssembly = Assembly.GetExecutingAssembly();
         ModCTile.texture = LoadTexture2DFromManifest(currectAssembly, "more-items.textures.combined_textures.png");

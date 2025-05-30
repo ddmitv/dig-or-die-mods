@@ -937,5 +937,26 @@ public class Patches {
             __instance.Damage(distanceFactor * RadiationDamage / 3f);
         }
     }
+
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(SUnits), nameof(SUnits.OnUpdateSimu))]
+    private static IEnumerable<CodeInstruction> SUnits_OnUpdateSimu_BossRespawnDelay(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        return new CodeMatcher(instructions, generator)
+            .MatchForward(useEnd: false,
+                new(OpCodes.Call, typeof(SOutgame).Method("get_Params")),
+                new(OpCodes.Ldfld, typeof(CParams).Field("m_bossRespawnDelay")),
+                new(OpCodes.Ldc_R4, 0f),
+                new(OpCodes.Blt_Un))
+            .ThrowIfInvalid("(1)")
+            .CollapseInstructions(4)
+            .MatchForward(useEnd: false,
+                new(OpCodes.Call, typeof(SOutgame).Method("get_Params")),
+                new(OpCodes.Ldfld, typeof(CParams).Field("m_bossRespawnDelay")))
+            .ThrowIfInvalid("(2)")
+            .RemoveInstructions(2)
+            .Insert(
+                new CodeInstruction(OpCodes.Ldc_R4, MoreItemsPlugin.configBossRespawnDelay.Value))
+            .Instructions();
+    }
 }
 
