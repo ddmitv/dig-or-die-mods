@@ -24,6 +24,22 @@ public static class Utils {
             }
         }
     }
+    public static int2 FindInCircleClamped(int range, int2 pos, Func<int, int, bool> fn) {
+        int sqrRange = range * range;
+        int minX = Math.Max(pos.x - range, 0), maxX = Math.Min(pos.x + range, SWorld.Gs.x - 1);
+        int minY = Math.Max(pos.y - range, 0), maxY = Math.Min(pos.y + range, SWorld.Gs.y - 1);
+        for (int i = minX; i <= maxX; ++i) {
+            for (int j = minY; j <= maxY; ++j) {
+                int2 relative = new int2(i, j) - pos;
+                if (relative.sqrMagnitude <= sqrRange) {
+                    if (fn(i, j)) {
+                        return new int2(i, j);
+                    }
+                }
+            }
+        }
+        return int2.negative;
+    }
     public static bool IsValidCell(int x, int y) {
         return x >= 0 && y >= 0 && x < SWorld.Gs.x && y < SWorld.Gs.y;
     }
