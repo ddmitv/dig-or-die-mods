@@ -123,7 +123,7 @@ public static class Utils {
             if (unit == null || !unit.IsAlive()) { continue; }
             if ((unit.PosCenter - center).sqrMagnitude > radiusSqr) { continue; }
 
-            var distanceFactor = Mathf.Clamp01(1f - Mathf.Pow((unit.PosCenter - center).magnitude / radius, 2f));
+            var distanceFactor = Mathf.Clamp01(1f - Utils.Sqr((unit.PosCenter - center).magnitude / radius));
 
             var appliedDamage = Mathf.Max(1f, damage * distanceFactor * unit.GetArmorMult() - unit.GetArmor());
             unit.Damage(appliedDamage, attacker: null, showDamage: true, damageCause: "");
@@ -334,4 +334,15 @@ public static class Utils {
     public static RectInt GridRectCamInt => CreateMinMaxRectInt(13, 13, SWorld.Gs.x - 26, SWorld.Gs.y - 26);
     public static RectInt GridRectM2Int => CreateMinMaxRectInt(2, 2, SWorld.Gs.x - 4, SWorld.Gs.y - 4);
     public static RectInt GridRectInt => CreateMinMaxRectInt(0, 0, SWorld.Gs.x, SWorld.Gs.y);
+
+    public static float Sqr(float x) { return x * x; }
+    public static double Sqr(double x) { return x * x; }
+    public static byte Sqr(byte x) { return (byte)(x * x); }
+    public static sbyte Sqr(sbyte x) { return (sbyte)(x * x); }
+    public static short Sqr(short x) { return (short)(x * x); }
+    public static ushort Sqr(ushort x) { return (ushort)(x * x); }
+    public static int Sqr(int x) { return x * x; }
+    public static uint Sqr(uint x) { return x * x; }
+    public static long Sqr(long x) { return x * x; }
+    public static ulong Sqr(ulong x) { return x * x; }
 }
