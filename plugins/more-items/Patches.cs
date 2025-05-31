@@ -371,7 +371,7 @@ public class Patches {
     }
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CBullet), nameof(CBullet.Update))]
-    private static IEnumerable<CodeInstruction> CBullet_Update(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+    private static IEnumerable<CodeInstruction> CBullet_Update_Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         var codeMatcher = new CodeMatcher(instructions, generator);
 
         codeMatcher.Start()
@@ -395,7 +395,7 @@ public class Patches {
                 new(OpCodes.Brfalse, failLabel)
             );
 
-        PatchZF0Bullet(codeMatcher, "(2)");
+        PatchZF0Bullet(codeMatcher.Start(), "(2)");
 
         return codeMatcher.Instructions();
     }
@@ -473,7 +473,7 @@ public class Patches {
     }
 
     private static void PatchZF0Bullet(CodeMatcher codeMatcher, string explanation) {
-        codeMatcher.Start()
+        codeMatcher
             .MatchForward(useEnd: true,
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Call, typeof(CBullet).Method("get_Desc")),

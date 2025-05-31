@@ -100,7 +100,18 @@ $texturePlacements = @(
     @(7, 5, "gunEnergyDiffuser_icon.png"),
     @(0, 6, "gunEnergyDiffuser.png"),
     @(1, 6, "waterVaporizerMK2.png"),
-    @(2, 6, "advancedMetalDetector.png")
+    @(2, 6, "advancedMetalDetector.png"),
+    @(3, 6, "quantumCondenser.png"),
+    @(4, 6, "negamassAlloy.png"),
+    @(5, 6, "plasmaAmplifier.png"),
+    @(6, 6, "harvestCore.png"),
+    @(6, 7, "entropyCore.png"),
+    @(7, 7, "titanferrumAlloy.png"),
+    @(0, 8, "mixedSoil.png"),
+    @(1, 8, "gunRocketGatling_icon.png"),
+    @(2, 8, "gunRocketGatling.png"),
+    @(3, 8, "gunZF0Shotgun.png"),
+    @(4, 8, "gunZF0Shotgun_icon.png")
 )
 $particlesTexturePlacements = @(
     @(0, 0, 255, 119, "meltdownSnipe.png"),

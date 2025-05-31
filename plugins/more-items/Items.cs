@@ -83,11 +83,62 @@ public static class CustomRecipeGroups {
 // REFLECTION: Methods Patches.SItems_OnInit and Patches.SDataLua_OnInit iterates all public static fields
 // and expects they has type ModItem
 public static class CustomItems {
+    public static readonly ModItem quantumCondenser = new(codeName: "quantumCondenser",
+        name: "Quantum Condenser",
+        description: "TODO.",
+        item: new CItem_Material(tile: new ModCTile(3, 6), tileIcon: new ModCTile(3, 6)),
+        recipe: new(groupId: "MK V") {
+            in1 = GItems.lootBalrog, nb1 = 1,
+            in2 = GItems.diamonds, nb2 = 1,
+            in3 = GItems.titanium, nb3 = 30,
+        }
+    );
+    public static readonly ModItem negamassAlloy = new(codeName: "negamassAlloy",
+        name: "Negamass Alloy",
+        description: "TODO.",
+        item: new CItem_Material(tile: new ModCTile(4, 6), tileIcon: new ModCTile(4, 6)),
+        recipe: new(groupId: "MK V") {
+            in1 = GItems.rockFlying, nb1 = 10,
+            in2 = GItems.rockGaz, nb2 = 3,
+            in3 = GItems.iron, nb3 = 5
+        }
+    );
+    public static readonly ModItem plasmaAmplifier = new(codeName: "plasmaAmplifier",
+        name: "Plasma amplifier",
+        description: "TODO.",
+        item: new CItem_Material(tile: new ModCTile(5, 6), tileIcon: new ModCTile(5, 6)),
+        recipe: new(groupId: "MK V") {
+            in1 = GItems.woodGranit, nb1 = 5,
+            in2 = GItems.sapphire, nb2 = 1
+        }
+    );
+    public static readonly ModItem harvestCore = new(codeName: "harvestCore",
+        name: "Harvest Core",
+        description: "TODO.",
+        item: new CItem_Material(tile: new ModCTile(6, 6), tileIcon: new ModCTile(6, 6)),
+        recipe: new(groupId: "MK III") {
+            in1 = GItems.gold, nb1 = 1,
+            in2 = GItems.iron, nb2 = 5,
+            in3 = GItems.energyGem, nb3 = 3
+        }
+    );
+    public static readonly ModItem entropyCore = new(codeName: "entropyCore",
+        name: "Entropy Core",
+        description: "TODO.",
+        item: new CItem_Material(tile: new ModCTile(6, 7), tileIcon: new ModCTile(6, 7)),
+        recipe: new(groupId: "MK V") {
+            in1 = GItems.lightonium, nb1 = 10,
+            in2 = GItems.titanium, nb2 = 10,
+            in3 = GItems.thorium, nb3 = 5
+        }
+    );
+
     public static readonly ModItem flashLightMK3 = new(codeName: "flashLightMK3",
         name: "Flashlight MK3",
         description: "The brightest handheld light ever engineered. Uses self-charging photon amplification to outshine even the void of deep caves.",
         item: new CItem_Device(tile: new ModCTile(0, 0), tileIcon: new ModCTile(0, 0),
-            groupId: CItemDeviceGroupIds.flashLight, type: CItem_Device.Type.Passive, customValue: 10f
+            groupId: CItemDeviceGroupIds.flashLight, type: CItem_Device.Type.Passive,
+            customValue: 10f // flashLightMK2.customValue = 7f
         ),
         recipe: new(groupId: "MK V", isUpgrade: true) {
             in1 = GItems.flashLightMK2, nb1 = 1,
@@ -100,12 +151,13 @@ public static class CustomItems {
         name: "Miniaturizor MK VI",
         description: "The final word in portable matter compression. Matter compression device utilizing quantum-locked deatomization fields. Warning: Do not use on black holes.",
         item: new CItem_Device(tile: new ModCTile(2, 0), tileIcon: new ModCTile(1, 0),
-            groupId: CItemDeviceGroupIds.miniaturizor, type: CItem_Device.Type.None, customValue: 1500f
+            groupId: CItemDeviceGroupIds.miniaturizor, type: CItem_Device.Type.None,
+            customValue: 1500f // miniaturizorMK5.customValue = 810f
         ) { m_pickupDuration = -1 },
         recipe: new(groupId: "MK V", isUpgrade: true) {
             in1 = GItems.miniaturizorMK5, nb1 = 1,
             in2 = GItems.reactor, nb2 = 1,
-            in3 = GItems.lootBalrog, nb3 = 1
+            in3 = CustomItems.quantumCondenser, nb3 = 2
         }
     );
 
@@ -115,8 +167,10 @@ public static class CustomItems {
         item: new CItem_Device(tile: new ModCTile(3, 0), tileIcon: new ModCTile(3, 0),
             groupId: CItemDeviceGroupIds.potionHPRegen, type: CItem_Device.Type.Consumable, customValue: 3f
         ) { m_cooldown = 120f, m_duration = 60f },
-        recipe: new(groupId: "MK III") {
-            in1 = GItems.bloodyFlesh2, nb1 = 5
+        recipe: new(groupId: "MK IV") {
+            in1 = GItems.bloodyFlesh2, nb1 = 7,
+            in2 = GItems.flowerBlue, nb2 = 5,
+            in3 = GItems.flowerWhite, nb3 = 1,
         }
     );
 
@@ -128,7 +182,8 @@ public static class CustomItems {
         ),
         recipe: new(groupId: "MK V", isUpgrade: true) {
             in1 = GItems.defenseShield, nb1 = 1,
-            in2 = GItems.diamonds, nb2 = 1
+            in2 = GItems.diamonds, nb2 = 1,
+            in3 = GItems.organicRockHeart, nb3 = 1
         }
     );
 
@@ -153,8 +208,9 @@ public static class CustomItems {
             jetpackFlyForce = 100f,
         },
         recipe: new(groupId: "MK V", isUpgrade: true) {
-            in1 = GItems.aluminium, nb1 = 5,
-            in2 = GItems.masterGem, nb2 = 1
+            in1 = GItems.jetpack, nb1 = 2,
+            in2 = GItems.reactor, nb2 = 1,
+            in3 = GItems.rockGaz, nb3 = 20
         }
     );
 
@@ -164,7 +220,11 @@ public static class CustomItems {
         item: new CItem_Wall(tile: new ModCTile(7, 0), tileIcon: new ModCTile(7, 0),
             hpMax: 100, mainColor: 12173251U, forceResist: int.MaxValue - 10000, weight: 1000f, type: CItem_Wall.Type.WallBlock
         ),
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK V") {
+            in1 = CustomItems.negamassAlloy, nb1 = 2,
+            in2 = GItems.wallConcrete, nb2 = 1,
+            in3 = GItems.aluminium, nb3 = 3
+        }
     );
 
     public static readonly ModItem turretReparatorMK3 = new(codeName: "turretReparatorMK3",
@@ -188,7 +248,11 @@ public static class CustomItems {
             m_light = new Color24(10329710U),
             m_neverUnspawn = true
         },
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK IV") {
+            in1 = GItems.aluminium, nb1 = 8,
+            in2 = GItems.uranium, nb2 = 2,
+            in3 = GItems.fish3Regen, nb3 = 3
+        }
     );
 
     public static readonly ModItem megaExplosive = new(codeName: "megaExplosive",
@@ -218,7 +282,11 @@ public static class CustomItems {
             explosionFireAroundRadius = 35f,
             m_light = new Color24(10, 240, 71),
         },
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK V") {
+            in1 = GItems.explosive, nb1 = 3,
+            in2 = GItems.uranium, nb2 = 10,
+            in3 = GItems.lootLavaSpider, nb3 = 10
+        }
     );
 
     public static readonly ModItem turretParticlesMK2 = new(codeName: "turretParticlesMK2",
@@ -244,7 +312,11 @@ public static class CustomItems {
         ) {
             m_anchor = CItemCell.Anchor.Everyside_Small
         },
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK V") {
+            in1 = GItems.titanium, nb1 = 10,
+            in2 = GItems.thorium, nb2 = 10,
+            in3 = CustomItems.plasmaAmplifier, nb3 = 3
+        }
     );
 
     public static readonly ModItem turretTeslaMK2 = new(codeName: "turretTeslaMK2",
@@ -267,7 +339,11 @@ public static class CustomItems {
             m_electricValue = -5,
             m_light = new Color24(16, 133, 235)
         },
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK V") {
+            in1 = GItems.titanium, nb1 = 5,
+            in2 = GItems.sapphire, nb2 = 1,
+            in3 = GItems.gold, nb3 = 7
+        }
     );
 
     public static readonly ModItem collector = new(codeName: "collector",
@@ -292,7 +368,11 @@ public static class CustomItems {
             collectorDamage = 10,
             m_electricValue = -2
         },
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK III") {
+            in1 = CustomItems.harvestCore, nb1 = 1,
+            in2 = GItems.turretReparator, nb2 = 1,
+            in3 = GItems.lightGem, nb3 = 5
+        }
     );
 
     public static readonly ModItem blueLightSticky = new(codeName: "blueLightSticky",
@@ -303,7 +383,11 @@ public static class CustomItems {
         ) {
             m_light = new Color24(20, 20, 220)
         },
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK III") {
+            in1 = GItems.iron, nb1 = 1,
+            in2 = GItems.waterLight, nb2 = 1,
+            in3 = GItems.flowerBlue, nb3 = 1
+        }
     );
 
     public static readonly ModItem redLightSticky = new(codeName: "redLightSticky",
@@ -314,7 +398,11 @@ public static class CustomItems {
         ) {
             m_light = new Color24(220, 20, 20)
         },
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK III") {
+            in1 = GItems.iron, nb1 = 1,
+            in2 = GItems.waterLight, nb2 = 1,
+            in3 = GItems.fernRed, nb3 = 1
+        }
     );
 
     public static readonly ModItem greenLightSticky = new(codeName: "greenLightSticky",
@@ -325,7 +413,11 @@ public static class CustomItems {
         ) {
             m_light = new Color24(20, 220, 20)
         },
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK III") {
+            in1 = GItems.iron, nb1 = 1,
+            in2 = GItems.waterLight, nb2 = 1,
+            in3 = GItems.woodSky, nb3 = 1
+        }
     );
 
     public static readonly ModItem basaltCollector = new(codeName: "basaltCollector",
@@ -351,7 +443,11 @@ public static class CustomItems {
             isBasaltCollector = true,
             m_electricValue = -5
         },
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK V") {
+            in1 = CustomItems.harvestCore, nb1 = 1,
+            in2 = GItems.turretReparatorMK2, nb2 = 1,
+            in3 = GItems.darkGem, nb3 = 10
+        }
     );
 
     public static readonly ModItem turretLaser360 = new(codeName: "turretLaser360",
@@ -370,7 +466,11 @@ public static class CustomItems {
             ),
             tileUnit: new CTile(2, 2) { m_textureName = "items_defenses" }
         ),
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK V") {
+            in1 = GItems.titanium, nb1 = 10,
+            in2 = GItems.crystalBlack, nb2 = 5,
+            in3 = GItems.darkGem, nb3 = 5
+        }
     );
 
     public static readonly ModItem gunMeltdown = new(codeName: "gunMeltdown",
@@ -389,7 +489,11 @@ public static class CustomItems {
                 sound: SoundIds.plasmaSnipe
             )
         ),
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK V") {
+            in1 = CustomItems.entropyCore, nb1 = 5,
+            in2 = GItems.reactor, nb2 = 3,
+            in3 = GItems.lootParticleBirds, nb3 = 50
+        }
     );
 
     public static readonly ModItem volcanicExplosive = new(codeName: "volcanicExplosive",
@@ -427,7 +531,22 @@ public static class CustomItems {
             shockWaveRange = 50f,
             explosionFlashIntensity = 1.6f,
         },
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK V") {
+            in1 = CustomItems.entropyCore, nb1 = 2,
+            in2 = CustomItems.megaExplosive, nb2 = 1,
+            in3 = GItems.lavaOld, nb3 = 100
+        }
+    );
+
+    public static readonly ModItem titanferrumAlloy = new(codeName: "titanferrumAlloy",
+        name: "Titanferrum Alloy",
+        description: "TODO.",
+        item: new CItem_Material(tile: new ModCTile(7, 7), tileIcon: new ModCTile(7, 7)),
+        recipe: new(groupId: "MK V") {
+            in1 = GItems.iron, nb1 = 10,
+            in2 = GItems.aluminium, nb2 = 7,
+            in3 = GItems.titanium, nb3 = 5
+        }
     );
 
     public static readonly ModItem wallCompositeReinforced = new(codeName: "wallCompositeReinforced",
@@ -437,7 +556,11 @@ public static class CustomItems {
             hpMax: 700, mainColor: 12039872U, forceResist: 11000, weight: 560f,
             type: CItem_Wall.Type.WallBlock
         ),
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK V") {
+            in1 = CustomItems.titanferrumAlloy, nb1 = 1,
+            in2 = GItems.coal, nb2 = 2,
+            in3 = GItems.lavaOld, nb3 = 1
+        }
     );
 
     public static readonly ModItem gunNukeLauncher = new(codeName: "gunNukeLauncher",
@@ -480,7 +603,12 @@ public static class CustomItems {
         ) {
             m_electricValue = 3
         },
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK IV") {
+            in1 = GItems.aluminium, nb1 = 3,
+            in2 = GItems.copper, nb2 = 5,
+            in3 = GItems.gold, nb3 = 1,
+            nbOut = 2
+        }
     );
 
     public static readonly ModItem RTG = new(codeName: "RTG",
@@ -493,7 +621,11 @@ public static class CustomItems {
             m_light = new Color24(0xED0CE9),
             m_electricValue = 15
         },
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK V") {
+            in1 = CustomItems.entropyCore, nb1 = 3,
+            in2 = GItems.lootLargeParticleBirds, nb2 = 15,
+            in3 = GItems.masterGem, nb3 = 1
+        }
     );
 
     public static readonly ModItem indestructibleLavaOld = new(codeName: "indestructibleLavaOld",
@@ -507,17 +639,21 @@ public static class CustomItems {
     public static readonly ModItem gunRocketGatling = new(codeName: "gunRocketGatling",
         name: "Rocket Launcher Gatling",
         description: "Rotary micro-missile array. Gatling version of standard rocket launcher fires 40-damage projectiles.",
-        item: new CItem_Weapon(tile: new CTile(2, 1) { m_textureName = "items_weapons" }, tileIcon: new CTile(6, 3) { m_textureName = "items_icons" },
-            heatingPerShot: 0.1f, isAuto: true,
+        item: new CItem_Weapon(tile: new ModCTile(2, 8), tileIcon: new ModCTile(1, 8),
+            heatingPerShot: 0.1f, /* gunRocket: 0.5f */ isAuto: true,
             attackDesc: new CAttackDesc(
-                range: 20f, damage: 40, nbAttacks: 1, cooldown: 0.15f,
-                knockbackOwn: 3f,
-                knockbackTarget: 25f,
+                range: 20f /*25f*/, damage: 40 /*50*/, nbAttacks: 1, cooldown: 0.15f /*0.3*/,
+                knockbackOwn: 3f, /*5f*/
+                knockbackTarget: 25f, /*30f*/
                 projDesc: GBullets.rocket,
                 sound: SoundIds.rocketFire
             )
         ),
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK IV", isUpgrade: true) {
+            in1 = GItems.gunRocket, nb1 = 3,
+            in2 = GItems.gold, nb2 = 5,
+            in3 = GItems.darkGem, nb3 = 10
+        }
     );
 
     public static readonly ModItem gunRailgun = new(codeName: "gunRailgun",
@@ -566,16 +702,20 @@ public static class CustomItems {
     public static readonly ModItem gunZF0Shotgun = new(codeName: "gunZF0Shotgun",
         name: "ZF-0 Shotgun",
         description: "Multi-barrel flechette disperser. Upgraded ZF-0 model fires 10 armor-piercing rounds per trigger pull.",
-        item: new CItem_Weapon(tile: new CTile(3, 1) { m_textureName = "items_weapons" }, tileIcon: new CTile(7, 3) { m_textureName = "items_icons" },
-            heatingPerShot: 0.4f, isAuto: false,
+        item: new CItem_Weapon(tile: new ModCTile(3, 8), tileIcon: new ModCTile(4, 8),
+            heatingPerShot: 0.4f /*0.01f*/, isAuto: false /*true*/,
             attackDesc: new CAttackDesc(
-                range: 20f, damage: 8, nbAttacks: 10, cooldown: 0.25f,
-                knockbackOwn: 11f, knockbackTarget: 2f,
+                range: 20f /*25f*/, damage: 8 /*7*/, nbAttacks: 10 /*1*/, cooldown: 0.25f /*0.08f*/,
+                knockbackOwn: 11f /*0f*/, knockbackTarget: 2f /*2f*/,
                 projDesc: CustomBullets.zf0shotgunBullet,
                 sound: SoundIds.shotgun
             )
         ),
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK V") {
+            in1 = GItems.gunZF0, nb1 = 5,
+            in2 = GItems.titanium, nb2 = 10,
+            in3 = GItems.lootParticleGround, nb3 = 5
+        }
     );
 
     public static readonly ModItem portableTeleport = new(codeName: "portableTeleport",
@@ -584,7 +724,22 @@ public static class CustomItems {
         item: new CItem_Device(tile: new ModCTile(5, 4), tileIcon: new ModCTile(5, 4),
             groupId: null, type: CItem_Device.Type.Activable
         ),
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK V") {
+            in1 = GItems.teleport, nb1 = 1,
+            in2 = GItems.reactor, nb2 = 1,
+            in3 = GItems.diamonds, nb3 = 1
+        }
+    );
+
+    public static readonly ModItem mixedSoil = new(codeName: "mixedSoil",
+        name: "Mixed Soil",
+        description: "TODO.",
+        item: new CItem_Material(tile: new ModCTile(0, 8), tileIcon: new ModCTile(0, 8)),
+        recipe: new(groupId: "MK IV") {
+            in1 = GItems.dirt, nb1 = 3,
+            in2 = GItems.dirtRed, nb2 = 3,
+            in3 = GItems.silt, nb3 = 3
+        }
     );
 
     public static readonly ModItem fertileDirt = new(codeName: "fertileDirt",
@@ -596,7 +751,11 @@ public static class CustomItems {
             plantGrowChange = 0.45f, // default: 0.15
             inheritedPlantsSupported = [GItems.dirt, GItems.dirtRed, GItems.silt, GItems.dirtBlack, GItems.dirtSky],
         },
-        recipe: new(groupId: "MK V")
+        recipe: new(groupId: "MK IV") {
+            in1 = CustomItems.mixedSoil, nb1 = 1,
+            in2 = GItems.dirtBlack, nb2 = 3,
+            in3 = GItems.dirtSky, nb3 = 3
+        }
     );
 
     public static readonly ModItem autoBuilderMK6 = new(codeName: "autoBuilderMK6",
@@ -628,7 +787,11 @@ public static class CustomItems {
                 projDesc: CustomBullets.impactGrenadeBullet
             )
         ),
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK II") {
+            in1 = GItems.iron, nb1 = 2,
+            in2 = GItems.coal, nb2 = 3,
+            in3 = GItems.light, nb3 = 1
+        }
     );
 
     public static readonly ModItem impactShieldMk1 = new(codeName: "impactShieldMk1",
@@ -637,7 +800,11 @@ public static class CustomItems {
         item: new ExtCItem_ImpactShield(tile: new ModCTile(0, 5), tileIcon: new ModCTile(0, 5),
             customValue: 0.25f
         ),
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK III") {
+            in1 = GItems.energyGem, nb1 = 5,
+            in2 = GItems.aluminium, nb2 = 10,
+            in3 = GItems.gold, nb3 = 5
+        }
     );
     public static readonly ModItem impactShieldMk2 = new(codeName: "impactShieldMk2",
         name: "Impact Shield MK2",
@@ -645,7 +812,11 @@ public static class CustomItems {
         item: new ExtCItem_ImpactShield(tile: new ModCTile(1, 5), tileIcon: new ModCTile(1, 5),
             customValue: 0.5f
         ),
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK IV", isUpgrade: true) {
+            in1 = CustomItems.impactShieldMk1, nb1 = 1,
+            in2 = GItems.bossMadCrabMaterial, nb2 = 1,
+            in3 = GItems.uranium, nb3 = 3,
+        }
     );
     public static readonly ModItem waterVaporizer = new(codeName: "waterVaporizer",
         name: "Water Vaporizer",
@@ -656,7 +827,11 @@ public static class CustomItems {
             evaporationRate = 5f,
             m_electricValue = -5
         },
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK III") {
+            in1 = GItems.iron, nb1 = 10,
+            in2 = GItems.copper, nb2 = 10,
+            in3 = GItems.gold, nb3 = 1
+        }
     );
     public static readonly ModItem turretCeilingMK2 = new(codeName: "turretCeilingMK2",
         name: "Death Pulse Turret MK2",
@@ -670,7 +845,11 @@ public static class CustomItems {
         ) {
             m_colRect = new Rect(0.1f, 0.6f, 0.8f, 0.4f)
         },
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK V") {
+            in1 = GItems.titanium, nb1 = 5,
+            in2 = GItems.lootParticleBirds, nb2 = 4,
+            in3 = GItems.thorium, nb3 = 1
+        }
     );
     public static readonly ModItem turretSpikesMK2 = new(codeName: "turretSpikesMK2",
         name: "Electrified Spikes MK2",
@@ -686,7 +865,11 @@ public static class CustomItems {
             m_electricValue = -3,
             m_light = new Color24(9724047U)
         },
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK IV") {
+            in1 = GItems.uranium, nb1 = 1,
+            in2 = GItems.aluminium, nb2 = 5,
+            in3 = GItems.gold, nb3 = 2
+        }
     );
     public static readonly ModItem gunEnergyDiffuser = new(codeName: "gunEnergyDiffuser",
         name: "MB-X Plasma Diffuser",
@@ -699,7 +882,11 @@ public static class CustomItems {
                 projDesc: CustomBullets.particleEnergyDiffuser, sound: SoundIds.storm
             )
         ),
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK V") {
+            in1 = CustomItems.entropyCore, nb1 = 1,
+            in2 = GItems.gold, nb2 = 20,
+            in3 = GItems.lootLargeParticleBirds, nb3 = 15
+        }
     );
     public static readonly ModItem waterVaporizerMK2 = new(codeName: "waterVaporizerMK2",
         name: "Water Vaporizer MK2",
@@ -710,7 +897,11 @@ public static class CustomItems {
             evaporationRate = 8f,
             m_electricValue = -10
         },
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK IV") {
+            in1 = GItems.aluminium, nb1 = 15,
+            in2 = GItems.copper, nb2 = 30,
+            in3 = GItems.crystalBlack, nb3 = 10
+        }
     );
     public static readonly ModItem advancedMetalDetector = new(codeName: "advancedMetalDetector",
         name: "Advanced Metal Detector",
@@ -719,7 +910,11 @@ public static class CustomItems {
             m_cooldown = 3f,
             detectableItems = [GItems.iron, GItems.copper, GItems.gold, GItems.aluminium, GItems.uranium, GItems.titanium, GItems.thorium, GItems.sulfur, GItems.sapphire, GItems.diamonds]
         },
-        recipe: new(groupId: "ULTIMATE")
+        recipe: new(groupId: "MK IV", isUpgrade: true) {
+            in1 = GItems.metalDetector, nb1 = 1,
+            in2 = GItems.bossMadCrabSonar, nb2 = 1,
+            in3 = GItems.bat3Sonar, nb3 = 10
+        }
     );
 
     // public static CustomItem gunPlasmaThrower = new CustomItem(name: "gunPlasmaThrower",
