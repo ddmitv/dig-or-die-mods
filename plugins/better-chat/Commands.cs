@@ -601,9 +601,9 @@ public static class CustomCommands {
             }
             string subcommand = args[0].ToLower();
             if (subcommand == "pause") {
-                ClockCommandPatches.isPaused = true;
+                ClockCommandPatch.isPaused = true;
             } else if (subcommand == "resume") {
-                ClockCommandPatches.isPaused = false;
+                ClockCommandPatch.isPaused = false;
             } else if (subcommand == "morning") {
                 GVars.m_clock = SGame.GetNightClockHalfDuration();
             } else if (subcommand == "night") {

@@ -3,6 +3,7 @@
 !.gitignore
 !better-chat.csproj
 !Plugin.cs
+!Patches.cs
 !Commands.cs
 !ExpressionEvaluator.cs
 !README.md
