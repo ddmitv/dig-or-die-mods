@@ -5,7 +5,7 @@
 !Items.cs
 !ItemTools.cs
 !ItemTypes.cs
-!Patches.cs
+!Patches/
 !more-items.csproj
 !ModResources.resx
 !ModResources.Designer.cs

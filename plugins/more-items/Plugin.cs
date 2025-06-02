@@ -91,7 +91,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
         ModCSurface.surfaceTops = LoadSurfaceFromManifest(currectAssembly, "more-items.textures.surfaces.surface_tops.png");
         CustomBullets.particlesTexture = LoadTexture2DFromManifest(currectAssembly, "more-items.textures.combined_particles.png");
 
-        Harmony.CreateAndPatchAll(typeof(Patches));
+        var harmony = Harmony.CreateAndPatchAll(currectAssembly, Info.Metadata.GUID);
 
         Utils.RunStaticConstructor(typeof(CustomItems));
 
