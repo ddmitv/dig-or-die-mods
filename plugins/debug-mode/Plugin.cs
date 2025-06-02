@@ -1,5 +1,4 @@
 ﻿using BepInEx;
-using BepInEx.Configuration;
 using HarmonyLib;
 using ModUtils.Extensions;
 using System;
@@ -147,40 +146,26 @@ public static class DebugDrawLinePatch {
 
 [BepInPlugin("debug-mode", "Debug Mode", "1.0.0")]
 public class DebugMode : BaseUnityPlugin {
-    private void BindAndAutoUpdate<T>(string section, string key, T defaultValue, ConfigDescription description, Action<T> setter) {
-        var entry = Config.Bind<T>(section, key, defaultValue, description);
-        entry.SettingChanged += (sender, args) => setter(entry.Value);
-        setter(entry.Value);
-    }
-    private void BindAndAutoUpdate<T>(string section, string key, T defaultValue, Action<T> setter) {
-        BindAndAutoUpdate<T>(section, key, defaultValue, ConfigDescription.Empty, setter);
-    }
 
     private void InitDebugVarsConfig() {
-        BindAndAutoUpdate("Debug", "drawAllBackgrounds", false,
-            v => G.m_debugDrawAllBackgrounds = v);
-        BindAndAutoUpdate("Debug", "bullets", false,
-            v => G.m_debugBullets = v);
-        BindAndAutoUpdate("Debug", "pathfinding", false,
-            v => G.m_debugPF = v);
-        BindAndAutoUpdate("Debug", "pathfindingDetails", false,
-            v => G.m_debugPFDetails = v);
-        BindAndAutoUpdate("Debug", "collisions", false,
-            v => G.m_debugCols = v);
-        BindAndAutoUpdate("Debug", "units", false,
-            v => G.m_debugUnits = v);
-        BindAndAutoUpdate("Debug", "unitNetworkControl", false,
-            v => G.m_debugUnitNetworkControl = v);
-        BindAndAutoUpdate("Debug", "defenses", false,
-            v => G.m_debugDefenses = v);
-        BindAndAutoUpdate("Debug", "water", false,
-            v => G.m_debugWater = v);
-        BindAndAutoUpdate("Debug", "light", false,
-            v => G.m_debugLight = v);
-        BindAndAutoUpdate("Debug", "crashes", false,
-            v => G.m_debugCrashes = v);
-        BindAndAutoUpdate("Debug", "crashesFull", false,
-            v => G.m_debugCrashesFull = v);
+        void RegisterDebugConfig(string name, Action<bool> setter) {
+            var entry = Config.Bind<bool>(section: "Debug", key: name, defaultValue: false);
+            entry.SettingChanged += (sender, args) => setter(entry.Value);
+            setter(entry.Value);
+        }
+
+        RegisterDebugConfig("DrawAllBackgrounds", v => G.m_debugDrawAllBackgrounds = v);
+        RegisterDebugConfig("Bullets", v => G.m_debugBullets = v);
+        RegisterDebugConfig("Pathfinding", v => G.m_debugPF = v);
+        RegisterDebugConfig("PathfindingDetails", v => G.m_debugPFDetails = v);
+        RegisterDebugConfig("Collisions", v => G.m_debugCols = v);
+        RegisterDebugConfig("Units", v => G.m_debugUnits = v);
+        RegisterDebugConfig("UnitNetworkControl", v => G.m_debugUnitNetworkControl = v);
+        RegisterDebugConfig("Defenses", v => G.m_debugDefenses = v);
+        RegisterDebugConfig("Water", v => G.m_debugWater = v);
+        RegisterDebugConfig("Light", v => G.m_debugLight = v);
+        RegisterDebugConfig("Crashes", v => G.m_debugCrashes = v);
+        RegisterDebugConfig("CrashesFull", v => G.m_debugCrashesFull = v);
     }
 
     private void Awake() {
