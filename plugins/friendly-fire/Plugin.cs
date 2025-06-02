@@ -2,6 +2,7 @@
 using HarmonyLib;
 using ModUtils;
 using ModUtils.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
@@ -254,6 +255,63 @@ public static class DefenseDamagePlayersPatch {
     }
 }
 
+public static class DeathMessageKilledByPlayerPatch {
+    private const string MagicChatMessageSystemArg = "__CHAT_DEATH_KILLED_BY_PLAYER";
+
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(SNetworkCommands), nameof(SNetworkCommands.ProcessCommand))]
+    private static IEnumerable<CodeInstruction> SNetworkCommands_ProcessCommand(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+        codeMatcher
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldloc_2),
+                new(OpCodes.Ldc_I4_0),
+                new(OpCodes.Ldelem_Ref),
+                new(OpCodes.Ldc_I4_0),
+                new(OpCodes.Ldloc_3),
+                new(OpCodes.Ldc_I4_1),
+                new(OpCodes.Ble),
+
+                new(OpCodes.Ldloc_2),
+                new(OpCodes.Ldc_I4_1),
+                new(OpCodes.Ldelem_Ref),
+                new(OpCodes.Br))
+            .ThrowIfInvalid("(1)")
+            .InjectAndAdvance(OpCodes.Ldloc_2)
+            .Insert(
+                Transpilers.EmitDelegate(static (string[] args) => {
+                    if (args[0] == MagicChatMessageSystemArg) {
+                        args[0] = "CHAT_DEATH_KILLED";
+                    }
+                }));
+        return codeMatcher.Instructions();
+    }
+
+    [HarmonyReversePatch]
+    [HarmonyPatch(typeof(CUnitPlayer), nameof(CUnitPlayer.OnDeath))]
+    private static void Base_CUnitPlayer_OnDeath(CUnitPlayer instance, CUnit attacker, string damageCause) {
+        throw new NotImplementedException("This is a reverse patch method stub");
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(CUnitPlayerLocal), nameof(CUnitPlayerLocal.OnDeath))]
+    private static bool CUnitPlayerLocal_OnDeath(CUnitPlayerLocal __instance, CUnit attacker, string damageCause) {
+        // run original if player was not killed by another player
+        if (attacker is not CUnitPlayer attackerPlayer) { return true; }
+
+        // replicate original CUnitPlayerLocal.OnDeath logic
+        SNetwork.GetPlayer(__instance).CleanItemVars(true);
+        if (SOutgame.Params.m_respawnDelay < 0) {
+            SSingletonScreen<SScreenMessages>.Inst.AddMessage(SLoc.GetText("MESSAGE_GAME_OVER", false, null, null, null, null), SScreenMessages.MessageType.Normal, Vector2.up * 300f, 5f, 0.1f, 0.3f);
+        }
+        SScreenHudChat.AddChatMessage_Networked($"/system {MagicChatMessageSystemArg}|{__instance.GetPlayer().m_name}|{attackerPlayer.GetPlayer().m_name}");
+
+        Base_CUnitPlayer_OnDeath(__instance, attacker, "");
+
+        return false;
+    }
+}
+
 [BepInPlugin("friendly-fire", "Friendly Fire", "1.0.0")]
 public class FriendlyFire : BaseUnityPlugin {
     private void Start() {
@@ -288,6 +346,7 @@ public class FriendlyFire : BaseUnityPlugin {
         var harmony = new Harmony("friendly-fire");
 
         harmony.PatchAll(typeof(PlayersDamagePlayersPatch));
+        harmony.PatchAll(typeof(DeathMessageKilledByPlayerPatch));
 
         if (configDamageAOE.Value) {
             harmony.PatchAll(typeof(DoDamageAOEToPlayers));
@@ -305,63 +364,5 @@ public class FriendlyFire : BaseUnityPlugin {
             harmony.PatchAll(typeof(DefenseDamagePlayersPatch));
         }
     }
-
-    // [HarmonyTranspiler]
-    // [HarmonyPatch(typeof(CUnitPlayerLocal), "OnDeath")]
-    // private static IEnumerable<CodeInstruction> CUnitPlayerLocal_OnDeath(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-    //     void OnDeathByPlayer(CUnitPlayerLocal self, CUnitPlayer attacker) {
-    //         var SScreenHudChat_inst = Utils.SSingleton_Inst<SScreenHudChat>();
-    //         var AddChatMessage_Local = AccessTools.Method(typeof(SScreenHudChat), "AddChatMessage_Local");
-    // 
-    //         string deathMessage = SLoc.GetText("CHAT_DEATH_KILLED", false, self.GetPlayer().m_name, attacker.GetPlayer().m_name);
-    //         AddChatMessage_Local.Invoke(SScreenHudChat_inst, [null, deathMessage, false]);
-    //     }
-    // 
-    //     var codeMatcher = new CodeMatcher(instructions, generator);
-    // 
-    //     codeMatcher.End()
-    //         .MatchBack(useEnd: false,
-    //             new CodeMatch(OpCodes.Ldarg_0),
-    //             new CodeMatch(OpCodes.Ldarg_1),
-    //             new CodeMatch(OpCodes.Ldsfld, AccessTools.Field(typeof(string), nameof(string.Empty))),
-    //             new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(CUnitPlayer), "OnDeath")))
-    //         .ThrowIfInvalid("friendly-fire transpiler: Failed to find `ldarg.0`, `ldarg.1`, `ldsfld string.Empty`, `call CUnitPlayer.OnDeath`")
-    //         .CreateLabel(out var successLabel);
-    // 
-    //     codeMatcher.Start()
-    //         // if (attacker != null && attacker != this && attacker is CUnitMonster)
-    //         .MatchForward(useEnd: false,
-    //             new CodeMatch(OpCodes.Ldarg_1),
-    //             new CodeMatch(OpCodes.Brfalse),
-    // 
-    //             new CodeMatch(OpCodes.Ldarg_1),
-    //             new CodeMatch(OpCodes.Ldarg_0),
-    //             new CodeMatch(OpCodes.Beq),
-    // 
-    //             new CodeMatch(OpCodes.Ldarg_1),
-    //             new CodeMatch(OpCodes.Isinst, typeof(CUnitMonster)),
-    //             new CodeMatch(OpCodes.Brfalse))
-    //         .Inject(OpCodes.Ldarg_1)
-    //         .CreateLabel(out var failLabel)
-    //         .Insert(
-    //             // attacker != null
-    //             // OpCodes.Ldarg_1
-    //             new CodeInstruction(OpCodes.Brfalse, failLabel),
-    //             // attacker != this
-    //             new CodeInstruction(OpCodes.Ldarg_1),
-    //             new CodeInstruction(OpCodes.Ldarg_0),
-    //             new CodeInstruction(OpCodes.Beq, failLabel),
-    //             // attacker is CUnitPlayer
-    //             new CodeInstruction(OpCodes.Ldarg_1),
-    //             new CodeInstruction(OpCodes.Isinst, typeof(CUnitPlayer)),
-    //             new CodeInstruction(OpCodes.Brfalse, failLabel),
-    // 
-    //             new CodeInstruction(OpCodes.Ldarg_0), // arg 0: this
-    //             new CodeInstruction(OpCodes.Ldarg_1), // arg 1: attacker
-    //             Transpilers.EmitDelegate(OnDeathByPlayer),
-    //             new CodeInstruction(OpCodes.Br, successLabel));
-    // 
-    //     return codeMatcher.Instructions();
-    // }
 }
 
