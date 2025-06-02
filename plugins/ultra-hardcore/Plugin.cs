@@ -5,8 +5,6 @@ using ModUtils;
 using ModUtils.Extensions;
 using System;
 using System.Collections.Generic;
-using System.Net;
-using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
 
@@ -81,7 +79,7 @@ public static class PermanentDarknessPatch {
             .ThrowIfInvalid("(1)")
             .Insert(
                 new CodeInstruction(OpCodes.Ldarg_1),
-                Transpilers.EmitDelegate((CPlayer player) => {
+                Transpilers.EmitDelegate(static (CPlayer player) => {
                     player.m_inventory.AddToInventory(GItems.lightSun);
                 }));
         codeMatcher.Start()
@@ -90,7 +88,7 @@ public static class PermanentDarknessPatch {
                 new(OpCodes.Ldc_R4, 1f))
             .ThrowIfInvalid("(2)")
             .Insert(
-                Transpilers.EmitDelegate(() => {
+                Transpilers.EmitDelegate(static () => {
                     SPickups.CreatePickup(GItems.lightSun, nb: 1f, pos: G.m_player.PosCenter + 6.5f * Vector2.right, withSpeed: false);
                 }));
 

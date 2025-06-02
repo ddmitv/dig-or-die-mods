@@ -3,7 +3,6 @@ using HarmonyLib;
 using ModUtils;
 using ModUtils.Extensions;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Reflection.Emit;
 using UnityEngine;
 
@@ -96,7 +95,7 @@ public static class HidePlayerNamesPatch {
                 new(OpCodes.Ldc_I4_0),
                 new(OpCodes.Call, typeof(CMesh<CMeshText>).Method("Get", [typeof(SScreen), typeof(bool)])),
                 new(OpCodes.Ldloc_S),
-                new(OpCodes.Ldfld, AccessTools.Field(typeof(CPlayer), nameof(CPlayer.m_lastChat))),
+                new(OpCodes.Ldfld, typeof(CPlayer).Field("m_lastChat")),
                 new(OpCodes.Ldloca_S))
             .ThrowIfInvalid("(2)")
             .SetAndAdvance(OpCodes.Nop, null)

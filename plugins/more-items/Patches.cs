@@ -4,7 +4,6 @@ using ModUtils;
 using ModUtils.Extensions;
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
@@ -223,7 +222,7 @@ public class Patches {
     }
 
     private static void PatchCollector(CodeMatcher codeMatcher) {
-        void CollectorLogic(CUnitDefense self, Vector2 targetPos) {
+        static void CollectorLogic(CUnitDefense self, Vector2 targetPos) {
             int particlesCount = (int)(GVars.m_simuTimeD * 15.0) - (int)((GVars.m_simuTimeD - SMain.SimuDeltaTimeD) * 15.0);
             SSingleton<SParticles>.Inst.EmitMultiple(
                 count: particlesCount,
@@ -614,7 +613,7 @@ public class Patches {
             .GetOperand(out Label skipLabel)
             .Advance(1)
             .Insert(
-                Transpilers.EmitDelegate(() => {
+                Transpilers.EmitDelegate(static () => {
                     return G.m_player.PosCell == CItem_MachineTeleport.m_teleportersPos[0];
                 }),
                 new(OpCodes.Brtrue, skipLabel));
@@ -646,7 +645,7 @@ public class Patches {
                 new(OpCodes.Bne_Un))
             .ThrowIfInvalid("(2)")
             .Insert(
-                Transpilers.EmitDelegate(() => {
+                Transpilers.EmitDelegate(static () => {
                     return G.m_player.PosCell == CItem_MachineTeleport.m_teleportersPos[0];
                 }),
                 new(OpCodes.Brtrue, teleportLabel));
