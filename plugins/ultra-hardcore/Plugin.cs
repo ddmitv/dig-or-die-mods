@@ -145,21 +145,10 @@ public static class PermanentAcidWaterPatch {
     }
 }
 public static class NoRegenerationPatch {
-    [HarmonyTranspiler]
-    [HarmonyPatch(typeof(CUnitPlayer.CDesc), MethodType.Constructor, typeof(float), typeof(Vector2), typeof(int), typeof(CTile), typeof(CTile), typeof(CTile), typeof(CTile))]
-    private static IEnumerable<CodeInstruction> CUnitPlayer_CDesc_Constructor(IEnumerable<CodeInstruction> instructions) {
-        var codeMatcher = new CodeMatcher(instructions);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
-                new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldc_R4, 0.005f),
-                new(OpCodes.Stfld, typeof(CUnit.CDesc).Field("m_regenSpeed")))
-            .ThrowIfInvalid("(1)")
-            .Advance(1)
-            .Set(OpCodes.Ldc_R4, 0f);
-
-        return codeMatcher.Instructions();
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(CUnitPlayer), nameof(CUnitPlayer.Update))]
+    private static void CUnitPlayer_Update(CUnitPlayer __instance) {
+        __instance.m_uDesc.m_regenSpeed = 0f;
     }
 }
 public static class NoQuickSavesPatch {
