@@ -9,7 +9,7 @@ using ModUtils.Extensions;
 public class AchievementEnabler : BaseUnityPlugin
 {
     private static ConfigEntry<bool> configInMultiplayer = null;
-    private static ConfigEntry<bool> configAfterCommand = null;
+    private static ConfigEntry<bool> configAfterCheats = null;
     private static ConfigEntry<bool> configInPostGameAlways = null;
 
     private void Awake() {
@@ -21,9 +21,9 @@ public class AchievementEnabler : BaseUnityPlugin
             section: "EnableAchievements", key: "InMultiplayer", defaultValue: true,
             description: "Makes achievements accessible in multiplayer"
         );
-        configAfterCommand = Config.Bind<bool>(
-            section: "EnableAchievements", key: "AfterCommand", defaultValue: false,
-            description: "Makes achievements accessible even after using some of the commands"
+        configAfterCheats = Config.Bind<bool>(
+            section: "EnableAchievements", key: "AfterCheats", defaultValue: false,
+            description: "Makes achievements accessible after using /event and /param commands, modified params in Solo/Multi modes, or starting with cheats/events active"
         );
         configInPostGameAlways = Config.Bind<bool>(
             section: "EnableAchievements", key: "InPostGameAlways", defaultValue: false,
@@ -50,7 +50,7 @@ public class AchievementEnabler : BaseUnityPlugin
                 .ThrowIfInvalid("(1)")
                 .RemoveInstructions(3);
         }
-        if (configAfterCommand.Value) {
+        if (configAfterCheats.Value) {
             codeMatcher.Start()
                 .MatchForward(useEnd: false,
                     // if (... && !GVars.m_achievementsLocked && ...)
