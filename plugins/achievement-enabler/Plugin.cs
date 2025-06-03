@@ -1,9 +1,41 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using ModUtils.Extensions;
+using ModUtils;
+
+internal class WithEventsPatch {
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(SGameStartEnd), nameof(SGameStartEnd.StartNewGame_Coroutine))]
+    private static void SGameStartEnd_StartNewGame_Coroutine_Prefix(out bool __state) {
+        __state = SOutgame.Params.m_eventsActive;
+        SOutgame.Params.m_eventsActive = false;
+    }
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(SGameStartEnd), nameof(SGameStartEnd.StartNewGame_Coroutine))]
+    private static IEnumerator SGameStartEnd_StartNewGame_Coroutine_Postfix(IEnumerator result, bool __state) {
+        yield return result;
+
+        SOutgame.Params.m_eventsActive = __state;
+    }
+}
+internal class InCustomModePatch {
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(SGameStartEnd), nameof(SGameStartEnd.StartNewGame_Coroutine))]
+    private static void SGameStartEnd_StartNewGame_Coroutine_Prefix(out string __state) {
+        __state = Utils.Exchange(ref SOutgame.Mode.m_name, "Solo");
+    }
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(SGameStartEnd), nameof(SGameStartEnd.StartNewGame_Coroutine))]
+    private static IEnumerator SGameStartEnd_StartNewGame_Coroutine_Postfix(IEnumerator result, string __state) {
+        yield return result;
+
+        SOutgame.Mode.m_name = __state;
+    }
+}
 
 [BepInPlugin("achievement-enabler", "Achievement Enabler", "1.0.0")]
 public class AchievementEnabler : BaseUnityPlugin
@@ -25,14 +57,29 @@ public class AchievementEnabler : BaseUnityPlugin
             section: "EnableAchievements", key: "AfterCheats", defaultValue: false,
             description: "Makes achievements accessible after using /event and /param commands, modified params in Solo/Multi modes, or starting with cheats/events active"
         );
+        var configWithEvents = Config.Bind<bool>(
+            section: "EnableAchievements", key: "WithEvents", defaultValue: true,
+            description: "Makes achievements accessible after starting a game with events enabled"
+        );
+        var configInCustomMode = Config.Bind<bool>(
+            section: "EnableAchievements", key: "InCustomMode", defaultValue: false,
+            description: "Makes achievements accessible in custom game modes (not only in Solo/Multi modes)"
+        );
         configInPostGameAlways = Config.Bind<bool>(
             section: "EnableAchievements", key: "InPostGameAlways", defaultValue: false,
             description: "Force enables the achievements in post game even if `skipInPostGame` parameter (in SSteamStats.SetStat) is `true`"
         );
         if (!configEnabled.Value) { return; }
 
-        var harmony = new Harmony("achievement-enabler");
+        var harmony = new Harmony(Info.Metadata.GUID);
         harmony.PatchAll(typeof(AchievementEnabler));
+
+        if (configWithEvents.Value) {
+            harmony.PatchAll(typeof(WithEventsPatch));
+        }
+        if (configInCustomMode.Value) {
+            harmony.PatchAll(typeof(InCustomModePatch));
+        }
     }
 
     [HarmonyPatch(typeof(SSteamStats), nameof(SSteamStats.SetStat))]
