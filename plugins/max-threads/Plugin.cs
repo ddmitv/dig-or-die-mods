@@ -19,7 +19,7 @@ public class CellPicker : BaseUnityPlugin {
         );
         if (!configEnabled.Value) { return; }
 
-        var harmony = new Harmony("max-threads");
+        var harmony = new Harmony(Info.Metadata.GUID);
         harmony.PatchAll(typeof(CellPicker));
     }
 

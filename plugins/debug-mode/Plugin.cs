@@ -191,7 +191,7 @@ public class DebugMode : BaseUnityPlugin {
         if (!configEnable.Value) {
             return;
         }
-        var harmony = new Harmony("debug-mode");
+        var harmony = new Harmony(Info.Metadata.GUID);
 
         harmony.PatchAll(typeof(EnableDebugModePatch));
         if (configNoWorldPresimulation.Value) {

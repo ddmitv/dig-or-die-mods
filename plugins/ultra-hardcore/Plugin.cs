@@ -398,7 +398,7 @@ public class UltraHardcorePlugin : BaseUnityPlugin {
             description: "Multiplies all recipe's ingredients (ignoring unique) by provided number"
         );
 
-        var harmony = new Harmony("ultra-hardcore");
+        var harmony = new Harmony(Info.Metadata.GUID);
 
         if (configPlayerHpMax.Value != 0f) {
             harmony.PatchAll(typeof(HpMaxPatch));

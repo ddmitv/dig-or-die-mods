@@ -39,7 +39,7 @@ public class EnableAsserts : BaseUnityPlugin {
 
         configIsFatal = Config.Bind<bool>(section: "General", key: "IsFatal", defaultValue: true);
 
-        var harmony = new Harmony("enable-asserts");
+        var harmony = new Harmony(Info.Metadata.GUID);
         harmony.PatchAll(typeof(AssertPatch));
     }
 }

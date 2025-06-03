@@ -343,7 +343,7 @@ public class FriendlyFire : BaseUnityPlugin {
         );
         if (!configEnabled.Value) { return; }
 
-        var harmony = new Harmony("friendly-fire");
+        var harmony = new Harmony(Info.Metadata.GUID);
 
         harmony.PatchAll(typeof(PlayersDamagePlayersPatch));
         harmony.PatchAll(typeof(DeathMessageKilledByPlayerPatch));

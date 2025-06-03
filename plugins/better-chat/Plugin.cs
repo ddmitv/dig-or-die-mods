@@ -54,7 +54,7 @@ public class BetterChat : BaseUnityPlugin {
         expressionEvaluator.AddBuiltinVariables();
         expressionEvaluator.AddBuiltinFunctions();
 
-        var harmony = new Harmony("extra-commands");
+        var harmony = new Harmony(Info.Metadata.GUID);
         harmony.PatchAll(typeof(CustomCommandsPatch));
         if (configChatExpressionEvaluatorEnable.Value) {
             harmony.PatchAll(typeof(ChatExpressionEvaluationPatch));

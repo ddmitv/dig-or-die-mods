@@ -33,7 +33,7 @@ public class CellPicker : BaseUnityPlugin {
         Utils.AddLocalizationText("CELL_PICKER_PickCell", "Pick Cell");
         pickCell = new(name: "CELL_PickCell", defaultKey0: KeyCode.Mouse2);
 
-        var harmony = new Harmony("cell-picker");
+        var harmony = new Harmony(Info.Metadata.GUID);
         harmony.PatchAll(typeof(PickCellPatch));
     }
 }

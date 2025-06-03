@@ -139,7 +139,7 @@ public class SettableSeed : BaseUnityPlugin {
 
         Utils.AddLocalizationText("SETTABLE_SEED_OPTIONS_SEED", "Seed:");
 
-        var harmony = new Harmony("settable-seed");
+        var harmony = new Harmony(Info.Metadata.GUID);
         harmony.PatchAll(typeof(InputSeedPatch));
     }
 }

@@ -145,7 +145,7 @@ public class PreciseClock : BaseUnityPlugin {
         );
         if (!configEnabled.Value) { return; }
 
-        var harmony = new Harmony("precise-clock");
+        var harmony = new Harmony(Info.Metadata.GUID);
         harmony.PatchAll(typeof(PreciseTimePatch));
     }
 }
