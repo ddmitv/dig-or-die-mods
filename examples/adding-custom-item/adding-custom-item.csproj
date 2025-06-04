@@ -1,8 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <AssemblyName>adding_custom_item</AssemblyName>
-    <Product>Adding Custom Item</Product>
-    <Version>1.0.0</Version>
-  </PropertyGroup>
-</Project>
