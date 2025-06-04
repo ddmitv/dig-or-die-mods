@@ -36,7 +36,7 @@ The list of nondeterministic initial conditions that will change even with the s
 
 ## Configuration
 
-### `MaxSeed`
+### `[General]` `MaxSeed`
 
 **Setting type:** `int` \
 **Default value:** `100000` \
