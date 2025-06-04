@@ -1,9 +1,7 @@
-*
+/*
 
 !.gitignore
 !precise-clock.csproj
 !Plugin.cs
-!precise-clock-event-end.png
-!precise-clock-event-start.png
-!precise-clock-showcase.png
+!readme-res/
 !README.md
