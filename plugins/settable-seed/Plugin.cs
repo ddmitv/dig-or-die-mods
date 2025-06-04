@@ -103,7 +103,7 @@ public static class InputSeedPatch {
                 new(OpCodes.Call, typeof(SOutgame).Method("get_Params")),
                 new(OpCodes.Ldc_I4_0),
                 new(OpCodes.Ldc_I4, 100000),
-                new(OpCodes.Call, typeof(UnityEngine.Random).Method("Range", [typeof(int), typeof(int)])),
+                new(OpCodes.Call, typeof(UnityEngine.Random).Method<int, int>("Range")),
                 new(OpCodes.Stfld, typeof(CParams).Field("m_seed")))
             .ThrowIfNotMatch("(1)")
             .CollapseInstructionsTo(5, out List<Label> labels)

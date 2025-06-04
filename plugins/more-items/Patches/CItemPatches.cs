@@ -78,7 +78,7 @@ internal static class CItemPatches {
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldsfld, typeof(G).StaticField("m_player")),
                 new(OpCodes.Ldloc_1),
-                new(OpCodes.Call, typeof(int2).Method("op_Implicit", [typeof(int2)])))
+                new(OpCodes.Call, typeof(int2).Method<int2>("op_Implicit")))
             .ThrowIfInvalid("(1)")
             .CreateLabel(out Label teleportLabel)
             .Start()

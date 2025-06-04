@@ -195,7 +195,7 @@ public static class ChatExpressionEvaluationPatch {
                 new(OpCodes.Ldfld, typeof(SScreenHudChat).Field("m_inputChat")),
                 new(OpCodes.Ldfld, typeof(CGuiInput).Field("m_text")),
                 new(OpCodes.Ldstr, "/"),
-                new(OpCodes.Callvirt, typeof(string).Method("StartsWith", [typeof(string)])),
+                new(OpCodes.Callvirt, typeof(string).Method<string>("StartsWith")),
                 new(OpCodes.Brfalse))
             .ThrowIfInvalid("(1)")
             .GetOperandAtOffset(-1, out Label skipMessage)

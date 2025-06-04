@@ -86,7 +86,7 @@ public static class HidePlayerNamesPatch {
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldc_I4_0),
-                new(OpCodes.Call, typeof(CMesh<CMeshText>).Method("Get", [typeof(SScreen), typeof(bool)])))
+                new(OpCodes.Call, typeof(CMesh<CMeshText>).Method<SScreen, bool>("Get")))
             .ThrowIfInvalid("(1)")
             .SetAndAdvance(OpCodes.Nop, null)
             .RemoveInstructions(28);
@@ -94,7 +94,7 @@ public static class HidePlayerNamesPatch {
             .MatchForward(useEnd: false,
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldc_I4_0),
-                new(OpCodes.Call, typeof(CMesh<CMeshText>).Method("Get", [typeof(SScreen), typeof(bool)])),
+                new(OpCodes.Call, typeof(CMesh<CMeshText>).Method<SScreen, bool>("Get")),
                 new(OpCodes.Ldloc_S),
                 new(OpCodes.Ldfld, typeof(CPlayer).Field("m_lastChat")),
                 new(OpCodes.Ldloca_S))
