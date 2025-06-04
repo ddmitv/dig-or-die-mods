@@ -19,7 +19,7 @@ Places  in the game where they are used:
 
 ## Configuration
 
-### `IsFatal`
+### `[General]` `IsFatal`
 
 **Setting Type:** `bool` \
 **Default value:** `true`
