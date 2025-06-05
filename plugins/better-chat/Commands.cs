@@ -566,13 +566,28 @@ public static class CustomCommands {
             return GetListOfCCellItemNames();
         });
         AddCommand("/freecam", isLocal: true, (string[] args, CPlayer player) => {
-            if (args.Length > 0) {
-                throw new InvalidCommandArgument("None arguments are expected");
-            }
-
-            FreecamModePatch.isInFreecamMode ^= true;
-            if (FreecamModePatch.isInFreecamMode) {
-                FreecamModePatch.cameraPos = G.m_player.Pos;
+            if (args.Length == 1) {
+                string[] paramAndValue = args[0].Split('=');
+                if (paramAndValue[0] == "speed") {
+                    if (!float.TryParse(paramAndValue[1], out float newSpeed)) {
+                        throw new InvalidCommandArgument("Expected new camera speed", 1);
+                    }
+                    FreecamModePatch.cameraSpeed = newSpeed;
+                } else if (paramAndValue[0] == "zoom") {
+                    if (!int.TryParse(paramAndValue[1], out int newZoomIndex)) {
+                        throw new InvalidCommandArgument("Expected new zoom index", 1);
+                    }
+                    G.m_zoomIndex = newZoomIndex;
+                } else {
+                    throw new InvalidCommandArgument("Unknown freecam parameter. Expected either 'speed' or 'zoom'");
+                }
+            } else if (args.Length > 1) {
+                throw new InvalidCommandArgument("Zero or one arguments are expected");
+            } else {
+                FreecamModePatch.isInFreecamMode ^= true;
+                if (FreecamModePatch.isInFreecamMode) {
+                    FreecamModePatch.cameraPos = G.m_player.Pos;
+                }
             }
         });
         AddCommand("/exportpng", isLocal: true, (string[] args, CPlayer player) => {
@@ -620,15 +635,15 @@ public static class CustomCommands {
                 GVars.m_clock = 0.9f;
             } else if (args[0].StartsWith("+") || args[0].StartsWith("-")) {
                 if (!TryParseClockTime(args[0], out float clockDelta)) {
-                    throw new InvalidCommandArgument("Expected delta clock time");
+                    throw new InvalidCommandArgument("Expected delta clock time", 1);
                 }
                 GVars.m_clock = Utils.PosMod(GVars.m_clock + clockDelta, 1f);
             } else {
                 if (!TryParseClockTime(args[0], out float newClockTime)) {
-                    throw new InvalidCommandArgument("Expected new clock time");
+                    throw new InvalidCommandArgument("Expected new clock time", 1);
                 }
                 if (newClockTime < 0f || newClockTime > 1f) {
-                    throw new InvalidCommandArgument("Clock time must be between [0, 1]");
+                    throw new InvalidCommandArgument("Clock time must be between [0, 1]", 1);
                 }
                 GVars.m_clock = newClockTime;
             }
