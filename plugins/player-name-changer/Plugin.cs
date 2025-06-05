@@ -11,17 +11,26 @@ using System.Reflection.Emit;
 [BepInPlugin("player-name-changer", "Player Name Changer", "0.0.0")]
 public class PlayerNameChanger : BaseUnityPlugin {
     private static ConfigEntry<string> configPlayerName = null;
+    private static ConfigEntry<bool> configEnable = null;
+
+    private static void UpdatePlayerName() {
+        if (SOutgame.Params is not null) {
+            SOutgame.Params.m_hostName = SNetwork.MySteamName;
+        }
+        SNetwork.GetMyPlayer().m_name = SNetwork.MySteamName;
+    }
 
     private void Start() {
-        configPlayerName = Config.Bind<string>("General", "PlayerName", defaultValue: null, description: "Override the player name in the game. Reset to set the original player name (from Steam)");
-        var configEnable = Config.Bind<bool>("General", "Enable", defaultValue: true);
+        configPlayerName = Config.Bind<string>("General", "PlayerName", defaultValue: "", description: "Override the player name in the game. Reset to set the original player name (from Steam)");
+        configEnable = Config.Bind<bool>("General", "Enable", defaultValue: false);
 
-        if (!configEnable.Value) { return; }
-
-        configPlayerName.SettingChanged += static (object sender, EventArgs e) => {
-            SNetwork.GetMyPlayer().m_name = SNetwork.MySteamName;
-            SOutgame.Params.m_hostName = SNetwork.MySteamName;
+        configPlayerName.SettingChanged += static (sender, e) => {
+            UpdatePlayerName();
         };
+        configEnable.SettingChanged += static (sender, e) => {
+            UpdatePlayerName();
+        };
+
         var harmony = new Harmony(Info.Metadata.GUID);
         
         harmony.Patch(typeof(SNetwork).Method("get_MySteamName"),
@@ -35,12 +44,12 @@ public class PlayerNameChanger : BaseUnityPlugin {
     }
 
     private static bool SNetwork_get_MySteamName(ref string __result) {
-        if (configPlayerName.Value == null) { return true; }
+        if (configEnable.Value == false) { return true; }
         __result = configPlayerName.Value;
         return false;
     }
     private static bool SteamFriends_GetFriendPersonaName(ref string __result) {
-        if (configPlayerName.Value == null) { return true; }
+        if (configEnable.Value == false) { return true; }
         __result = configPlayerName.Value;
         return false;
     }

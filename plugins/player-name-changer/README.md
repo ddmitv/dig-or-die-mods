@@ -5,6 +5,8 @@ Allows to change the player name in the game.
 
 By changing the player name, this will also affect the name stored in save file.
 
+## Argument Injection
+
 Also, if you're name has character `|` ("Vertical bar") and you get killed by a monster, your death message will display improperly.
 This is because the game uses special `/system` command with a `|` separated arguments.
 So, when the monster is killed a player, a `/system CHAT_DEATH_KILLED|<player name>|<monster codename>` command is executed.
@@ -13,21 +15,19 @@ For example, if your name is `my name|bossDweller`, when you die by a monster, t
 
 ## Configuration
 
+> [!TIP]
+> You can change config during the game. The name will change automatically.
+
 ### `[General]` `PlayerName`
 
 **Setting type:** `string` \
-**Default value:** `null`
+**Default value:** `""`
 
 Overrides the player name in the game.
-Remove this config entry or click "Reset" if you're using [`BepInEx.ConfigurationManager`](https://github.com/BepInEx/BepInEx.ConfigurationManager)
-to set the original player name (from Steam).
-
-> [!NOTE]
-> This parameter can be changed at any time, not only at startup.
 
 ### `[General]` `Enable`
 
 **Setting type:** `bool` \
-**Default value:** `true`
+**Default value:** `false`
 
-Enables the plugin.
+If `true`, will change the player's name to provided in `PlayerName` config. If `false`, will revert the player's name to default one (from Steam).
