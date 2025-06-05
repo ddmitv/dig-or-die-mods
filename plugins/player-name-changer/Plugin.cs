@@ -49,7 +49,7 @@ public class PlayerNameChanger : BaseUnityPlugin {
             .MatchForward(useEnd: true,
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldarg_1),
-                new(OpCodes.Callvirt, typeof(BinaryReader).Method<>("ReadString")),
+                new(OpCodes.Callvirt, typeof(BinaryReader).Method("ReadString", [])),
                 new(OpCodes.Stfld, typeof(CPlayer).Field("m_name")))
             .ThrowIfInvalid("(1)")
             .Insert(
