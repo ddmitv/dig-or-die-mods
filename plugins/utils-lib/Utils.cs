@@ -166,7 +166,7 @@ public static class Utils {
     public static Color24 ParseColor24(string str) {
         string[] valuesStr = str.Split(':');
         if (valuesStr.Length == 1) {
-            return new Color24(uint.Parse(str));
+            return new Color24(uint.Parse(str, System.Globalization.NumberStyles.HexNumber));
         }
         if (valuesStr.Length != 3) { throw new FormatException("Expected exact 3 values for Color24"); }
         return new Color24(byte.Parse(valuesStr[0]), byte.Parse(valuesStr[1]), byte.Parse(valuesStr[2]));
