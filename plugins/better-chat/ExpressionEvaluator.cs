@@ -165,6 +165,31 @@ public sealed class ExpressionEvaluator {
             };
         }
     }
+    private sealed class ItemValue(CItem item) : IValue, FieldAccessibleValue {
+        public IdValue Id = new(item.m_id);
+        public StringValue Codename = new(item.m_codeName);
+        public StringValue Name = new(item.m_name);
+        public StringValue Desc = new(item.m_desc);
+        public StringValue TextureIcon = new($"{item.m_tileIcon.m_tileIndex} name={item.m_tileIcon.m_textureName}");
+
+        string IValue.TypeName() => "item";
+        string IValue.String() =>
+            $"item{{id={IValueString(Id)},codename={IValueString(Codename)},name={IValueString(Name)}}}";
+
+        string[] FieldAccessibleValue.FieldNames() {
+            return ["id", "codename", "name", "desc", "textureIcon"];
+        }
+        IValue FieldAccessibleValue.ReadField(string name) {
+            return name switch {
+                "id" => Id,
+                "codename" => Codename,
+                "name" => Name,
+                "desc" => Desc,
+                "textureIcon" => TextureIcon,
+                _ => null,
+            };
+        }
+    }
     private sealed class IdentifierValue(string identifier) : IValue {
         public string Identifier = identifier;
         string IValue.TypeName() => throw new NotSupportedException();
@@ -793,7 +818,7 @@ public sealed class ExpressionEvaluator {
             if (args.Length != 1) { throw new EvaluationException($"Expected 1 argument, got {args.Length}"); }
 
             if (args[0] is IdValue id) {
-                if (id.Value >= GUnits.UDescs.Count) {
+                if (id.Value == 0 || id.Value >= GUnits.UDescs.Count) {
                     throw new EvaluationException($"Id is out of range. Maximum id is {GUnits.UDescs.Count - 1}");
                 }
                 return new UnitValue(GUnits.UDescs[id.Value]);
@@ -805,6 +830,25 @@ public sealed class ExpressionEvaluator {
                     throw new EvaluationException($"Unknown unit code name. Did you mean '{closestCodeName}'?");
                 }
                 return new UnitValue(unit);
+            }
+            throw new EvaluationException($"Invalid argument type. Expected either 'id' or 'string'");
+        });
+        evaluationEnv.Functions.Add("item", args => {
+            if (args.Length != 1) { throw new EvaluationException($"Expected 1 argument, got {args.Length}"); }
+
+            if (args[0] is IdValue id) {
+                if (id.Value == 0 || id.Value >= GItems.Items.Count) {
+                    throw new EvaluationException($"Id is out of range. Maximum id is {GItems.Items.Count - 1}");
+                }
+                return new ItemValue(GItems.Items[id.Value]);
+            }
+            if (args[0] is StringValue codeName) {
+                var item = GItems.Items.Skip(1).FirstOrDefault(x => x.m_codeName == codeName.Value);
+                if (item is null) {
+                    var closestCodeName = Utils.ClosestStringMatch(codeName.Value, GItems.Items.Skip(1).Select(x => x.m_codeName));
+                    throw new EvaluationException($"Unknown item code name. Did you mean '{closestCodeName}'?");
+                }
+                return new ItemValue(item);
             }
             throw new EvaluationException($"Invalid argument type. Expected either 'id' or 'string'");
         });
