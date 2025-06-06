@@ -133,7 +133,7 @@ public class PreciseClock : BaseUnityPlugin {
             description: "The color of the text used by the clock"
         );
         configClockPosition = Config.Bind<ClockPosition>(
-            section: "General", key: "ClockPosition", defaultValue: ClockPosition.Bottom,
+            section: "General", key: "ClockPosition", defaultValue: ClockPosition.AboveTimer,
             description: "Location of the clock"
         );
         configTimeFormat = Config.Bind<TimeFormat>(
