@@ -7,6 +7,8 @@ set(GAME_DATA_PATH "$ENV{ProgramFiles\(x86\)}/Steam/steamapps/common/Dig or Die"
 add_library(dod-dll-decomp SHARED
 	main.cpp
     types.hpp
+    vars.hpp
+    funcs.hpp
 )
 
 target_compile_features(dod-dll-decomp PUBLIC cxx_std_20)

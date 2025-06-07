@@ -4,4 +4,6 @@
 !CMakeLists.txt
 !main.cpp
 !types.hpp
+!vars.hpp
+!funcs.hpp
 !README.md
