@@ -1,136 +1,78 @@
 
 # More Items
 
-Adds new 28 items (some of them are creative-only) with custom recipes.
-- 6 devices
-- 6 weapons
-- 4 turrets
-- 3 decorative
-- 2 walls
-- 2 item collectors (**new**)
+A plugin for adding entirely new items to the base game.
+
+Adds new 28 items with custom recipes:
+- 7 devices
+- 2 walls and 1 soil
+- 1 repair turret and 2 collectors
+- 5 turrets
+- 5 weapons
 - 2 explosives
-- 2 energy generators
+- 2 electrical generators and 2 water vaporizers
+- And more
 
-## Item List
+**Full list of items:**
+| Name                                  | Description                                                                                                       |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Flashlight MK3                        | More stronger flashlight MK2                                                                                      |
+| Miniaturizor MK VI                    | Same as ultimate one but doesn't brake Ancient Basalt                                                             |
+| Better Health Regeneration Potion     | Two times better than regular regeneration potion                                                                 |
+| Defense Shield MK2                    | Absorbs 2x HP than MK1 version                                                                                    |
+| Rebreather MK2                        | Rebreather that lasts *very* long                                                                                 |
+| Jetpack MK2                           | Jetpack which lasts longer and flies quicker                                                                      |
+| Anti-Gravity Wall                     | A wall that ignores gravity                                                                                       |
+| Auto-Repair Turret MK3                | Heals 10 hp/s instead of 6 hp/s (Advanced Auto-Repair Turret)                                                     |
+| Particle Turret MK2                   | Deals 50 damage per attack with increased range                                                                   |
+| Tesla Turret MK2                      | Tesla Turret for late game                                                                                        |
+| Collector                             | Automatically harvests plants nearby                                                                              |
+| Basalt Collector                      | Automatically mines nearby basalt cells                                                                           |
+| Blue Wall Light                       | Wall Light which glows blue                                                                                       |
+| Red Wall Light                        | Wall Light which glows red                                                                                        |
+| Green Wall Light                      | Wall Light which glows green                                                                                      |
+| Rotating Laser Turret                 | More powerful stationery laser turret                                                                             |
+| Gun "Meltdown"                        | Fires powerful plasma particles which explode on contact while emitting lava                                      |
+| Mega Explosive                        | An upgraded explosion with shockwave, background destruction and burning everything with 10 cells explosion range |
+| Volcanic Explosive                    | Simulates volcano eruption on explosion                                                                           |
+| Composite Reinforced Wall             | Improved composite wall by +200 hp and stronger force resiting                                                    |
+| Solar Panel MK2                       | A solar panel generating 3kW from sub light                                                                       |
+| Radioisotope Thermoelectric Generator | Generates 15kW from radioactive decay while destroying all live and turrets nearby                                |
+| Rocket Launcher Gatling               | Machine gun that fires rockets                                                                                    |
+| ZF-0 Shotgun                          | Basically a focused shotgun                                                                                       |
+| Portable Teleporter                   | Allows you to teleport to other teleporters on the go                                                             |
+| Fertile Dirt                          | Universal soil with faster plant grow                                                                             |
+| Impact grenade                        | Early-game grenade                                                                                                |
+| Impact Shield MK1                     | Absorbs 25% damage from fall and wall hitting with high speed                                                     |
+| Impact Shield MK2                     | Same as Impact Shield MK1 but absorbs 50% damage                                                                  |
+| Water Vaporizer                       | Placable machine for removing water using electricity                                                             |
+| Water Vaporizer MK2                   | Evaporates faster but requires more energy                                                                        |
+| Death Pulse Turret MK2                | Improved Death Pulse Turret with 120 damage double-attack and increased angle of attack                           |
+| Electrified Spikes MK2                | Improved Electrified Spikes for late-game                                                                         |
+| MB-X Plasma Diffuser                  | A gun shooting electrified particles which on contact creates large energy explosion                              |
+| Advanced Metal Detector               | Searches for all metal vein with configurable 120m range                                                          |
 
-### Flashlight MK3
+> [!NOTE]
+> Only English version of item names/descriptions are available.
 
-![Flashlight MK3](./textures/flashLightMK3.png)
+> [!IMPORTANT]
+> The plugin has guard mechanism of uniqualizing game's version build.
+> This will not allow players to join a host which has different version of this plugin.
+> When using this plugin the build version will (usually) look like a random sequence of numbers.
 
-### Miniaturizor MK VI
+# Configuration
 
-![Miniaturizor MK VI](./textures/miniaturizorMK6_icon.png)
+## `[General]` `BossRespawnDelay`
 
-### Better Health Regeneration Potion
+**Setting type:** `float` \
+**Default value:** `360`
 
-![Better Health Regeneration Potion](./textures/betterPotionHpRegen.png)
+Respawn delay for bosses.
+Many recipes requires boss loot items, default value is the half than multiplayer default's one to reduce waiting for boss to respawn.
 
-### Defense Shield MK2
+## `[General]` `UniqualizeVersionBuild`
 
-![Defense Shield MK2](./textures/defenseShieldMK2.png)
+**Setting type:** `bool` \
+**Default value:** `true`
 
-### Rebreather MK2
-
-![Rebreather MK2](./textures/waterBreatherMK2.png)
-
-### Jetpack MK2
-
-![Jetpack MK2](./textures/jetpackMK2.png)
-
-### Anti-Gravity Wall
-
-![Anti-Gravity Wall](./textures/antiGravityWall.png)
-
-### Auto-Repair Turret MK3
-
-![Auto-Repair Turret MK3](./textures/turretReparatorMK3_icon.png)
-
-### Mega Explosive
-
-![Mega Explosive](./textures/megaExplosive.png)
-
-### Particle Turret MK2
-
-![Particle Turret MK2](./textures/turretParticlesMK2_icon.png)
-
-### Tesla Turret MK2
-
-![Tesla Turret MK2](./textures/turretTeslaMK2.png)
-
-### Collector
-
-![Collector](./textures/collector_icon.png)
-
-Mines nearby plants.
-
-### Basalt Collector
-
-![Basalt Collector](./textures/basaltCollector_icon.png)
-
-Mines nearby basalt.
-
-### Blue Wall Light
-
-![Blue Wall Light](./textures/blueLightSticky.png)
-
-Same as Wall Light but glows with blue color.
-
-### Red Wall Light
-
-![Red Wall Light](./textures/redLightSticky.png)
-
-Same as Wall Light but glows with red color.
-
-### Green Wall Light
-
-![Green Wall Light](./textures/greenLightSticky.png)
-
-Same as Wall Light but glows with green color.
-
-### Rotating Laser Turret
-
-![Rotating Laser Turret](./textures/turretLaser360_icon.png)
-
-### Gun "Meltdown"
-
-![Gun "Meltdown"](./textures/gunPlasmaMegaSnipe_icon.png)
-
-### Volcanic Explosive
-
-![Volcanic Explosive](./textures/volcanicExplosive.png)
-
-### Composite Reinforced Wall
-
-![Composite Reinforced Wall](./textures/wallCompositeReinforced.png)
-
-### Mini-Nuke Launcher
-
-![Mini-Nuke Launcher](./textures/gunNukeLauncher_icon.png)
-
-### Solar Panel MK2
-
-![Solar Panel MK2](./textures/generatorSunMK2.png)
-
-### Radioisotope Thermoelectric Generator
-
-![Radioisotope Thermoelectric Generator](./textures/RTG.png)
-
-### Plasma Thrower
-
-![Plasma Thrower](./textures/gunPlasmaThrower_icon.png)
-
-### Rocket Launcher Gatling
-
-(No unique texture)
-
-### Railgun
-
-(No unique texture)
-
-### Laser Beam Gun
-
-(No unique texture)
-
-### ZF-0 Shotgun
-
-(No unique texture)
+Safe guard to prevent joining to server with different mod version.
