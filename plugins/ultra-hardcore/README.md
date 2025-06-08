@@ -11,7 +11,7 @@ All effects of this plugin will apply at any difficulty level.
 > When using this plugin the build version will (usually) look like a random sequence of numbers.
 
 > [!WARNING]
-> The plugin was not tested for compiling a game with any of configs enabled. If you encountered a problem you can temporary (or permanently) disable problematic settings.
+> The plugin was not tested for completing a game with any of configs enabled. If you encountered a problem you can temporary (or permanently) disable problematic settings.
 
 ## Configuration
 
