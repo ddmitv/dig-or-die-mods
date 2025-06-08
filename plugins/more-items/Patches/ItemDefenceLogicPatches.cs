@@ -8,8 +8,8 @@ using ModUtils;
 
 [HarmonyPatch(typeof(CUnitDefense))]
 internal static class CUnitDefensePatches {
+    [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.GetUnitTargetPos))]
     [HarmonyPrefix]
-    [HarmonyPatch(nameof(CUnitDefense.GetUnitTargetPos))]
     private static bool CUnitDefense_GetUnitTargetPos(CUnitDefense __instance, ref Vector2 __result) {
         if (__instance.m_item is ExtCItem_Collector) {
             __result = GetCollectorTargetPos(__instance);
@@ -20,7 +20,7 @@ internal static class CUnitDefensePatches {
     }
 
     [HarmonyTranspiler]
-    [HarmonyPatch(nameof(CUnitDefense.Update))]
+    [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.Update))]
     private static IEnumerable<CodeInstruction> CUnitDefense_Update(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         var codeMatcher = new CodeMatcher(instructions, generator);
 
@@ -32,7 +32,7 @@ internal static class CUnitDefensePatches {
         return codeMatcher.Instructions();
     }
     [HarmonyPostfix]
-    [HarmonyPatch(nameof(CUnitDefense.OnDisplayWorld))]
+    [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.OnDisplayWorld))]
     private static void CUnitDefense_OnDisplayWorld(CUnitDefense __instance) {
         if (__instance.m_item is ExtCItem_Explosive item && __instance.m_lastFireTime > 0f && GVars.m_simuTimeD > (double)__instance.m_lastFireTime) {
             CMesh<CMeshText>.Get("ITEMS").Draw(
@@ -44,7 +44,7 @@ internal static class CUnitDefensePatches {
         }
     }
     [HarmonyPostfix]
-    [HarmonyPatch(nameof(CUnitDefense.OnActivate))]
+    [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.OnActivate))]
     private static void CUnitDefense_OnActivate(CUnitDefense __instance) {
         if (__instance.m_item is ExtCItem_Explosive expItem && __instance.m_lastFireTime < 0f) {
             __instance.m_lastFireTime = GVars.SimuTime;
@@ -59,8 +59,8 @@ internal static class CUnitDefensePatches {
         }
     }
     [HarmonyTranspiler]
-    [HarmonyPatch(nameof(CUnitDefense.OnDisplayWorld))]
-    [HarmonyPatch(nameof(CUnitDefense.Update))]
+    [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.OnDisplayWorld))]
+    [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.Update))]
     private static IEnumerable<CodeInstruction> CUnitDefense_OnDisplayWorld(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         return new CodeMatcher(instructions, generator).Start()
             .MatchForward(useEnd: false,

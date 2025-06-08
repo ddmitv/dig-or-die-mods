@@ -10,7 +10,7 @@ using UnityEngine;
 [HarmonyPatch]
 internal static class CUnitPlayerPatches {
     [HarmonyPostfix]
-    [HarmonyPatch(nameof(SUnits.OnInit))]
+    [HarmonyPatch(typeof(SUnits), nameof(SUnits.OnInit))]
     private static void SUnits_OnInit() {
         foreach (var uDescField in typeof(CustomUnits).GetFields(BindingFlags.Static | BindingFlags.Public)) {
             var uDesc = (CUnit.CDesc)uDescField.GetValue(null);
@@ -105,7 +105,7 @@ internal static class CUnitPlayerPatches {
     }
 
     [HarmonyPrefix]
-    [HarmonyPatch(nameof(SUnits.OnUpdateSimu))]
+    [HarmonyPatch(typeof(SUnits), nameof(SUnits.OnUpdateSimu))]
     private static void SUnits_OnUpdateSimu(SUnits __instance) {
         if (SNetwork.IsClient()) { return; }
 
@@ -135,7 +135,7 @@ internal static class CUnitPlayerPatches {
     }
 
     [HarmonyTranspiler]
-    [HarmonyPatch(nameof(SUnits.OnUpdateSimu))]
+    [HarmonyPatch(typeof(SUnits), nameof(SUnits.OnUpdateSimu))]
     private static IEnumerable<CodeInstruction> SUnits_OnUpdateSimu_BossRespawnDelay(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         return new CodeMatcher(instructions, generator)
             .MatchForward(useEnd: false,
@@ -158,7 +158,7 @@ internal static class CUnitPlayerPatches {
     private static readonly Dictionary<ushort, double> lastRadiationHitDict = new();
 
     [HarmonyPrefix]
-    [HarmonyPatch(nameof(CUnit.Damage_Local))]
+    [HarmonyPatch(typeof(CUnit), nameof(CUnit.Damage_Local))]
     private static bool CUnit_Damage_Local(CUnit __instance) {
         var content = SWorld.Grid[__instance.PosCell.x, __instance.PosCell.y].GetContent();
         if (content is ExtCItem_Explosive citem && citem.indestructible) {
@@ -168,7 +168,7 @@ internal static class CUnitPlayerPatches {
     }
 
     [HarmonyTranspiler]
-    [HarmonyPatch(nameof(CUnit.Update))]
+    [HarmonyPatch(typeof(CUnit), nameof(CUnit.Update))]
     private static IEnumerable<CodeInstruction> UnclampUnitSpeed(IEnumerable<CodeInstruction> instructions) {
         var codeMatcher = new CodeMatcher(instructions);
 
@@ -190,7 +190,7 @@ internal static class CUnitPlayerPatches {
     }
 
     [HarmonyPrefix]
-    [HarmonyPatch(nameof(CUnit.Update))]
+    [HarmonyPatch(typeof(CUnit), nameof(CUnit.Update))]
     private static void CUnit_Update_Prefix(CUnit __instance) {
         const int EffectRadius = 15;
         const float RadiationDamage = 10f;

@@ -10,7 +10,7 @@ using System;
 [HarmonyPatch]
 internal static class ItemPatches {
     [HarmonyPostfix]
-    [HarmonyPatch(nameof(SItems.OnInit))]
+    [HarmonyPatch(typeof(SItems), nameof(SItems.OnInit))]
     private static void SItems_OnInit() {
         foreach (var itemField in typeof(CustomItems).GetFields(BindingFlags.Static | BindingFlags.Public)) {
             var modItem = (ModItem)itemField.GetValue(null);
@@ -28,8 +28,8 @@ internal static class ItemPatches {
         }
     }
 
-    [HarmonyPatch(typeof(CItem), nameof(CItem.Init))]
     [HarmonyTranspiler]
+    [HarmonyPatch(typeof(CItem), nameof(CItem.Init))]
     private static IEnumerable<CodeInstruction> CItem_Init(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         var codeMatcher = new CodeMatcher(instructions, generator);
 
@@ -48,8 +48,8 @@ internal static class ItemPatches {
         return codeMatcher.Instructions();
     }
 
-    [HarmonyPatch(typeof(CSurface), nameof(CSurface.InitSprites))]
     [HarmonyTranspiler]
+    [HarmonyPatch(typeof(CSurface), nameof(CSurface.InitSprites))]
     private static IEnumerable<CodeInstruction> CSurface_InitSprites(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         static string ReplaceTextureStr(string origStr, CSurface self) {
             if (self is ModCSurface.TaggedCSurface) {
@@ -70,8 +70,8 @@ internal static class ItemPatches {
             .Instructions();
     }
 
-    [HarmonyPatch(typeof(UnityEngine.Resources), nameof(UnityEngine.Resources.Load), [typeof(string)])]
     [HarmonyPrefix]
+    [HarmonyPatch(typeof(UnityEngine.Resources), nameof(UnityEngine.Resources.Load), [typeof(string)])]
     private static bool Resources_Load(string path, ref UnityEngine.Object __result) {
         if (!path.StartsWith("Textures/")) { return true; }
         string prefixlessPath = path.Substring("Textures/".Length);
@@ -90,8 +90,8 @@ internal static class ItemPatches {
         }
         return true;
     }
-    [HarmonyPatch(typeof(UnityEngine.Resources), nameof(UnityEngine.Resources.LoadAll), [typeof(string), typeof(Type)])]
     [HarmonyPrefix]
+    [HarmonyPatch(typeof(UnityEngine.Resources), nameof(UnityEngine.Resources.LoadAll), [typeof(string), typeof(Type)])]
     private static bool Resources_LoadAll(string path, ref UnityEngine.Object[] __result) {
         static Sprite CreateSprite(string name, Rect rect) {
             var pivot = new Vector2(0.5f, 0.5f);
@@ -114,8 +114,8 @@ internal static class ItemPatches {
         return true;
     }
 
-    [HarmonyPatch(typeof(SDataLua), nameof(SDataLua.OnInit))]
     [HarmonyPostfix]
+    [HarmonyPatch(typeof(SDataLua), nameof(SDataLua.OnInit))]
     private static void SDataLua_OnInit() {
         // SOutgame.Mode is "Solo"
 
@@ -130,8 +130,8 @@ internal static class ItemPatches {
         }
     }
 
-    [HarmonyPatch(typeof(CInventory), "InventorySorting")]
     [HarmonyPrefix]
+    [HarmonyPatch(typeof(CInventory), "InventorySorting")]
     private static bool CInventory_InventorySorting(CStack a, CStack b, ref int __result) {
         static int categoryToOrdinal(string categoryId) {
             return categoryId switch {

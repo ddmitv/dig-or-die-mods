@@ -12,7 +12,7 @@ internal static class ItemLogicPatches {
     [HarmonyPrefix]
     private static bool CItem_Device_OnUpdate(CItem_Device __instance) {
         // Original CItem_Device.OnUpdate uses `this == GItems.defenseShield` to check for Shield item
-        if (__instance.m_groupId == "Shield") {
+        if (__instance.m_groupId == CItemDeviceGroupIds.shield) {
             CItemVars myVars = __instance.GetMyVars();
             if (GVars.m_simuTimeD > (double)(myVars.ShieldLastHitTime + 0.5f)) {
                 myVars.ShieldValue = Mathf.Min(myVars.ShieldValue + SMain.SimuDeltaTime * 0.5f * __instance.m_customValue * G.m_player.GetHpMax(), __instance.m_customValue * G.m_player.GetHpMax());
@@ -141,7 +141,7 @@ internal static class ItemLogicPatches {
     }
 
     [HarmonyTranspiler]
-    [HarmonyPatch(nameof(SItems.OnUpdateSimu))]
+    [HarmonyPatch(typeof(SItems), nameof(SItems.OnUpdateSimu))]
     private static IEnumerable<CodeInstruction> SItems_OnUpdateSimu_PortableTeleport(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         var codeMatcher = new CodeMatcher(instructions, generator);
         codeMatcher.Start()
@@ -163,7 +163,7 @@ internal static class ItemLogicPatches {
     }
 
     [HarmonyTranspiler]
-    [HarmonyPatch(nameof(SItems.OnUpdateSimu))]
+    [HarmonyPatch(typeof(SItems), nameof(SItems.OnUpdateSimu))]
     private static IEnumerable<CodeInstruction> SItems_OnUpdateSimu_MiniaturizorMK6(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         static bool MiniaturizorMK6CustomLogic(CItem_Device cItem_Device, CItemCell content) {
             if (!ReferenceEquals(cItem_Device, CustomItems.miniaturizorMK6.Item)) { return false; }
@@ -232,7 +232,7 @@ internal static class ItemLogicPatches {
     }
 
     [HarmonyTranspiler]
-    [HarmonyPatch(nameof(SScreenCrafting.OnUpdate))]
+    [HarmonyPatch(typeof(SScreenCrafting), nameof(SScreenCrafting.OnUpdate))]
     private static IEnumerable<CodeInstruction> SScreenCrafting_OnUpdate_ConsumableWeapon(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         // Allows to craft multiple times ExtCItem_ConsumableWeapon item (in not m_filterAdds mode) unlike CItem_Weapon
 
@@ -278,7 +278,7 @@ internal static class ItemLogicPatches {
     }
 
     [HarmonyTranspiler]
-    [HarmonyPatch(nameof(SScreenCrafting.OnUpdate))]
+    [HarmonyPatch(typeof(SScreenCrafting), nameof(SScreenCrafting.OnUpdate))]
     private static IEnumerable<CodeInstruction> SScreenCrafting_OnUpdate(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         static bool IsAutobuilderPowered(CItem_MachineAutoBuilder autobuilderItem) {
             if (autobuilderItem is not ExtCItem_ConditionalMachineAutoBuilder conditionalAutobuilder) {
@@ -309,8 +309,8 @@ internal static class ItemLogicPatches {
             .Instructions();
     }
 
-    [HarmonyPatch(nameof(CBullet.CheckColWithUnits))]
     [HarmonyTranspiler]
+    [HarmonyPatch(typeof(CBullet), nameof(CBullet.CheckColWithUnits))]
     private static IEnumerable<CodeInstruction> CBullet_CheckColWithUnits(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         var codeMatcher = new CodeMatcher(instructions, generator);
 
@@ -322,7 +322,7 @@ internal static class ItemLogicPatches {
     }
 
     [HarmonyTranspiler]
-    [HarmonyPatch(nameof(CBullet.Update))]
+    [HarmonyPatch(typeof(CBullet), nameof(CBullet.Update))]
     private static IEnumerable<CodeInstruction> CBullet_Update(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         var codeMatcher = new CodeMatcher(instructions, generator);
 
@@ -353,7 +353,7 @@ internal static class ItemLogicPatches {
     }
 
     [HarmonyPostfix]
-    [HarmonyPatch(nameof(CBullet.Explosion))]
+    [HarmonyPatch(typeof(CBullet), nameof(CBullet.Explosion))]
     private static void CBullet_Explosion(CBullet __instance, CUnit unitHit) {
         if (__instance.Desc is not ExtCBulletDesc extDesc) { return; }
 
@@ -369,6 +369,23 @@ internal static class ItemLogicPatches {
         }
         if (extDesc.explosionEnergyRadius > 0f) {
             extDesc.DoEnergyExplosion(__instance);
+        }
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(CUnitPlayerLocal), nameof(CUnitPlayerLocal.Update))]
+    private static void CUnitPlayerLocal_Update(CUnitPlayerLocal __instance) {
+        var betterPotionHpRegenItem = (CItem_Device)CustomItems.betterPotionHpRegen.Item;
+        if (!__instance.IsAlive() || !betterPotionHpRegenItem.IsDurationItemActive(__instance.GetPlayer()) || GVars.m_simuTimeD <= (double)(__instance.m_lastTimeRegen + 1.6f)) {
+            return;
+        }
+        __instance.m_lastTimeRegen = GVars.SimuTime;
+        int hpDelta = Mathf.RoundToInt(
+            Mathf.Min(__instance.GetHpMax() - __instance.m_hp, __instance.GetHpMax() * betterPotionHpRegenItem.m_customValue / (betterPotionHpRegenItem.m_duration / 1.6f))
+        );
+        if (hpDelta > 0) {
+            SSingletonScreen<SScreenHud>.Inst.AddPopText("+" + hpDelta, __instance.Pos, SScreenHud.PopTextType.Bonus);
+            __instance.m_hp += (float)hpDelta;
         }
     }
 
