@@ -3,7 +3,7 @@
   <PropertyGroup>
     <AssemblyName>settable_seed</AssemblyName>
     <Product>Settable Seed</Product>
-    <Version>0.0.0</Version>
+    <Version>1.0.0</Version>
   </PropertyGroup>
 
   <Import Project="../utils-lib/utils-lib.targets"/>

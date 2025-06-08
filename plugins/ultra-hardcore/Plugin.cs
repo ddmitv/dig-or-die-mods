@@ -328,7 +328,7 @@ public static class IngredientMultiplierPatch {
     }
 }
 
-[BepInPlugin("ultra-hardcore", "Ultra Hardcore", "0.0.0")]
+[BepInPlugin("ultra-hardcore", "Ultra Hardcore", "1.0.0")]
 public class UltraHardcorePlugin : BaseUnityPlugin {
     public static ConfigEntry<float> configPlayerHpMax;
     public static ConfigEntry<bool> configPermanentMist;
