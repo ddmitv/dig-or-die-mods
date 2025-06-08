@@ -11,7 +11,7 @@
     <DebugType>portable</DebugType>
     <DebugSymbols>true</DebugSymbols>
     
-    <AssemblyTitle>https://github.com/NUCLEAR-BOMB/dig-or-die-mods</AssemblyTitle>
+    <Description>https://github.com/NUCLEAR-BOMB/dig-or-die-mods</Description>
   </PropertyGroup>
   
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
