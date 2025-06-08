@@ -252,7 +252,7 @@ EXPORT void DllResetSimu(int2 gs, float gridBorderNoCam) {
     g_gridBorderNoCam = gridBorderNoCam;
 
     // FIXME: if gridOrderSize overflowed clamp at max value
-    g_gridOrder = new int[gs.x + 1];
+    g_gridOrder = new int[gs.x + 1]; // memory leak
     InitGridOrder();
 }
 EXPORT int GetBestSpawnPoint(CCell* grid, const CItem_PluginData* itemsData, int2* pos) {
