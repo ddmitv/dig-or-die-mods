@@ -1,3 +1,4 @@
+#pragma once
 
 #include "types.hpp"
 #include "vars.hpp"
@@ -9,7 +10,7 @@ inline void WaitForDebugger() {
     ::DebugBreak();
 }
 
-[[msvc::forceinline]]
+__forceinline
 inline bool IsCellPassable(const CCell& cell, const CItem_PluginData* itemsData) {
     if (itemsData[cell.m_contentId].m_isBlock == 0) {
         return true;
