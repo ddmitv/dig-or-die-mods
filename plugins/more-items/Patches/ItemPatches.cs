@@ -2,12 +2,24 @@ using HarmonyLib;
 using ModUtils;
 using ModUtils.Extensions;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
 using System;
 
 [HarmonyPatch]
-internal static class Misc_AssetsPatches {
+internal static class ItemPatches {
+    [HarmonyPostfix]
+    [HarmonyPatch(nameof(SItems.OnInit))]
+    private static void SItems_OnInit() {
+        foreach (var itemField in typeof(CustomItems).GetFields(BindingFlags.Static | BindingFlags.Public)) {
+            var modItem = (ModItem)itemField.GetValue(null);
+            modItem.Item.m_tileTextureName = ModCTile.texturePath;
+            ItemTools.RegisterItem(modItem.Item);
+        }
+        SLoc.ReprocessTexts();
+    }
+    
     [HarmonyPatch(typeof(CTile), nameof(CTile.CreateSprite))]
     [HarmonyPrefix]
     private static void CTile_CreateSprite(CTile __instance, ref string textureName) {
@@ -15,6 +27,27 @@ internal static class Misc_AssetsPatches {
             textureName = __instance.m_textureName;
         }
     }
+
+    [HarmonyPatch(typeof(CItem), nameof(CItem.Init))]
+    [HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> CItem_Init(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        codeMatcher.End()
+            .MatchBack(useEnd: true,
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, typeof(CItem).Field("m_tile")),
+                new(OpCodes.Brfalse))
+            .GetOperand(out Label failLabel)
+            .Advance(1)
+            .Insert(
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, typeof(CItem).Field("m_tileIcon")),
+                new(OpCodes.Brtrue, failLabel));
+
+        return codeMatcher.Instructions();
+    }
+
     [HarmonyPatch(typeof(CSurface), nameof(CSurface.InitSprites))]
     [HarmonyTranspiler]
     private static IEnumerable<CodeInstruction> CSurface_InitSprites(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
@@ -76,6 +109,52 @@ internal static class Misc_AssetsPatches {
                 CreateSprite("impactGrenade", rect: new Rect(464, 0, 40, 40)),
                 CreateSprite("particleEnergyDiffuser", rect: new Rect(504, 0, 100, 100)),
             ];
+            return false;
+        }
+        return true;
+    }
+
+    [HarmonyPatch(typeof(SDataLua), nameof(SDataLua.OnInit))]
+    [HarmonyPostfix]
+    private static void SDataLua_OnInit() {
+        // SOutgame.Mode is "Solo"
+
+        foreach (var recipeGroupField in typeof(CustomRecipeGroups).GetFields(BindingFlags.Static | BindingFlags.Public)) {
+            var recipeGroup = (ModRecipeGroup)recipeGroupField.GetValue(null);
+            ItemTools.RegisterRecipeGroup(recipeGroup.GroupId, recipeGroup.Autobuilders);
+        }
+        foreach (var itemField in typeof(CustomItems).GetFields(BindingFlags.Static | BindingFlags.Public)) {
+            var modItem = (ModItem)itemField.GetValue(null);
+            if (modItem.Recipe is null) { continue; }
+            ItemTools.RegisterRecipe(modItem.Recipe);
+        }
+    }
+
+    [HarmonyPatch(typeof(CInventory), "InventorySorting")]
+    [HarmonyPrefix]
+    private static bool CInventory_InventorySorting(CStack a, CStack b, ref int __result) {
+        static int categoryToOrdinal(string categoryId) {
+            return categoryId switch {
+                "CITEM_DEVICE" => 0,
+                "CITEM_WEAPON" => 1,
+                "CITEM_DEFENSE" => 2,
+                "CITEM_WALL" => 3,
+                "CITEM_MACHINE" => 4,
+                "CITEM_MINERAL" => 5,
+                "CITEM_MATERIAL" => 6,
+                _ => 7,
+            };
+        }
+        const ushort lastItemId = 201;
+
+        var a_item = a.m_item;
+        var b_item = b.m_item;
+        if (a_item.m_id > lastItemId || b_item.m_id > lastItemId) {
+            if (a_item.m_categoryId == b_item.m_categoryId) {
+                __result = a_item.m_id - b_item.m_id;
+            } else {
+                __result = categoryToOrdinal(a_item.m_categoryId) - categoryToOrdinal(b_item.m_categoryId);
+            }
             return false;
         }
         return true;
