@@ -58,11 +58,6 @@ Adds new 28 items with custom recipes:
 > [!NOTE]
 > Only English version of item names/descriptions are available.
 
-> [!IMPORTANT]
-> The plugin has guard mechanism of uniqualizing game's version build.
-> This will not allow players to join a host which has different version of this plugin.
-> When using this plugin the build version will (usually) look like a random sequence of numbers.
-
 # Configuration
 
 ## `[General]` `BossRespawnDelay`
@@ -76,6 +71,8 @@ Many recipes requires boss loot items, default value is the half than multiplaye
 ## `[General]` `UniqualizeVersionBuild`
 
 **Setting type:** `bool` \
-**Default value:** `true`
+**Default value:** `false`
 
 Safe guard to prevent joining to server with different mod version.
+
+When using this config the build version will (usually) look like a random sequence of numbers.

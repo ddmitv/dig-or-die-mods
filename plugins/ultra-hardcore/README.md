@@ -5,11 +5,6 @@ Makes the game more harder (customizable).
 
 All effects of this plugin will apply at any difficulty level.
 
-> [!IMPORTANT]
-> The plugin has guard mechanism of uniqualizing game's version build.
-> This will not allow players to join a host which has different version of this plugin.
-> When using this plugin the build version will (usually) look like a random sequence of numbers.
-
 > [!WARNING]
 > The plugin was not tested for completing a game with any of configs enabled. If you encountered a problem you can temporary (or permanently) disable problematic settings.
 
@@ -120,3 +115,12 @@ Multiplies all item recipe's ingredients (ignoring unique) by provided number.
 > If the item is an upgrade to another item (`CRecipe.m_isUpgrade`) and it's first ingredient count is 1 (or less), it's first recipe ingredient won't be affected. \
 > If an ingredient is a boss item loot, it won't be affected. What counts as "boss item":
 > "Mad Crab Material" (`bossMadCrabMaterial`), "Mad Crab Sonar" (`bossMadCrabSonar`), "Energy Master Gem" (`masterGem`), "Demon's Skin" (`lootBalrog`), "Dweller Lord Shell Spike" (`lootDwellerLord`).
+
+### `[General]` ``
+
+**Setting type:** `bool` \
+**Default value:** `false`
+
+Safe guard to prevent joining to server with different mod version.
+
+When using this config the build version will (usually) look like a random sequence of numbers.

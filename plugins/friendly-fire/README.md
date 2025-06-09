@@ -5,11 +5,6 @@ Allows players to damage themselves, damage ground, and defense turrets damage p
 
 Basically, adds PVP to the game.
 
-> [!IMPORTANT]
-> The plugin has guard mechanism of uniqualizing game's version build. 
-> This will not allow players to join a host which has different version of this plugin.
-> When using this plugin the build version will (usually) look like a random sequence of numbers.
-
 A custom functionality a plugin provides is when a player is killed by another one (or by themselves), the death message will include another players name that killed them.
 
 ## Configuration
@@ -63,3 +58,12 @@ Bullets now damage the cells they are colliding with.
 
 Allows defense units (turrets) to hit and damage players theirs bullets are colliding with.
 Note that they will usually only target monsters, but if their bullet with hit a player it now will damage them instead of passing by.
+
+### `[General]` `UniqualizeVersionBuild`
+
+**Setting type:** `bool` \
+**Default value:** `false`
+
+Safe guard to prevent joining to server with different mod version.
+
+When using this config the build version will (usually) look like a random sequence of numbers.
