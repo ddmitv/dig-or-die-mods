@@ -8,7 +8,7 @@ using System.Reflection.Emit;
 using UnityEngine;
 using ModUtils.Extensions;
 
-public static class CustomCommandsPatch {
+internal static class CustomCommandsPatch {
     public delegate void ExecCommandFn(string[] args, CPlayer playerSender);
 
     public struct CommandInfo {
@@ -104,7 +104,7 @@ public static class CustomCommandsPatch {
     }
 }
 
-public static class RepeatLastCommandPatch {
+internal static class RepeatLastCommandPatch {
     [HarmonyPatch(typeof(SScreenHudChat), nameof(SScreenHudChat.OnUpdate))]
     [HarmonyPostfix]
     private static void SScreenHudChat_OnUpdate() {
@@ -119,7 +119,7 @@ public static class RepeatLastCommandPatch {
     }
 }
 
-public static class ChatExpressionEvaluationPatch {
+internal static class ChatExpressionEvaluationPatch {
     private static int FindEndParenthesis(string str, int start) {
         int count = 0;
         for (int i = start; i < str.Length; ++i) {
@@ -207,7 +207,7 @@ public static class ChatExpressionEvaluationPatch {
     }
 }
 
-public static class FullChatHistoryPatch {
+internal static class FullChatHistoryPatch {
     [HarmonyPatch(typeof(SNetworkCommands), nameof(SNetworkCommands.ProcessCommand))]
     [HarmonyTranspiler]
     private static IEnumerable<CodeInstruction> SNetworkCommands_ProcessCommand(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
@@ -265,7 +265,7 @@ public static class FullChatHistoryPatch {
     }
 }
 
-public static class FreecamModePatch {
+internal static class FreecamModePatch {
     public static bool isInFreecamMode = false;
     public static Vector2 cameraPos = Vector2.zero;
     public static float cameraSpeed = 100f;
@@ -338,7 +338,7 @@ public static class FreecamModePatch {
     }
 }
 
-public static class ClockCommandPatch {
+internal static class ClockCommandPatch {
     public static bool isPaused = false;
 
     [HarmonyPrefix]

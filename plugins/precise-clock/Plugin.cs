@@ -6,9 +6,8 @@ using ModUtils.Extensions;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reflection.Emit;
-using UnityEngine;
 
-public static class PreciseTimePatch {
+internal static class PreciseTimePatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SScreenMessages), nameof(SScreenMessages.OnUpdate))]
     private static IEnumerable<CodeInstruction> SScreenMessages_OnUpdate(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {

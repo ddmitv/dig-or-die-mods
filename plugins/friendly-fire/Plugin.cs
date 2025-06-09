@@ -6,9 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
-using static System.Collections.Specialized.BitVector32;
 
-public static class PlayersDamagePlayersPatch {
+internal static class PlayersDamagePlayersPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CBullet), nameof(CBullet.CheckColWithUnits))]
     private static IEnumerable<CodeInstruction> CBullet_CheckColWithUnits(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
@@ -48,7 +47,7 @@ public static class PlayersDamagePlayersPatch {
     }
 }
 
-public static class DoDamageAOEToPlayers {
+internal static class DoDamageAOEToPlayers {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SUnits), nameof(SUnits.DoDamageAOE))]
     private static IEnumerable<CodeInstruction> SUnits_DoDamageAOE(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
@@ -77,7 +76,7 @@ public static class DoDamageAOEToPlayers {
     }
 }
 
-public static class HidePlayerNamesPatch {
+internal static class HidePlayerNamesPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SScreenHudWorld), nameof(SScreenHudWorld.OnUpdate))]
     private static IEnumerable<CodeInstruction> SScreenHudWorld_OnUpdate(IEnumerable<CodeInstruction> instructions) {
@@ -107,7 +106,7 @@ public static class HidePlayerNamesPatch {
     }
 }
 
-public static class HideMinimapPlayers_Patch {
+internal static class HideMinimapPlayers_Patch {
     private static void HideMinimapPlayerIcon(CodeMatcher codeMatcher) {
         codeMatcher.Start()
             .MatchForward(useEnd: false,
@@ -154,7 +153,7 @@ public static class HideMinimapPlayers_Patch {
     }
 }
 
-public static class PlayerDamageToGroundPatch {
+internal static class PlayerDamageToGroundPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CBullet), nameof(CBullet.CheckColWithGround))]
     private static IEnumerable<CodeInstruction> CBullet_CheckColWithGround(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
@@ -177,7 +176,7 @@ public static class PlayerDamageToGroundPatch {
     }
 }
 
-public static class DefenseDamagePlayersPatch {
+internal static class DefenseDamagePlayersPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CBullet), nameof(CBullet.CheckColWithUnits))]
     private static IEnumerable<CodeInstruction> CBullet_CheckColWithUnits(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
@@ -256,7 +255,7 @@ public static class DefenseDamagePlayersPatch {
     }
 }
 
-public static class DeathMessageKilledByPlayerPatch {
+internal static class DeathMessageKilledByPlayerPatch {
     private const string MagicChatMessageSystemArg = "__CHAT_DEATH_KILLED_BY_PLAYER";
 
     [HarmonyTranspiler]

@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
 
-public static class EnableDebugModePatch {
+internal static class EnableDebugModePatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SScreenDebug), nameof(SScreenDebug.OnUpdate))]
     private static IEnumerable<CodeInstruction> SScreenDebug_OnUpdate(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
@@ -30,14 +30,14 @@ public static class EnableDebugModePatch {
         return codeMatcher.Instructions();
     }
 }
-public static class ApplicationIsEditorPatch {
+internal static class ApplicationIsEditorPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(Application), nameof(Application.isEditor), MethodType.Getter)]
     private static IEnumerable<CodeInstruction> Application_isEditor() {
         return [new(OpCodes.Ldc_I4_1), new(OpCodes.Ret)];
     }
 }
-public static class NoWorldPresimulationPatch {
+internal static class NoWorldPresimulationPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SGameStartEnd), nameof(SGameStartEnd.GenerateWorld), MethodType.Enumerator)]
     private static IEnumerable<CodeInstruction> SGameStartEnd_GenerateWorld(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
@@ -75,7 +75,7 @@ public static class NoWorldPresimulationPatch {
     }
 }
 
-public static class DebugDrawLinePatch {
+internal static class DebugDrawLinePatch {
     public static readonly List<LineData> _activeLines = [];
 
     public struct LineData {

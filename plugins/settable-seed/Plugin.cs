@@ -6,7 +6,7 @@ using ModUtils.Extensions;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 
-public static class InputSeedPatch {
+internal static class InputSeedPatch {
     private static CGuiOptionInput multiGuiSeed = null;
     private static CGuiOptionInput singleGuiSeed = null;
 

@@ -4,7 +4,7 @@ using BepInEx.Logging;
 using HarmonyLib;
 using System;
 
-public static class AssertPatch {
+internal static class AssertPatch {
     [HarmonyPatch(typeof(SMisc), nameof(SMisc.Assert), [typeof(bool), typeof(string)])]
     [HarmonyPrefix]
     private static bool SMisc_Assert(bool test, string errorMessage) {

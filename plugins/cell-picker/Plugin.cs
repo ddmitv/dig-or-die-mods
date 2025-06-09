@@ -4,7 +4,7 @@ using HarmonyLib;
 using ModUtils;
 using UnityEngine;
 
-public static class PickCellPatch {
+internal static class PickCellPatch {
     [HarmonyPostfix]
     [HarmonyPatch(typeof(SGame), nameof(SGame.OnUpdate))]
     private static void SGame_OnUpdate() {

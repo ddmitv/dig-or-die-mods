@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
 
-public static class HpMaxPatch {
+internal static class HpMaxPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CUnitPlayer.CDesc), nameof(CUnitPlayer.CDesc.GetHpMax))]
     private static IEnumerable<CodeInstruction> CUnitPlayer_CDesc_GetHpMax(IEnumerable<CodeInstruction> instructions) {
@@ -18,7 +18,7 @@ public static class HpMaxPatch {
         ];
     }
 }
-public static class PermanentMistPatch {
+internal static class PermanentMistPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CBackground), nameof(CBackground.DrawBackgrounds))]
     [HarmonyPatch(typeof(SDrawWorld), nameof(SDrawWorld.OnUpdate))]
@@ -44,7 +44,7 @@ public static class PermanentMistPatch {
         return codeMatcher.Instructions();
     }
 }
-public static class PermanentDarknessPatch {
+internal static class PermanentDarknessPatch {
     // [HarmonyTranspiler]
     // [HarmonyPatch(typeof(CBackground), nameof(CBackground.DrawBackgroundParralax))]
     // [HarmonyPatch(typeof(CBackground), nameof(CBackground.DrawBackgrounds))]
@@ -95,7 +95,7 @@ public static class PermanentDarknessPatch {
         return codeMatcher.Instructions();
     }
 }
-public static class NoRainPatch {
+internal static class NoRainPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SWorld), nameof(SWorld.OnUpdateSimu))]
     private static IEnumerable<CodeInstruction> SWorld_OnUpdateSimu(IEnumerable<CodeInstruction> instructions) {
@@ -108,7 +108,7 @@ public static class NoRainPatch {
         return codeMatcher.Instructions();
     }
 }
-public static class InverseNightPatch {
+internal static class InverseNightPatch {
     [HarmonyPostfix]
     [HarmonyPatch(typeof(SGame), nameof(SGame.IsNight))]
     private static void SGame_IsNight(ref bool __result) {
@@ -121,7 +121,7 @@ public static class InverseNightPatch {
         return false;
     }
 }
-public static class PermanentAcidWaterPatch {
+internal static class PermanentAcidWaterPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CUnit), nameof(CUnit.Update))]
     private static IEnumerable<CodeInstruction> CUnit_Update(IEnumerable<CodeInstruction> instructions) {
@@ -144,14 +144,14 @@ public static class PermanentAcidWaterPatch {
         ];
     }
 }
-public static class NoRegenerationPatch {
+internal static class NoRegenerationPatch {
     [HarmonyPrefix]
     [HarmonyPatch(typeof(CUnitPlayer), nameof(CUnitPlayer.Update))]
     private static void CUnitPlayer_Update(CUnitPlayer __instance) {
         __instance.m_uDesc.m_regenSpeed = 0f;
     }
 }
-public static class NoQuickSavesPatch {
+internal static class NoQuickSavesPatch {
     [HarmonyPrefix]
     [HarmonyPatch(typeof(SGameStartEnd), nameof(SGameStartEnd.SaveGame))]
     private static bool SGameStartEnd_SaveGame(SDataSave.SaveType saveType) {
@@ -161,7 +161,7 @@ public static class NoQuickSavesPatch {
         return true;
     }
 }
-public static class ContinuousEventsPatch {
+internal static class ContinuousEventsPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SEnvironment), nameof(SEnvironment.OnUpdateSimu))]
     private static IEnumerable<CodeInstruction> SEnvironment_OnUpdateSimu(IEnumerable<CodeInstruction> instructions) {
@@ -212,7 +212,7 @@ public static class ContinuousEventsPatch {
         return codeMatcher.Instructions();
     }
 }
-public static class InstantDrowning {
+internal static class InstantDrowning {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CUnit), nameof(CUnit.Update))]
     private static IEnumerable<CodeInstruction> CUnit_Update(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
@@ -257,7 +257,7 @@ public static class InstantDrowning {
 //         return codeMatcher.Instructions();
 //     }
 // }
-public static class UnitInstantObservation {
+internal static class UnitInstantObservation {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CUnitMonster), nameof(CUnitMonster.UpdateTarget))]
     private static IEnumerable<CodeInstruction> CUnitMonster_UpdateTarget(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
@@ -287,7 +287,7 @@ public static class UnitInstantObservation {
         return codeMatcher.Instructions();
     }
 }
-public static class HideClockPatch {
+internal static class HideClockPatch {
     [HarmonyPostfix]
     [HarmonyPatch(typeof(SScreenHud), nameof(SScreenHud.OnUpdate))]
     private static void SScreenHud_OnUpdate(SScreenHud __instance) {
@@ -298,7 +298,7 @@ public static class HideClockPatch {
         __instance.m_txtDays.SetVisible(false);
     }
 }
-public static class IngredientMultiplierPatch {
+internal static class IngredientMultiplierPatch {
     private static readonly CItem[] excludedIngredients = [
         GItems.bossMadCrabMaterial, GItems.bossMadCrabSonar, GItems.masterGem,
         GItems.lootBalrog, GItems.lootDwellerLord

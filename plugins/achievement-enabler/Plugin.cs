@@ -7,7 +7,7 @@ using System.Reflection.Emit;
 using ModUtils.Extensions;
 using ModUtils;
 
-internal class WithEventsPatch {
+internal static class WithEventsPatch {
     [HarmonyPrefix]
     [HarmonyPatch(typeof(SGameStartEnd), nameof(SGameStartEnd.StartNewGame_Coroutine))]
     private static void SGameStartEnd_StartNewGame_Coroutine_Prefix(out bool __state) {
@@ -22,7 +22,7 @@ internal class WithEventsPatch {
         SOutgame.Params.m_eventsActive = __state;
     }
 }
-internal class InCustomModePatch {
+internal static class InCustomModePatch {
     [HarmonyPrefix]
     [HarmonyPatch(typeof(SGameStartEnd), nameof(SGameStartEnd.StartNewGame_Coroutine))]
     private static void SGameStartEnd_StartNewGame_Coroutine_Prefix(out string __state) {

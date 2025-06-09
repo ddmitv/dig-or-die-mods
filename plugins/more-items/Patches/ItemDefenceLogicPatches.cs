@@ -6,7 +6,7 @@ using UnityEngine;
 using ModUtils.Extensions;
 using ModUtils;
 
-[HarmonyPatch(typeof(CUnitDefense))]
+[HarmonyPatch]
 internal static class CUnitDefensePatches {
     [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.GetUnitTargetPos))]
     [HarmonyPrefix]
