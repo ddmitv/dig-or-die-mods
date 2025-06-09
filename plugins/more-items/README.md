@@ -52,6 +52,9 @@ Adds new 28 items with custom recipes:
 | MB-X Plasma Diffuser                  | A gun shooting electrified particles which on contact creates large energy explosion                              |
 | Advanced Metal Detector               | Searches for all metal vein with configurable 120m range                                                          |
 
+> [!CAUTION]
+> If you want to use this plugin on existing save, please make sure you've backup of it.
+
 > [!NOTE]
 > Only English version of item names/descriptions are available.
 
