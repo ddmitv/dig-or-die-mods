@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
+using static System.Collections.Specialized.BitVector32;
 
 public static class PlayersDamagePlayersPatch {
     [HarmonyTranspiler]
@@ -315,8 +316,6 @@ public static class DeathMessageKilledByPlayerPatch {
 [BepInPlugin("friendly-fire", "Friendly Fire", "1.0.0")]
 public class FriendlyFire : BaseUnityPlugin {
     private void Start() {
-        Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
-
         var configEnabled = Config.Bind<bool>(
             section: "General", key: "Enabled", defaultValue: true,
             description: "Enables the plugin"
@@ -341,7 +340,15 @@ public class FriendlyFire : BaseUnityPlugin {
             section: "FriendlyFire", key: "DefenseDamagePlayers", defaultValue: false,
             description: "Allows defense units (turrrets) to do damage to players"
         );
+        var configUniqualizeVersionBuild = Config.Bind<bool>(
+            section: "General", key: "UniqualizeVersionBuild", defaultValue: false,
+            description: "Safe guard to prevent joining to server with different mod version"
+        );
         if (!configEnabled.Value) { return; }
+
+        if (configUniqualizeVersionBuild.Value) {
+            Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
+        }
 
         var harmony = new Harmony(Info.Metadata.GUID);
 

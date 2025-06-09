@@ -78,7 +78,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
         configBossRespawnDelay = Config.Bind<float>("General", "BossRespawnDelay", defaultValue: 360f,
             "Respawn delay for bosses. Can't be turned off because boss's loot is used in multiple recipes"
         );
-        var configUniqualizeVersionBuild = Config.Bind<bool>("General", "UniqualizeVersionBuild", defaultValue: true,
+        var configUniqualizeVersionBuild = Config.Bind<bool>("General", "UniqualizeVersionBuild", defaultValue: false,
             "Safe guard to prevent joining to server with different mod version"
         );
         if (configUniqualizeVersionBuild.Value) {

@@ -336,8 +336,6 @@ public class UltraHardcorePlugin : BaseUnityPlugin {
     public static ConfigEntry<uint> configIngredientMultiplier;
 
     private void Start() {
-        Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
-
         configPlayerHpMax = Config.Bind<float>(
             section: "UltraHardcore", key: "HpMax", defaultValue: 0f,
             configDescription: new ConfigDescription(
@@ -397,6 +395,14 @@ public class UltraHardcorePlugin : BaseUnityPlugin {
             section: "UltraHardcore", key: "IngredientMultiplier", defaultValue: 1,
             description: "Multiplies all recipe's ingredients (ignoring unique) by provided number"
         );
+
+        var configUniqualizeVersionBuild = Config.Bind<bool>(
+            section: "General", key: "UniqualizeVersionBuild", defaultValue: false,
+            description: "Safe guard to prevent joining to server with different mod version"
+        );
+        if (configUniqualizeVersionBuild.Value) {
+            Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
+        }
 
         var harmony = new Harmony(Info.Metadata.GUID);
 
