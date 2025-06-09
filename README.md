@@ -76,7 +76,10 @@ but the following instructions are specialized for Dig or Die.
 6. **Install Plugins** \
    Place your plugin `.dll` (e.g. `precise_clock.dll`) into `BepInEx/plugins` folder.
 
-7. **Final Launch** \
+> [!TIP]
+> Download plugins from [Github Releases](https://github.com/NUCLEAR-BOMB/dig-or-die-mods/releases) page (or compile them yourself).
+
+1. **Final Launch** \
    Run the game **through Steam** again. Plugins should now be active.
 > [!NOTE]
 > For troubleshooting:
@@ -151,6 +154,11 @@ dotnet build plugins/{plugin name}
 If build successfully, they will be automatically copied to `BepInEx/plugins` in game folder.
 
 # Modifying Save Files
+
+Download `save-tool.exe` from [Github Releases](https://github.com/NUCLEAR-BOMB/dig-or-die-mods/releases) page (or compile it yourself).
+
+The `save-tool` is a command line utility for compressing and decompressing save files.
+You need to run it through command line. To list all available options use `--help`.
 
 > [!CAUTION]
 > Careless modification of save file could result in the file being corrupted.
