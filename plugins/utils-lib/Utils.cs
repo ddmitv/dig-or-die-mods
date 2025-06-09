@@ -69,14 +69,21 @@ public static class Utils {
     }
 
     public static byte[] ReadAllBytes(Stream stream) {
-        byte[] buffer = new byte[16 * 1024];
-        using MemoryStream ms = new MemoryStream();
+        if (stream.CanSeek && stream.Position <= stream.Length) {
+            byte[] buffer = new byte[stream.Length - stream.Position];
+            stream.Read(buffer, offset: 0, count: buffer.Length);
+            return buffer;
+        } else {
+            byte[] buffer = new byte[4 * 4096];
+            using MemoryStream ms = new MemoryStream();
 
-        int readNum;
-        while ((readNum = stream.Read(buffer, offset: 0, count: buffer.Length)) > 0) {
-            ms.Write(buffer, offset: 0, count: readNum);
+            int readNum;
+            while ((readNum = stream.Read(buffer, offset: 0, count: buffer.Length)) > 0) {
+                ms.Write(buffer, offset: 0, count: readNum);
+            }
+
+            return ms.ToArray();
         }
-        return ms.ToArray();
     }
     public static void RunStaticConstructor(Type type) {
         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(type.TypeHandle);
