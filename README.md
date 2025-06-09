@@ -11,6 +11,8 @@ It includes:
 All available plugins can be found in `plugins/` folder.
 Each plugin contains a `REAMDE.md` describing what it does.
 
+Checkout the [Wiki page](https://github.com/NUCLEAR-BOMB/dig-or-die-mods/wiki) for documentation for game internals and other.
+
 # Plugin Installation
 
 You can follow the [official BepInEx installation guide](https://docs.bepinex.dev/articles/user_guide/installation/index.html),
