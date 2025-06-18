@@ -131,7 +131,7 @@ internal sealed class SingleThreadedWorker : IDisposable {
     }
 }
 
-[BepInPlugin("world-recorder", "World Recorder", "0.0.0")]
+[BepInPlugin("world-recorder", "World Recorder", "1.0.0")]
 public class WorldRecorder : BaseUnityPlugin {
     private ConfigEntry<double> configFramePeriod;
     private ConfigEntry<string> configOutputDir;
