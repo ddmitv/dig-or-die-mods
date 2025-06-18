@@ -3,3 +3,5 @@
 !.gitignore
 !world-recorder.csproj
 !Plugin.cs
+!README.md
+!readme-res
