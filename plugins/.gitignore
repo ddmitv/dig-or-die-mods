@@ -2,6 +2,8 @@
 
 !.gitignore
 !Directory.Build.props
+!create-plugin.ps1
+
 !debug-mode/
 !friendly-fire/
 !more-items/
