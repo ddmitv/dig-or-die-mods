@@ -1,12 +1,14 @@
 
 # World Recorder
 
-Allows to record entire world into video (or sequence of .bmp files).
+Allows to record entire world into video (or sequence of .bmp files) or take a screenshot of it.
 
 ![Showcase](readme-res/showcase.gif)
 
 > [!TIP]
 > Use F9 (default) to start/stop recording.
+>
+> Use F9 + Left Shift (default) to take single screenshot.
 
 ## Configuration
 
@@ -47,6 +49,27 @@ Imminently create a world frame.
 > Only use if you have performance issues. Hypothetically could cause frame corruption.
 
 Bypasses the intermediate buffer for temporary world state saving.
+
+### `[General]` `LightingMode`
+
+**Setting type:** `LightingMode` \
+**Default value:** `FullLighting` \
+**Acceptable values:** `FullLighting`, `MonochromeLighting`, `RGBLighting`
+
+Lighting calculation method for rendering.
+
+| Option               | Description                                                              |
+| -------------------- | ------------------------------------------------------------------------ |
+| `FullLighting`       | Renders image ignoring all lighting (same color as in minimap) for cells |
+| `MonochromeLighting` | Renders image using average lighting for cells                           |
+| `RGBLighting`        | Renders image using red, green and blue color for cells                  |
+
+### `[General]` `ScreenshotWorld`
+
+**Setting type:** `KeyboardShortcut` \
+**Default value:** `F9 + LeftShift`
+
+Create a screenshot (single frame) of the world without recording
 
 ### `[Encoder]` `UseEncoder`
 
