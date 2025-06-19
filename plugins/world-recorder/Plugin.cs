@@ -3,6 +3,7 @@ using BepInEx.Configuration;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing.Printing;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -131,6 +132,78 @@ internal sealed class SingleThreadedWorker : IDisposable {
     }
 }
 
+internal static class CellRenderer {
+    private static readonly Color32 MinimapColorNothing = SMisc.GetColor(16049106u);
+    private static readonly Color32 MinimapColorGrass = SMisc.GetColor(16777070u);
+
+    public enum LightingMode {
+        FullBrightness,
+        MonochromeLighting,
+        RGBLighting
+    }
+
+    public delegate Color32 RenderCellFn(CCell cell);
+
+    public static RenderCellFn GetRenderer(LightingMode type) {
+        return type switch {
+            LightingMode.FullBrightness => RenderFullBrightness,
+            LightingMode.MonochromeLighting => RenderMonochromeLighting,
+            LightingMode.RGBLighting => RenderRGBLighting,
+            _ => throw new InvalidEnumArgumentException(nameof(type), (int)type, typeof(LightingMode))
+        };
+    }
+
+    private static Color32 RenderFullBrightness(CCell cell) {
+        CItemCell content = cell.GetContent();
+
+        Color32 result = MinimapColorNothing;
+        if (content != null) {
+            result = cell.HasGrass() ? MinimapColorGrass : content.m_mainColor;
+        } else if (cell.m_water > 0.3f) {
+            result = cell.IsLava() ? GColors.m_lava.Color32 : GColors.m_water.Color32;
+        } else if (cell.HasBgSurface()) {
+            result = cell.GetBgSurface().m_color;
+        }
+        result.a = byte.MaxValue;
+        return result;
+    }
+    private static Color32 RenderMonochromeLighting(CCell cell) {
+        CItemCell content = cell.GetContent();
+
+        Color32 result = MinimapColorNothing;
+        if (content != null) {
+            result = cell.HasGrass() ? MinimapColorGrass : content.m_mainColor;
+        } else if (cell.m_water > 0.3f) {
+            result = cell.IsLava() ? GColors.m_lava.Color32 : GColors.m_water.Color32;
+        } else if (cell.HasBgSurface()) {
+            result = cell.GetBgSurface().m_color;
+        }
+        float light = Mathf.Clamp01((float)cell.Light * (2f / 255f));
+        result.r = (byte)((float)result.r * light);
+        result.g = (byte)((float)result.g * light);
+        result.b = (byte)((float)result.b * light);
+        result.a = byte.MaxValue;
+        return result;
+    }
+    private static Color32 RenderRGBLighting(CCell cell) {
+        CItemCell content = cell.GetContent();
+
+        Color32 result = MinimapColorNothing;
+        if (content != null) {
+            result = cell.HasGrass() ? MinimapColorGrass : content.m_mainColor;
+        } else if (cell.m_water > 0.3f) {
+            result = cell.IsLava() ? GColors.m_lava.Color32 : GColors.m_water.Color32;
+        } else if (cell.HasBgSurface()) {
+            result = cell.GetBgSurface().m_color;
+        }
+        result.r = (byte)((float)result.r * Mathf.Clamp01(cell.m_light.r * (2f / 255f)));
+        result.g = (byte)((float)result.g * Mathf.Clamp01(cell.m_light.g * (2f / 255f)));
+        result.b = (byte)((float)result.b * Mathf.Clamp01(cell.m_light.b * (2f / 255f)));
+        result.a = byte.MaxValue;
+        return result;
+    }
+}
+
 [BepInPlugin("world-recorder", "World Recorder", "1.0.0")]
 public class WorldRecorder : BaseUnityPlugin {
     private ConfigEntry<double> configFramePeriod;
@@ -142,6 +215,8 @@ public class WorldRecorder : BaseUnityPlugin {
     private ConfigEntry<string> configEncoderArgs;
     private ConfigEntry<KeyboardShortcut> configForceCreateFrame;
     private ConfigEntry<bool> configAsyncEncoding;
+    private ConfigEntry<CellRenderer.LightingMode> configLightingMode;
+    private ConfigEntry<KeyboardShortcut> configScreenshotWorld;
 
     private bool _isRecording = false;
 
@@ -153,9 +228,6 @@ public class WorldRecorder : BaseUnityPlugin {
     private double _lastScreenshotTime = double.MinValue;
     private CCell[,] _worldCellsCopy = { { } };
     private SingleThreadedWorker _worker;
-
-    private static readonly Color32 MinimapColorNothing = SMisc.GetColor(16049106u);
-    private static readonly Color32 MinimapColorGrass = SMisc.GetColor(16777070u);
 
     [DllImport("msvcrt.dll", EntryPoint = "memcpy", CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
     private static unsafe extern void* memcpy(void* dest, void* src, UIntPtr count);
@@ -186,6 +258,16 @@ public class WorldRecorder : BaseUnityPlugin {
             defaultValue: false,
             description: "ONLY USE IF YOU HAVE PERFORMANCE ISSUES. Bypasses the intermediate buffer for temporary world state saving. Hypothetically could cause frame corruption"
         );
+        configLightingMode = Config.Bind<CellRenderer.LightingMode>(
+            section: "General", key: "LightingMode",
+            defaultValue: CellRenderer.LightingMode.FullBrightness,
+            description: "Lighting calculation method for rendering"
+        );
+        configScreenshotWorld = Config.Bind<KeyboardShortcut>(
+            section: "General", key: "ScreenshotWorld",
+            defaultValue: new KeyboardShortcut(KeyCode.F9, KeyCode.LeftShift),
+            description: "Create a screenshot (single frame) of the world without recording"
+        );
         configUseEncoder = Config.Bind<bool>(
             section: "Encoder", key: "UseEncoder",
             defaultValue: true,
@@ -213,7 +295,26 @@ public class WorldRecorder : BaseUnityPlugin {
     }
 
     void Update() {
-        if (configToggleKey.Value.IsDown() && SWorld.Grid != null) {
+        if (SWorld.Grid == null) { return; }
+
+        if (configScreenshotWorld.Value.IsDown()) {
+            uint imageWidth = (uint)SWorld.Grid.GetLength(0);
+            uint imageHeight = (uint)SWorld.Grid.GetLength(1);
+            var cellRenderer = CellRenderer.GetRenderer(configLightingMode.Value);
+
+            string filename = $"screenshot-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.bmp";
+            string filePath = Path.Combine(configOutputDir.Value, filename);
+
+            using FileStream fs = File.Create(filePath);
+            BmpEncoder.WriteBmp(fs, imageWidth, imageHeight,
+                (x, y) => cellRenderer(SWorld.Grid[x, imageHeight - 1 - y])
+            );
+
+            Logger.LogInfo($"Created world frame | saving image to '{filePath}'");
+            DisplayScreenMessage($"Created world screenshot {filename}");
+        }
+
+        if (configToggleKey.Value.IsDown()) {
             _isRecording ^= true;
             if (_isRecording) {
                 StartRecording();
@@ -254,7 +355,7 @@ public class WorldRecorder : BaseUnityPlugin {
         _lastScreenshotTime = double.MinValue;
 
         if (!configUseEncoder.Value) {
-            _localOutputDir = Path.Combine(configOutputDir.Value, $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}");
+            _localOutputDir = Path.Combine(configOutputDir.Value, $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.bmp");
             Directory.CreateDirectory(_localOutputDir);
         } else {
             string outputPath = Path.Combine(
@@ -294,7 +395,7 @@ public class WorldRecorder : BaseUnityPlugin {
         }
 
         Logger.LogInfo("Starting world recording");
-        SScreenMessages.Inst.AddMessage("Starting world recording...", centerOffset: new Vector2(0, 300f));
+        DisplayScreenMessage("Starting world recording...");
     }
     private void StopRecording() {
         if (ffmpegProcess != null) {
@@ -312,20 +413,21 @@ public class WorldRecorder : BaseUnityPlugin {
                 ffmpegProcess = null;
             }
         }
-        Logger.LogInfo($"Stopping world recording ({_currentFrameIndex + 1} frames)");
-        SScreenMessages.Inst.AddMessage($"Stopping world recording... ({_currentFrameIndex + 1} frames)", centerOffset: new Vector2(0, 300f));
+        Logger.LogInfo($"Stopping world recording ({_currentFrameIndex} frames)");
+        DisplayScreenMessage($"Stopping world recording... ({_currentFrameIndex} frames)");
     }
 
     private void ImageSavingTask() {
         uint imageWidth = (uint)_worldCellsCopy.GetLength(0), imageHeight = (uint)_worldCellsCopy.GetLength(1);
 
+        var cellRenderer = CellRenderer.GetRenderer(configLightingMode.Value);
         if (ffmpegProcess == null) {
             string filePath = Path.Combine(_localOutputDir, $"{_currentFrameIndex:0000}.bmp");
             Logger.LogInfo($"Frame #{_currentFrameIndex} : Saving world image to '{filePath}'");
 
             using FileStream fs = File.Create(filePath);
             BmpEncoder.WriteBmp(fs, imageWidth, imageHeight,
-                (x, y) => WorldCellToColor(_worldCellsCopy[x, imageHeight - 1 - y])
+                (x, y) => cellRenderer(_worldCellsCopy[x, imageHeight - 1 - y])
             );
         } else {
             Logger.LogInfo($"Frame #{_currentFrameIndex}");
@@ -337,7 +439,7 @@ public class WorldRecorder : BaseUnityPlugin {
 
             for (long y = imageHeight - 1; y >= 0; --y) {
                 for (uint x = 0; x < imageWidth; ++x) {
-                    Color32 color = WorldCellToColor(_worldCellsCopy[x, y]);
+                    Color32 color = cellRenderer(_worldCellsCopy[x, y]);
 
                     frameBuffer[bufferIndex + 0] = color.r;
                     frameBuffer[bufferIndex + 1] = color.g;
@@ -354,23 +456,12 @@ public class WorldRecorder : BaseUnityPlugin {
         _currentFrameIndex += 1;
     }
 
-    private static Color32 WorldCellToColor(CCell cell) {
-        CItemCell content = cell.GetContent();
-
-        Color32 result = MinimapColorNothing;
-        if (content != null) {
-            result = cell.HasGrass() ? MinimapColorGrass : content.m_mainColor;
-        } else if (cell.m_water > 0.3f) {
-            result = cell.IsLava() ? GColors.m_lava.Color32 : GColors.m_water.Color32;
-        } else if (cell.HasBgSurface()) {
-            result = cell.GetBgSurface().m_color;
-        }
-        result.a = byte.MaxValue;
-        return result;
-    }
-
     private static string GetFFmpegPath() {
         string localPath = Path.Combine(Paths.PluginPath, "ffmpeg.exe");
         return File.Exists(localPath) ? localPath : "ffmpeg";
+    }
+
+    private static void DisplayScreenMessage(string message) {
+        SScreenMessages.Inst.AddMessage(message, centerOffset: new Vector2(0, 300f));
     }
 }
