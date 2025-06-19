@@ -3,8 +3,6 @@ using BepInEx.Configuration;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Drawing.Printing;
-using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -355,7 +353,7 @@ public class WorldRecorder : BaseUnityPlugin {
         _lastScreenshotTime = double.MinValue;
 
         if (!configUseEncoder.Value) {
-            _localOutputDir = Path.Combine(configOutputDir.Value, $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.bmp");
+            _localOutputDir = Path.Combine(configOutputDir.Value, $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}");
             Directory.CreateDirectory(_localOutputDir);
         } else {
             string outputPath = Path.Combine(
