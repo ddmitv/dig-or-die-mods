@@ -143,10 +143,8 @@ cd dig-or-die-mods
 ```
 
 > [!IMPORTANT]
-> If you have Dig or Die installed in non-default location (`C:\Program Files (x86)\Steam\steamapps\common\Dig or Die\`) please follow this steps:
-> 1. Copy `DevEnv.targets.template` to `DevEnv.targets` (or rename it).
-> 2. Open `DevEnv.targets` in text editor.
-> 3. Change the path `C:\Program Files (x86)\Steam\steamapps\common\Dig or Die\` to where your Dig or Die is installed (file `DigOrDie.exe` should be there).
+> If you have Dig or Die installed in non-default location (`C:\Program Files (x86)\Steam\steamapps\common\Dig or Die\`)
+> please run `Generate-DevEnv.ps1` powershell script or manually create and fill `DevEnv.targets` file (see `DevEnv.targets.template`).
 
 Build required plugins (run in project root):
 ```bash

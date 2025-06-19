@@ -6,6 +6,7 @@
 !DevEnv.targets.template
 !Directory.Build.props
 !NuGet.Config
+!Generate-DevEnv.ps1
 !dod-save.hexpat
 !README.md
 
