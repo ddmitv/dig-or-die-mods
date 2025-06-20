@@ -274,7 +274,7 @@ internal static class FreecamModePatch {
     [HarmonyPatch(typeof(SGame), nameof(SGame.SetCameraPos))]
     private static bool SGame_SetCameraPos() {
         if (!isInFreecamMode) { return true; }
-        float simuDeltaTime = SMain.SimuDeltaTime;
+        float simuDeltaTime = Time.deltaTime;
         float playerSpeed = cameraSpeed * (SInputs.shift.IsKey() ? 0.3f : 1f);
         if (SInputs.left.IsKey()) {
             cameraPos.x -= playerSpeed * simuDeltaTime;
