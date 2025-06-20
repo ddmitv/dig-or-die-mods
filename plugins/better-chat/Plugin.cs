@@ -19,7 +19,7 @@ public class InvalidCommandArgument : Exception {
 // $(((3 + 4 * 2 - (10 % 3) + (5 - 3 - 1) * (-3^2) / 0.5) ^ (2 % 3)) % 100 + (12 / 3 * 4 - 12 / (3 * 4)) * (3.5 / 0.5) - (2.1 + 3.2 - 1.5) * (2 ^ -3 ^ 2 * 100) + ((10.5 % 3) * (3 ^ -2) / (5 - 3 - 1)) + (-5 + 3) * (-4^2) - (100 / (2 + 3)^2) + ((2 ^ -3) ^ 2) * 1000)
 // this should return ~212.0494
 
-[BepInPlugin("extra-commands", "Extra Commands", "1.0.0")]
+[BepInPlugin("extra-commands", "Extra Commands", "1.0.1")]
 public class BetterChat : BaseUnityPlugin {
     public static ConfigEntry<KeyboardShortcut> configRepeatLastCommand = null;
     public static ConfigEntry<string> configChatExpressionEvaluatorPrefix = null;
