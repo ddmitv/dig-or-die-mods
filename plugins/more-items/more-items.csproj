@@ -10,7 +10,7 @@
   
   <Target Name="MakeTextures" BeforeTargets="BeforeBuild">
     <Exec
-      Command="%WINDIR%\System32\WindowsPowerShell\v1.0\powershell.exe -NonInteractive -executionpolicy Unrestricted .\make-textures.ps1"
+      Command="%WINDIR%\System32\WindowsPowerShell\v1.0\powershell.exe -NonInteractive -noprofile -executionpolicy Unrestricted .\make-textures.ps1"
       LogStandardErrorAsError="True" ContinueOnError="False" WorkingDirectory="$(MSBuildProjectDirectory)"/>
     <Message Text="Creating sprite sheet (make-textures.ps1)" Importance="high" />
   </Target>
