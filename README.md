@@ -15,6 +15,29 @@ Checkout the [Wiki page](https://github.com/NUCLEAR-BOMB/dig-or-die-mods/wiki) f
 
 # Plugin Installation
 
+Firstly, you need to install BepInEx, which is a patcher/plug-in framework.
+You can follow instructions specified in [Automatic BepInEx Installation](#automatic-bepinex-installation) or [Manually Install BepInEx](#manual-bepinex-installation). Then [Download plugin .dll](#download-plugin-dll).
+
+## Automatic BepInEx Installation
+
+1. Download Powershell script from [`Install-BepInEx.ps1`](https://github.com/NUCLEAR-BOMB/dig-or-die-mods/blob/main/Install-BepInEx.ps1) \
+   In the top right, **right click** the `Raw` button
+
+2. Open Powershell where you download the `Install-BepInEx.ps1` script \
+   Go to the folder location and type `powershell.exe` on the address bar.
+
+3. Run the `.\Install-BepInEx.ps1` command to execute script and install BepInEx.
+
+> [!IMPORTANT]
+> If Powershell script execution is disable, start Windows Powershell with the "Run as Administrator" option and allow running unsigned scripts by entering:
+> ```
+> Set-ExecutionPolicy remotesigned
+> ```
+
+If you encountered an error, please follow provided instructions, or, manually install BepInEx.
+
+## Manual BepInEx Installation
+
 You can follow the [official BepInEx installation guide](https://docs.bepinex.dev/articles/user_guide/installation/index.html),
 but the following instructions are specialized for Dig or Die.
 
@@ -41,7 +64,7 @@ but the following instructions are specialized for Dig or Die.
 > [!NOTE]
 > The game will always show black screen, don't wait until it starts.
 
-5. **Critical Configuration** \
+5. **BepInEx Configuration** \
    Open `BepInEx/config/BepInEx.cfg` in text editor and find near the end:
    ```ini
    [Preloader.Entrypoint]
@@ -75,14 +98,14 @@ but the following instructions are specialized for Dig or Die.
 > ```
 > After enabling, with the game start a console window with logging information will appear.
 
-6. **Install Plugins** \
-   Place your plugin `.dll` (e.g. `precise_clock.dll`) into `BepInEx/plugins` folder.
+## Download plugin .dll
 
-> [!TIP]
-> Download plugins from [Github Releases](https://github.com/NUCLEAR-BOMB/dig-or-die-mods/releases) page (or compile them yourself).
+You can download these from [Github Releases](https://github.com/NUCLEAR-BOMB/dig-or-die-mods/releases) page (or compile them yourself, see [Building Plugins](#building-plugins)).
 
-1. **Final Launch** \
-   Run the game **through Steam** again. Plugins should now be active.
+Place plugin `.dll` (e.g. `precise_clock.dll`) into `Dig or Die/BepInEx/plugins`.
+
+Run the game **through Steam**. Plugins should now be active.
+
 > [!NOTE]
 > For troubleshooting:
 > - Check `Dig or Die/DigOrDie_Data/output_log.txt`
