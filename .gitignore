@@ -7,6 +7,7 @@
 !Directory.Build.props
 !NuGet.Config
 !Generate-DevEnv.ps1
+!Install-BepInEx.ps1
 !dod-save.hexpat
 !README.md
 
