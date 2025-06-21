@@ -11,13 +11,15 @@
 #include "vars.hpp"
 #include "funcs.hpp"
 
-#define EXPORT extern "C" __declspec(dllexport)
+extern "C" {
 
-EXPORT void DllSetCallbacks(DelegateCallbackDebug* fp1, DelegateCallbackGetElecProd* fp2) {
+// FUNCTION: 0x1470
+__declspec(dllexport) void DllSetCallbacks(DelegateCallbackDebug* fp1, DelegateCallbackGetElecProd* fp2) {
     g_callbackDebug = fp1;
     g_callbackGetElecProd = fp2;
 }
-EXPORT void DllClose() {
+// FUNCTION: 0x13b0
+__declspec(dllexport) void DllClose() {
     g_callbackDebug("- Stopping threads...");
 
     for (int i = 0; i < g_nbThreads; ++i) {
@@ -36,7 +38,8 @@ EXPORT void DllClose() {
     }
     g_callbackDebug("- Threads stopped.");
 }
-EXPORT uint32_t DllGetSaveOffset(int32_t build, int32_t x) {
+// FUNCTION: 0x1470
+__declspec(dllexport) uint32_t DllGetSaveOffset(int32_t build, int32_t x) {
     if (build < 198) {
         return 0;
     }
@@ -49,7 +52,8 @@ EXPORT uint32_t DllGetSaveOffset(int32_t build, int32_t x) {
     uint64_t product = (uint64_t)hash * 10ULL;
     return (uint32_t)(product / 0xFFFFFFFFULL);
 }
-EXPORT void DllInit(int nbThreads) {
+// FUNCTION: 0x1270
+__declspec(dllexport) void DllInit(int nbThreads) {
     // WaitForDebugger();
 
     DebugLogFormat(g_formatBuffer, "- Dll initialisation. Creating %d threads...", nbThreads);
@@ -79,13 +83,15 @@ EXPORT void DllInit(int nbThreads) {
     g_callbackDebug("- Dll successfuly initialized.");
     ::srand(uint32_t(::_time64(nullptr)));
 }
-EXPORT int DllProcessElectricity(
+// FUNCTION: 0x1cb0
+__declspec(dllexport) int DllProcessElectricity(
     CCell* grid, CItem_PluginData* itemsData, double simuTime, double simuDeltaTime
 ) {
     g_callbackDebug("dll: inside DllProcessElectricity");
     return 1;
 }
-EXPORT int DllProcessForces(
+// FUNCTION: 0x2240
+__declspec(dllexport) int DllProcessForces(
     CCell* grid, CItem_PluginData* itemsData, int* cellsWithForces, int nbCells, float weightMult
 ) {
     // g_callbackDebug("dll: inside DllProcessForces");
@@ -172,7 +178,8 @@ EXPORT int DllProcessForces(
     }
     return 1;
 }
-EXPORT int DllProcessLightingSquare(
+// FUNCTION: 0x27f0
+__declspec(dllexport) int DllProcessLightingSquare(
     CCell* grid, CItem_PluginData* itemsData, int2 posMin, int2 posMax, float sunlight, RectInt skipYMax,
     int sunLightYMin, int sunLightYMax
 ) {
@@ -203,7 +210,8 @@ EXPORT int DllProcessLightingSquare(
 
     return 1;
 }
-EXPORT int DllProcessWaterMT(
+// FUNCTION: 0x3a40
+__declspec(dllexport) int DllProcessWaterMT(
     CCell* grid, CItem_PluginData* itemsData, double simuTime, double simuDeltaTime, int isRaining,
     int yRain, int fastEvaporationYMax, float cloudCenter, int cloudRadius, float lavaPressure, float waterSpeed,
     int* changeCellPos, double* infiltrationTimes, double* lavaMovingTimes, short* nbCellsUpdated
@@ -245,7 +253,8 @@ EXPORT int DllProcessWaterMT(
     // INCOMPLETE: CALL TO FUNCTION 0x54d0
     return 1;
 }
-EXPORT void DllResetSimu(int2 gs, float gridBorderNoCam) {
+// FUNCTION: 0x1360
+__declspec(dllexport) void DllResetSimu(int2 gs, float gridBorderNoCam) {
     g_callbackDebug("dll: inside DllResetSimu");
 
     g_gridSize = gs;
@@ -255,7 +264,8 @@ EXPORT void DllResetSimu(int2 gs, float gridBorderNoCam) {
     g_gridOrder = new int[gs.x + 1]; // memory leak
     InitGridOrder();
 }
-EXPORT int GetBestSpawnPoint(CCell* grid, const CItem_PluginData* itemsData, int2* pos) {
+// FUNCTION: 0x14c0
+__declspec(dllexport) int GetBestSpawnPoint(CCell* grid, const CItem_PluginData* itemsData, int2* pos) {
     g_callbackDebug("dll: inside GetBestSpawnPoint");
 
     const int2 origPos = *pos;
@@ -285,4 +295,6 @@ EXPORT int GetBestSpawnPoint(CCell* grid, const CItem_PluginData* itemsData, int
         }
     }
     return spawnPointsFound;
+}
+
 }

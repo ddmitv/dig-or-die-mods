@@ -22,6 +22,7 @@ inline bool IsCellPassable(const CCell& cell, const CItem_PluginData* itemsData)
 }
 
 // https://github.com/wine-mirror/wine/blob/master/include/msvcrt/stdio.h
+// FUNCTION: 0x1630
 inline int DebugLogFormat(char* buffer, const char* format, ...) {
     va_list args;
     va_start(args, format);
@@ -54,6 +55,7 @@ inline void UpdateWaterFlow(int startOffset, int numIterations) {
     }
 }
 
+// FUNCTION: 0x1060
 inline unsigned int __stdcall WorkerThread(void* threadDataRaw) {
     ThreadData* const threadData = static_cast<ThreadData*>(threadDataRaw);
 
@@ -83,6 +85,7 @@ inline unsigned int __stdcall WorkerThread(void* threadDataRaw) {
         ::WaitForSingleObject(threadData->secondEvent /*0x8*/, 1000);
     }
 }
+// FUNCTION: 0x1120
 inline void InitGridOrder() {
     if (g_gridSize.x + 1 > 0) {
         int i = 0;
