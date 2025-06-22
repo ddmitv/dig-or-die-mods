@@ -20,6 +20,7 @@ public class WorldRecorder : BaseUnityPlugin {
     private ConfigEntry<bool> configAsyncEncoding;
     private ConfigEntry<CellRenderer.LightingMode> configLightingMode;
     private ConfigEntry<KeyboardShortcut> configScreenshotWorld;
+    private ConfigEntry<KeyboardShortcut> configOpenOutputDir;
 
     private bool _isRecording = false;
 
@@ -73,6 +74,12 @@ public class WorldRecorder : BaseUnityPlugin {
             defaultValue: new KeyboardShortcut(KeyCode.F9, KeyCode.LeftShift),
             description: "Create a screenshot (single frame) of the world without recording"
         );
+        configOpenOutputDir = Config.Bind<KeyboardShortcut>(
+            section: "General", key: "OpenOutputDir",
+            defaultValue: KeyboardShortcut.Empty,
+            description: "Opens file explorer in the output directory"
+        );
+
         configUseEncoder = Config.Bind<bool>(
             section: "Encoder", key: "UseEncoder",
             defaultValue: true,
@@ -117,6 +124,10 @@ public class WorldRecorder : BaseUnityPlugin {
 
             Logger.LogInfo($"Created world frame | saving image to '{filePath}'");
             DisplayScreenMessage($"Created world screenshot {filename}");
+        }
+
+        if (configOpenOutputDir.Value.IsDown() && Directory.Exists(configOutputDir.Value)) {
+            Process.Start(configOutputDir.Value);
         }
 
         if (configToggleKey.Value.IsDown()) {
