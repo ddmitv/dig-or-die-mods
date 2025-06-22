@@ -7,7 +7,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-[BepInPlugin("world-recorder", "World Recorder", "1.0.0")]
+[BepInPlugin("world-recorder", "World Recorder", "1.1.0")]
 public class WorldRecorder : BaseUnityPlugin {
     private ConfigEntry<double> configFramePeriod;
     private ConfigEntry<string> configOutputDir;
