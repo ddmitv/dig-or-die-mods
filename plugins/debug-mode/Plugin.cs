@@ -3,6 +3,7 @@ using HarmonyLib;
 using ModUtils.Extensions;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Reflection.Emit;
 using UnityEngine;
 
@@ -144,6 +145,63 @@ internal static class DebugDrawLinePatch {
 #pragma warning restore Harmony003 // Harmony non-ref patch parameters modified
 }
 
+internal static class DontIncrementVersionBuildPatch {
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(SMain), nameof(SMain.Awake))]
+    private static IEnumerable<CodeInstruction> SMain_Awake(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        return new CodeMatcher(instructions, generator)
+            .MatchForward(useEnd: false,
+                new(OpCodes.Call, typeof(UnityEngine.Application).Method("get_isEditor")),
+                new(OpCodes.Brfalse),
+                new(OpCodes.Ldc_I4_0),
+                new(OpCodes.Br),
+                new(OpCodes.Ldc_I4_1),
+                new(OpCodes.Add))
+            .RemoveInstructions(6)
+            .Instructions();
+    }
+}
+
+internal static class ExtraDebugChecksPatch {
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.GetUnitTargetPos))]
+    private static IEnumerable<CodeInstruction> CUnitDefense_GetUnitTargetPos(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        return new CodeMatcher(instructions, generator)
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Call),
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Callvirt),
+                new(OpCodes.Call),
+                new(OpCodes.Call),
+                new(OpCodes.Call, typeof(UnityEngine.Debug).Method<Vector3, Vector3, Color>("DrawLine")))
+            .ThrowIfInvalid("(1)")
+            .CreateLabelAtOffset(7, out Label label1)
+            .Insert(
+                new(OpCodes.Ldsfld, typeof(G).StaticField("m_debugDefenses")),
+                new(OpCodes.Ldsfld, typeof(G).StaticField("m_debug")),
+                new(OpCodes.And),
+                new(OpCodes.Brfalse, label1))
+            .Advance(7)
+            .MatchForward(useEnd: false,
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Call),
+                new(OpCodes.Ldloc_S),
+                new(OpCodes.Callvirt),
+                new(OpCodes.Call),
+                new(OpCodes.Call),
+                new(OpCodes.Call, typeof(UnityEngine.Debug).Method<Vector3, Vector3, Color>("DrawLine")))
+            .ThrowIfInvalid("(2)")
+            .CreateLabelAtOffset(7, out Label label2)
+            .InjectAndAdvance(OpCodes.Ldsfld, typeof(G).StaticField("m_debugDefenses"))
+            .Insert(
+                new(OpCodes.Ldsfld, typeof(G).StaticField("m_debug")),
+                new(OpCodes.And),
+                new(OpCodes.Brfalse, label2))
+            .Instructions();
+    }
+}
+
 [BepInPlugin("debug-mode", "Debug Mode", "1.0.0")]
 public class DebugMode : BaseUnityPlugin {
 
@@ -186,6 +244,11 @@ public class DebugMode : BaseUnityPlugin {
             description: "Use custom drawer for UnityEngine.Debug.DrawLine methods. " +
                          "Note that without intercepting Debug.DrawLine calls they do basically nothing"
         );
+        var configIncrementVersionBuild = Config.Bind<bool>(
+            section: "StartUp", key: "IncrementVersionBuild", defaultValue: false,
+            description: "If config `IsEditor` is enabled, will increment the version build number (this is the default behavior in the game)"
+        );
+
         InitDebugVarsConfig();
 
         if (!configEnable.Value) {
@@ -194,6 +257,7 @@ public class DebugMode : BaseUnityPlugin {
         var harmony = new Harmony(Info.Metadata.GUID);
 
         harmony.PatchAll(typeof(EnableDebugModePatch));
+        harmony.PatchAll(typeof(ExtraDebugChecksPatch));
         if (configNoWorldPresimulation.Value) {
             harmony.PatchAll(typeof(NoWorldPresimulationPatch));
         }
@@ -203,6 +267,9 @@ public class DebugMode : BaseUnityPlugin {
         if (configInterceptDebugRendering.Value) {
             gameObject.AddComponent<DebugDrawLinePatch.DebugLineRenderer>();
             harmony.PatchAll(typeof(DebugDrawLinePatch));
+        }
+        if (!configIncrementVersionBuild.Value) {
+            harmony.PatchAll(typeof(DontIncrementVersionBuildPatch));
         }
     }
 }
