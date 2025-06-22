@@ -63,13 +63,19 @@ Lighting calculation method for rendering.
 | `FullLighting`       | Renders image ignoring all lighting (same color as in minimap) for cells |
 | `MonochromeLighting` | Renders image using average lighting for cells                           |
 | `RGBLighting`        | Renders image using red, green and blue color for cells                  |
-
 ### `[General]` `ScreenshotWorld`
 
 **Setting type:** `KeyboardShortcut` \
 **Default value:** `F9 + LeftShift`
 
-Create a screenshot (single frame) of the world without recording
+Create a screenshot (single frame) of the world without recording and saves it as `screenshot-{date}.bmp`.
+
+### `[General]` `OpenOutputDir`
+
+**Setting type:** `KeyboardShortcut` \
+**Default value:** ` `
+
+Opens file explorer in the output directory.
 
 ### `[Encoder]` `UseEncoder`
 
