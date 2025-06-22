@@ -7,7 +7,7 @@ Basically, adds PVP to the game.
 
 A custom functionality a plugin provides is when a player is killed by another one (or by themselves), the death message will include another players name that killed them.
 
-## Configuration
+# Configuration
 
 ### `[General]` `Enabled`
 

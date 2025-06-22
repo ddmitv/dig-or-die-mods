@@ -1,7 +1,7 @@
 
 # Max Threads (WIP)
 
-Makes the game use maximum number of logical threads (`System.Environment.ProcessorCount`) in the world simulation logic.
+Makes the game use maximum number of logical threads in the world simulation logic.
 By default, the game always only uses 4 threads regardless of available ones.
 
 > [!Caution]
@@ -9,7 +9,7 @@ By default, the game always only uses 4 threads regardless of available ones.
 
 The number of threads is clamped up to 32 in `DigOrDie.dll`, `DllInit` exported function.
 
-## Configuration
+# Configuration
 
 ### `[General]` `OverrideThreadsNumber`
 

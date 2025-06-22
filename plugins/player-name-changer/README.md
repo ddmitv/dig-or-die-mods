@@ -13,10 +13,10 @@ So, when the monster is killed a player, a `/system CHAT_DEATH_KILLED|<player na
 When a player name has a `|` character, the game will use a second part of your name as a monster's codename, and the first part as player's name.
 For example, if your name is `my name|bossDweller`, when you die by a monster, the death message will always be `my name was killed by a Dweller Lord` regardless by a monster that originally killed you.
 
-## Configuration
+# Configuration
 
 > [!TIP]
-> You can change config during the game. The name will change automatically.
+> You can change config during the game. The new name will apply immediately.
 
 ### `[General]` `PlayerName`
 

@@ -12,11 +12,15 @@ Makes achievements available (configurable):
 This might feel like a cheaty plugin for unlocking all Steam achievements, but plenty of software already allows do this easily and without installing any plugins.
 The plugin was originally created to enable achievements in multiplayer, because it's really annoying when playing with friend and not receive any legally gained achievements.
 
-Interestingly, it seems to me that the game originally planned to have working achievements in multiplayer: there is a static field `GVars.m_achievementsLocked` that gets disabled in particular
-when the current game mode is not either `Solo` or `Multi`. So even when playing with multiple players, `GVars.m_achievementsLocked` is `true`, but, the method `SSteamStats.SetStat`
-designed to set achievement progress additionally checks for multiplayer.
+<details>
 
-## Configuration
+> Interestingly, it seems to me that the game originally planned to have working achievements in multiplayer: there is a static field `GVars.m_achievementsLocked` that gets disabled in particular
+> when the current game mode is not either `Solo` or `Multi`. So even when playing with multiple players, `GVars.m_achievementsLocked` is `true`, but, the method `SSteamStats.SetStat`
+> designed to set achievement progress additionally checks for multiplayer.
+
+</details>
+
+# Configuration
 
 ### `[General]` `Enabled`
 
@@ -30,14 +34,14 @@ Enables the plugin.
 **Setting type:** `bool` \
 **Default value:** `true`
 
-Makes achievements available in multiplayer game (either host or client).
+Makes achievements available in multiplayer game (either if you host or client).
 
 ### `[EnableAchievements]` `AfterCheats`
 
 **Setting type:** `bool` \
 **Default value:** `false`
 
-Makes achievements available after using `/event` and `/param` commands, modifying params in `Solo`/`Multi` game modes (in `.lua` files) or starting a game with creative mode ro with events enabled.
+Makes achievements available after using `/event` and `/param` commands, modifying params in `Solo`/`Multi` game modes (in `.lua` files) or starting a game with creative mode or with events enabled.
 
 ### `[EnableAchievements]` `WithEvents`
 
@@ -58,4 +62,4 @@ Makes achievements accessible in custom game modes (not only in `Solo`/`Multi` m
 **Setting type:** `bool` \
 **Default value:** `false`
 
-Force enables the achievements in post-game even if `skipInPostGame` parameter (in `SSteamStats.SetStat`) is `true`
+Force enables the achievements in post-game even if `skipInPostGame` parameter (in `SSteamStats.SetStat`) is `true`.

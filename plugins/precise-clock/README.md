@@ -18,7 +18,7 @@ This plugin should work with custom night and day durations, even if they are ch
 > [!TIP]
 > This is client-only plugin. It doesn't require installation on host/everybody in the lobby.
 
-## Configuration
+# Configuration
 
 ### `[General]` `Color`
 

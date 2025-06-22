@@ -34,7 +34,7 @@ The list of nondeterministic initial conditions that will change even with the s
 - Player spawn location (`CModeSolo.OnNewGame`).
 - Initial metal scrap pickups locations (`CModeSolo.CreateInitialMetalScrapPickups`). 
 
-## Configuration
+# Configuration
 
 ### `[General]` `MaxSeed`
 
@@ -43,3 +43,6 @@ The list of nondeterministic initial conditions that will change even with the s
 **Acceptable value range:** [`0`,`2147483647`] (`int.MaxValue`).
 
 Specifies the largest seed that you can provide and the game randomly generate.
+
+> [!NOTE]
+> If you input seed greater than current value of this config, you will be unable to start a new game.

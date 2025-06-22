@@ -1,7 +1,7 @@
 
 # World Recorder
 
-Allows to record entire world into video (or sequence of .bmp files) or take a screenshot of it.
+Allows to record entire world into video (or sequence of .bmp files) or take a single screenshot of it.
 
 ![Showcase](readme-res/showcase.gif)
 
@@ -10,7 +10,7 @@ Allows to record entire world into video (or sequence of .bmp files) or take a s
 >
 > Use F9 + Left Shift (default) to take single screenshot.
 
-## Configuration
+# Configuration
 
 ### `[General]` `Period`
 
@@ -63,6 +63,7 @@ Lighting calculation method for rendering.
 | `FullLighting`       | Renders image ignoring all lighting (same color as in minimap) for cells |
 | `MonochromeLighting` | Renders image using average lighting for cells                           |
 | `RGBLighting`        | Renders image using red, green and blue color for cells                  |
+
 ### `[General]` `ScreenshotWorld`
 
 **Setting type:** `KeyboardShortcut` \

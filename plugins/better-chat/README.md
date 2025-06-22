@@ -40,11 +40,11 @@ A plugin that expands the list of available commands (chat messages starting wit
   - [`/exportpng`](#exportpng)
   - [`/clock`](#clock)
 - [Configuration](#configuration)
-  - [`[General]` `RepeatLastCommand`](#general-repeatlastcommand)
-  - [`[ChatExpressionEvaluator]` `Enable`](#chatexpressionevaluator-enable)
-  - [`[ChatExpressionEvaluator]` `Prefix`](#chatexpressionevaluator-prefix)
-  - [`[General]` `FullChatHistory`](#general-fullchathistory)
-  - [`[General]` `DisableAchievementsOnCommand`](#general-disableachievementsoncommand)
+    - [`[General]` `RepeatLastCommand`](#general-repeatlastcommand)
+    - [`[ChatExpressionEvaluator]` `Enable`](#chatexpressionevaluator-enable)
+    - [`[ChatExpressionEvaluator]` `Prefix`](#chatexpressionevaluator-prefix)
+    - [`[General]` `FullChatHistory`](#general-fullchathistory)
+    - [`[General]` `DisableAchievementsOnCommand`](#general-disableachievementsoncommand)
 
 # Expression Evaluator
 
@@ -680,12 +680,16 @@ Replaces `target` cell in `from` to `to` region with `cell`.
 /freecam
 /freecam speed=<FLOAT>
 /freecam zoom=<INT>
+/freecam speed
+/freecam zoom
 ```
 1. Toggles freecam mode.
 2. Sets the freecam camera speed (default: 100).
 3. Sets the camera zoom index (default: 0).
    - Positive integers: zoom-in.
    - Negative integers: zoom-out.
+4. Prints current freecam speed.
+5. Prints current freecam zoom index.
 
 In freecam mode the camera gets detached from player and you now control a camera, leaving the player in the original position.
 Use Shift key to slowdown camera speed.
@@ -694,6 +698,11 @@ Use Shift key to slowdown camera speed.
 > This's a local command.
 
 **Examples:**
+
+```
+/freecam
+```
+> Toggle freecam mode.
 
 ```
 /freecam speed=50
@@ -717,19 +726,24 @@ Creates an image of entire world and saves it in `path` (by default in `SavedScr
 **Examples:**
 
 ```
+/exportpng 
+```
+> Saves image as `SavedScreen.png` in the game's root folder (where `DigOrDie.exe` located).
+
+```
 /exportpng myworld
 ```
-> Saves image as `myworld.png`, in the game's root folder (where `DigOrDie.exe` located).
+> Saves image as `myworld.png` in the game's root folder (where `DigOrDie.exe` located).
 
 ```
 /exportpng C:\Users\Public\output.png
 ```
-> Saves image in `C:\Users\Public\output.png`.
+> Saves image as `C:\Users\Public\output.png`.
 
 ```
 /exportpng theworld.abc
 ```
-> Saves image in `theworld.abc`, n the game's root folder (where `DigOrDie.exe` located).
+> Saves image as `theworld.abc` in the game's root folder (where `DigOrDie.exe` located).
 
 ---
 
@@ -764,35 +778,35 @@ Creates an image of entire world and saves it in `path` (by default in `SavedScr
 
 # Configuration
 
-## `[General]` `RepeatLastCommand`
+### `[General]` `RepeatLastCommand`
 
 **Setting Type:** `KeyboardShortcut` \
 **Default value:** `~ + ctrl`
 
 Keyboard shortcut for running last command.
 
-## `[ChatExpressionEvaluator]` `Enable`
+### `[ChatExpressionEvaluator]` `Enable`
 
 **Setting type:** `bool` \
 **Default value:** `true`
 
 Enable expression evaluator in chat.
 
-## `[ChatExpressionEvaluator]` `Prefix`
+### `[ChatExpressionEvaluator]` `Prefix`
 
 **Setting type:** `string` \
 **Default value:** `"$"`
 
 Prefix for expression evaluation syntax.
 
-## `[General]` `FullChatHistory`
+### `[General]` `FullChatHistory`
 
 **Setting type:** `bool` \
 **Default value:** `true`
 
 Tracks every message in the chat and adds it to the history.
 
-## `[General]` `DisableAchievementsOnCommand`
+### `[General]` `DisableAchievementsOnCommand`
 
 **Setting type:** `bool` \
 **Default value:** `true`

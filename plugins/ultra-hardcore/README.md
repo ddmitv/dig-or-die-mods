@@ -8,7 +8,7 @@ All effects of this plugin will apply at any difficulty level.
 > [!WARNING]
 > The plugin was not tested for completing a game with any of configs enabled. If you encountered a problem you can temporary (or permanently) disable problematic settings.
 
-## Configuration
+# Configuration
 
 ### `[UltraHardcore]` `HpMax`
 
@@ -43,7 +43,7 @@ Note that this physically removes all light from the sun, so all plants on the s
 **Setting type:** `bool` \
 **Default value:** `false`
 
-Removes all rains from the game. This doesn't affect presimulation.
+Removes all rains from the game. This doesn't affect presimulation (i.e. when you start a new game, the initial water will exist).
 
 ### `[UltraHardcore]` `InverseNight`
 
@@ -109,14 +109,16 @@ Hides the clock from GUI. Note if you're using a `precise-clock` plugin you must
 **Setting type:** `uint` \
 **Default value:** `1`
 
-Multiplies all item recipe's ingredients (ignoring unique) by provided number.
+Multiplies all item recipe's ingredients (ignoring unique).
 
 > [!IMPORTANT]
-> If the item is an upgrade to another item (`CRecipe.m_isUpgrade`) and it's first ingredient count is 1 (or less), it's first recipe ingredient won't be affected. \
+> If the item is an upgrade to another item (`CRecipe.m_isUpgrade`) and it's first ingredient count is 1 (or less), it's first recipe ingredient won't be affected.
+> For example, if you want to craft Miniaturizor MK III, you don't need to have multiple Miniaturizor MK II to craft it.
+> 
 > If an ingredient is a boss item loot, it won't be affected. What counts as "boss item":
 > "Mad Crab Material" (`bossMadCrabMaterial`), "Mad Crab Sonar" (`bossMadCrabSonar`), "Energy Master Gem" (`masterGem`), "Demon's Skin" (`lootBalrog`), "Dweller Lord Shell Spike" (`lootDwellerLord`).
 
-### `[General]` ``
+### `[General]` `UniqualizeVersionBuild`
 
 **Setting type:** `bool` \
 **Default value:** `false`

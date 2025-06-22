@@ -11,7 +11,7 @@ When enabled, will give you invincibility and also display extra information in 
 
 There is also `G.m_debugCameras` but it doesn't seem to be used anywhere, so it is possible a remains of a scrapped debug feature.
 
-## Configuration
+# Configuration
 
 ### `[Debug]` `DrawAllBackgrounds`
 
@@ -128,3 +128,10 @@ Disables world presimulation (e.g. no initial water and plants are generated), m
 **Default value:** `true`
 
 Use custom drawer for `UnityEngine.Debug.DrawLine` method overloads. Note that without intercepting `Debug.DrawLine` calls they do basically nothing in release version of the game.
+
+### `[StartUp]` `IncrementVersionBuild`
+
+**Setting type:** `bool` \
+**Default value:** `false`
+
+If config `IsEditor` is enabled, will increment the version build number (this is the default behavior in the game).

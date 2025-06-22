@@ -60,7 +60,7 @@ Adds new 28 items with custom recipes:
 
 # Configuration
 
-## `[General]` `BossRespawnDelay`
+### `[General]` `BossRespawnDelay`
 
 **Setting type:** `float` \
 **Default value:** `360`
@@ -68,7 +68,7 @@ Adds new 28 items with custom recipes:
 Respawn delay for bosses.
 Many recipes requires boss loot items, default value is the half than multiplayer default's one to reduce waiting for boss to respawn.
 
-## `[General]` `UniqualizeVersionBuild`
+### `[General]` `UniqualizeVersionBuild`
 
 **Setting type:** `bool` \
 **Default value:** `false`
