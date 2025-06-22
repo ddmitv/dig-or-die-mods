@@ -202,7 +202,7 @@ internal static class ExtraDebugChecksPatch {
     }
 }
 
-[BepInPlugin("debug-mode", "Debug Mode", "1.0.0")]
+[BepInPlugin("debug-mode", "Debug Mode", "1.1.0")]
 public class DebugMode : BaseUnityPlugin {
 
     private void InitDebugVarsConfig() {
