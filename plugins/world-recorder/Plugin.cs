@@ -32,6 +32,8 @@ public class WorldRecorder : BaseUnityPlugin {
     private CCell[,] _worldCellsCopy = { { } };
     private SingleThreadedWorker _worker;
 
+    private byte[] _frameBuffer = [];
+
     [DllImport("msvcrt.dll", EntryPoint = "memcpy", CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
     private static unsafe extern void* memcpy(void* dest, void* src, UIntPtr count);
 
@@ -237,21 +239,24 @@ public class WorldRecorder : BaseUnityPlugin {
 
             var ffmpegIn = ffmpegProcess.StandardInput.BaseStream;
 
-            byte[] frameBuffer = new byte[imageHeight * imageWidth * 3];
+            var frameBufferSize = imageHeight * imageWidth * 3;
+            if (_frameBuffer.Length != frameBufferSize) {
+                _frameBuffer = new byte[frameBufferSize];
+            }
             int bufferIndex = 0;
 
             for (long y = imageHeight - 1; y >= 0; --y) {
                 for (uint x = 0; x < imageWidth; ++x) {
                     Color32 color = cellRenderer(_worldCellsCopy[x, y]);
 
-                    frameBuffer[bufferIndex + 0] = color.r;
-                    frameBuffer[bufferIndex + 1] = color.g;
-                    frameBuffer[bufferIndex + 2] = color.b;
+                    _frameBuffer[bufferIndex + 0] = color.r;
+                    _frameBuffer[bufferIndex + 1] = color.g;
+                    _frameBuffer[bufferIndex + 2] = color.b;
                     bufferIndex += 3;
                 }
             }
 
-            ffmpegIn.Write(frameBuffer, 0, frameBuffer.Length);
+            ffmpegIn.Write(_frameBuffer, 0, _frameBuffer.Length);
             ffmpegIn.Flush();
 
             Logger.LogInfo($"Frame #{_currentFrameIndex} finished");
