@@ -569,11 +569,19 @@ public static class CustomCommands {
             if (args.Length == 1) {
                 string[] paramAndValue = args[0].Split('=');
                 if (paramAndValue[0] == "speed") {
+                    if (paramAndValue.Length == 1) {
+                        Utils.AddChatMessageLocal(FreecamModePatch.cameraSpeed.ToString());
+                        return;
+                    }
                     if (!float.TryParse(paramAndValue[1], out float newSpeed)) {
                         throw new InvalidCommandArgument("Expected new camera speed", 1);
                     }
                     FreecamModePatch.cameraSpeed = newSpeed;
                 } else if (paramAndValue[0] == "zoom") {
+                    if (paramAndValue.Length == 1) {
+                        Utils.AddChatMessageLocal(G.m_zoomIndex.ToString());
+                        return;
+                    }
                     if (!int.TryParse(paramAndValue[1], out int newZoomIndex)) {
                         throw new InvalidCommandArgument("Expected new zoom index", 1);
                     }
