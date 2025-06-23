@@ -123,7 +123,7 @@ public class WorldRecorder : BaseUnityPlugin {
             );
 
             Logger.LogInfo($"Created world frame | saving image to '{filePath}'");
-            DisplayScreenMessage($"Created world screenshot {filename}");
+            DisplayScreenMessage($"Created world screenshot {filename} (lighting: {CellRenderer.LightingModeToString(configLightingMode.Value)})");
         }
 
         if (configOpenOutputDir.Value.IsDown() && Directory.Exists(configOutputDir.Value)) {
@@ -211,7 +211,7 @@ public class WorldRecorder : BaseUnityPlugin {
         }
 
         Logger.LogInfo("Starting world recording");
-        DisplayScreenMessage("Starting world recording...");
+        DisplayScreenMessage($"Starting world recording... (lighting: {CellRenderer.LightingModeToString(configLightingMode.Value)})");
     }
     private void StopRecording() {
         if (ffmpegProcess != null) {
@@ -303,6 +303,15 @@ internal static class CellRenderer {
             LightingMode.MonochromeLighting => RenderMonochromeLighting,
             LightingMode.RGBLighting => RenderRGBLighting,
             _ => throw new InvalidEnumArgumentException(nameof(type), (int)type, typeof(LightingMode))
+        };
+    }
+
+    public static string LightingModeToString(LightingMode mode) {
+        return mode switch {
+            LightingMode.FullBrightness => "Full Brightness",
+            LightingMode.MonochromeLighting => "Monochrome",
+            LightingMode.RGBLighting => "RGB",
+            _ => throw new InvalidEnumArgumentException(nameof(mode), (int)mode, typeof(LightingMode))
         };
     }
 
