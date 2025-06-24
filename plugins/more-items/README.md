@@ -60,7 +60,7 @@ Adds new 28 items with custom recipes:
 
 # Credits
 
-Sprites for "Duo Rotating Turret" (`turretDuo360`) and "Overcharged Plasma Turret" (`turretMegaSnipe`) items are created by **@seethejellyfish at Discord**.
+Sprites for "Duo Rotating Turret" (`turretDuo360`), "Overcharged Plasma Turret" (`turretMegaSnipe`) and "MB-X Plasma Diffuser" (`gunEnergyDiffuser`) items are created by **@seethejellyfish at Discord**.
 
 # Configuration
 

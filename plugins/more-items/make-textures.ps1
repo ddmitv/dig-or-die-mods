@@ -16,6 +16,7 @@ function NeedsUpdate {
 if (-not (NeedsUpdate)) {
     exit 0
 }
+Write-Host "Recreating spritesheet..."
 
 function CreateTextureSpriteSheetCmd {
     param($placements, $outputFile)
