@@ -76,6 +76,28 @@ internal static class CUnitDefensePatches {
                 new(OpCodes.Brtrue, successLabel))
             .Instructions();
     }
+    enum DuoTurretState : byte { Left, Right }
+    private static readonly ModUtils.WeakDictionary<CUnitDefense, DuoTurretState> duoTurretStates = new();
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(SBullets), nameof(SBullets.FireBullet))]
+    private static bool SBullets_FireBullet(SBullets __instance, CAttackDesc attackDesc, CUnit attacker, Vector2 firePos, Vector2 aimedPos) {
+        const float fireDisplacement = 0.06f;
+
+        if (attackDesc is not ExtDuoCAttackDesc || attacker is not CUnitDefense defenseAttacker) { return true; }
+        DuoTurretState state = duoTurretStates.TrySet(defenseAttacker, DuoTurretState.Left);
+
+        Vector2 vector = aimedPos - (attacker is not CUnitPlayer ? firePos : attacker.PosCenter);
+        float angle = Mathf.Atan2(vector.y, vector.x);
+        Vector2 normalizedDisplacedFirePos = (state == DuoTurretState.Left ? firePos.RotateLeft() : firePos.RotateRight()).normalized;
+        Vector2 displacedFirePos = firePos + normalizedDisplacedFirePos * fireDisplacement;
+
+        __instance.m_bullets.Add(new CBullet(attackDesc, attacker, displacedFirePos, angle, aimedPos));
+
+        duoTurretStates.Set(defenseAttacker, state == DuoTurretState.Left ? DuoTurretState.Right : DuoTurretState.Left);
+
+        return false;
+    }
 
     private static void PatchExplosive(CodeMatcher codeMatcher) {
         static void ExplosiveLogic(CUnitDefense self) {

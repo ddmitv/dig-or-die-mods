@@ -937,6 +937,26 @@ public static class CustomItems {
             in3 = GItems.lootBalrog, nb3 = 1,
         }
     );
+    public static readonly ModItem turretDuo360 = new(codeName: "turretDuo360",
+        name: "Duo Rotating Turret",
+        description: "TODO.",
+        item: new CItem_Defense(tile: new CTile(0, 0) { m_textureName = "items_defenses" }, tileIcon: new ModCTile(0, 9),
+            hpMax: 75, mainColor: 8947848U,
+            rangeDetection: 10f, angleMin: -9999f, angleMax: 9999f,
+            attack: new ExtDuoCAttackDesc(
+                range: 8f, damage: 8, nbAttacks: 1, cooldown: 0.3f, knockbackOwn: 0f, knockbackTarget: 1f,
+                projDesc: GBullets.defenses, sound: SoundIds.defensePlasma
+            ),
+            tileUnit: new ModCTile(1, 9)
+        ) {
+            m_anchor = CItemCell.Anchor.Everywhere_Small
+        },
+        recipe: new(groupId: "MK II") {
+            in1 = GItems.iron, nb1 = 9,
+            in2 = GItems.lightGem, nb2 = 2,
+            in3 = GItems.coal, nb3 = 5,
+        }
+    );
 
     // public static CustomItem gunPlasmaThrower = new CustomItem(name: "gunPlasmaThrower",
     //     item: new CItem_Weapon(tile: new CustomCTile(35, 0), tileIcon: new CustomCTile(36, 0),

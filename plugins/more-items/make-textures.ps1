@@ -114,7 +114,9 @@ $texturePlacements = @(
     @(4, 8, "gunZF0Shotgun_icon.png"),
     @(5, 8, "turretMegaSnipe.png"),
     @(6, 8, "turretMegaSnipe_icon.png"),
-    @(7, 8, "turretMegaSnipe_unit.png")
+    @(7, 8, "turretMegaSnipe_unit.png"),
+    @(0, 9, "turretDuo360_icon.png"),
+    @(1, 9, "turretDuo360_unit.png")
 )
 $particlesTexturePlacements = @(
     @(0, 0, 255, 119, "meltdownSnipe.png"),

@@ -339,3 +339,9 @@ public sealed class ExtCItem_MetalDetector : CItem_Device {
 
     private static readonly Queue<int2> _bfsQueue = new();
 }
+public sealed class ExtDuoCAttackDesc : CAttackDesc {
+    public ExtDuoCAttackDesc(float range, int damage, int nbAttacks = 0, float cooldown = 0f, float knockbackOwn = 0f, float knockbackTarget = 0f, CBulletDesc projDesc = null, string sound = null)
+        : base(range, damage, nbAttacks, cooldown, knockbackOwn, knockbackTarget, projDesc, sound) { }
+
+    
+}
