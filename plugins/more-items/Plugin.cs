@@ -4,6 +4,7 @@ using BepInEx.Configuration;
 using HarmonyLib;
 using ModUtils;
 using System;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
@@ -37,7 +38,10 @@ public class FlashEffect : MonoBehaviour {
 }
 
 [BepInPlugin("more-items", "More Items", "1.1.0")]
+[BepInDependency(ReplacementorPluginGUID, BepInDependency.DependencyFlags.SoftDependency)]
 public class MoreItemsPlugin : BaseUnityPlugin {
+    private const string ReplacementorPluginGUID = "replacementor";
+
     public static ConfigEntry<float> configBossRespawnDelay = null;
 
     private UnityEngine.Texture2D LoadTexture2DFromManifest(Assembly assembly, string logicalName) {
@@ -73,6 +77,33 @@ public class MoreItemsPlugin : BaseUnityPlugin {
 
         return texture;
     }
+    private void InitReplacementorDependency(PluginInfo pluginInfo) {
+        try {
+            var pluginType = pluginInfo.Instance.GetType();
+            var replaceTypeEnumType = pluginType.Assembly.GetType("ReplaceType");
+            if (replaceTypeEnumType == null) {
+                Logger.LogWarning($"Failed to find 'ReplaceType' enum in '{ReplacementorPluginGUID}' plugin");
+                return;
+            }
+            object replaceTypeLight = Enum.Parse(replaceTypeEnumType, "Light");
+            if (replaceTypeLight == null) {
+                Logger.LogWarning($"Failed to parse string 'Light' as enum 'ReplaceType' in '{ReplacementorPluginGUID}' plugin");
+                return;
+            }
+
+            MethodInfo addReplaceableItemMethod = pluginType.GetMethod("AddReplaceableItem", BindingFlags.Public | BindingFlags.Instance);
+            if (addReplaceableItemMethod == null) {
+                Logger.LogWarning($"Failed to find 'AddReplaceableItem' method in '{ReplacementorPluginGUID}' plugin type");
+                return;
+            }
+            addReplaceableItemMethod.Invoke(pluginInfo.Instance, [CustomItems.redLightSticky.Item, replaceTypeLight]);
+            addReplaceableItemMethod.Invoke(pluginInfo.Instance, [CustomItems.greenLightSticky.Item, replaceTypeLight]);
+            addReplaceableItemMethod.Invoke(pluginInfo.Instance, [CustomItems.blueLightSticky.Item, replaceTypeLight]);
+            Logger.LogInfo($"Successfully added custom lights for replacable items into '{ReplacementorPluginGUID}' plugin");
+        } catch (Exception ex) {
+            Logger.LogWarning($"Failed to add custom lights for replacable items into '{ReplacementorPluginGUID}' plugin: {ex}");
+        }
+    }
 
     private void Start() {
         configBossRespawnDelay = Config.Bind<float>("General", "BossRespawnDelay", defaultValue: 360f,
@@ -96,5 +127,9 @@ public class MoreItemsPlugin : BaseUnityPlugin {
         Utils.RunStaticConstructor(typeof(CustomItems));
 
         gameObject.AddComponent<FlashEffect>();
+
+        if (BepInEx.Bootstrap.Chainloader.PluginInfos.TryGetValue(ReplacementorPluginGUID, out var pluginInfo)) {
+            InitReplacementorDependency(pluginInfo);
+        }
     }
 }
