@@ -58,6 +58,10 @@ Adds new 28 items with custom recipes:
 > [!NOTE]
 > Only English version of item names/descriptions are available.
 
+# Credits
+
+Sprites for "Duo Rotating Turret" (`turretDuo360`) and "Overcharged Plasma Turret" (`turretMegaSnipe`) items are created by **@seethejellyfish at Discord**.
+
 # Configuration
 
 ### `[General]` `BossRespawnDelay`
