@@ -38,7 +38,7 @@ function Get-SteamGamePath {
 
     $libraryRoots = @()
 
-    $vdfPath = Join-Path $steamPath "steamapps" "libraryfolders.vdf"
+    $vdfPath = [IO.Path]::Combine($steamPath, "steamapps", "libraryfolders.vdf")
     if (-not (Test-Path $vdfPath -PathType Leaf)) { 
         Write-Host "  No libraryfolders.vdf at: $vdfPath" -ForegroundColor Red
         exit 1 
@@ -70,13 +70,14 @@ function Get-SteamGamePath {
     }
     catch {
         Write-Host "  [ERROR] Parsing VDF: $_" -ForegroundColor Red
+        exit 1
     }
 
     $searchPaths = @()
     Write-Host "Searching for '$GameName' in Steam libraries..." -ForegroundColor Cyan
     
     foreach ($root in $libraryRoots) {
-        $gamePathCandidate = Join-Path $root "steamapps" "common" $GameName
+        $gamePathCandidate = [IO.Path]::Combine($root, "steamapps", "common", $GameName)
         if (-not $searchPaths.Contains($gamePathCandidate)) {
             $searchPaths += $gamePathCandidate
         }
