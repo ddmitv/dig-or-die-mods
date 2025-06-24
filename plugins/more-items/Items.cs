@@ -916,6 +916,27 @@ public static class CustomItems {
             in3 = GItems.bat3Sonar, nb3 = 10
         }
     );
+    public static readonly ModItem turretMegaSnipe = new(codeName: "turretMegaSnipe",
+        name: "Overcharged Plasma Turret",
+        description: "TODO.",
+        item: new CItem_Defense(tile: new ModCTile(5, 8), tileIcon: new ModCTile(6, 8),
+            hpMax: 400, mainColor: 8947848U, rangeDetection: 16f,
+            angleMin: -1f, angleMax: 1f,
+            attack: new CAttackDesc(
+                range: 15f, damage: 200,
+                nbAttacks: 1, cooldown: 2f, knockbackOwn: 100f, knockbackTarget: 50f,
+                projDesc: GBullets.megasnipe, sound: SoundIds.plasmaSnipe
+            ),
+            tileUnit: new ModCTile(7, 8)
+        ) {
+            m_isReversable = true
+        },
+        recipe: new(groupId: "MK V") {
+            in1 = GItems.titanium, nb1 = 20,
+            in2 = GItems.bossMadCrabMaterial, nb2 = 1,
+            in3 = GItems.lootBalrog, nb3 = 1,
+        }
+    );
 
     // public static CustomItem gunPlasmaThrower = new CustomItem(name: "gunPlasmaThrower",
     //     item: new CItem_Weapon(tile: new CustomCTile(35, 0), tileIcon: new CustomCTile(36, 0),

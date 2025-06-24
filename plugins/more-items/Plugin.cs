@@ -36,7 +36,7 @@ public class FlashEffect : MonoBehaviour {
     }
 }
 
-[BepInPlugin("more-items", "More Items", "1.0.0")]
+[BepInPlugin("more-items", "More Items", "1.1.0")]
 public class MoreItemsPlugin : BaseUnityPlugin {
     public static ConfigEntry<float> configBossRespawnDelay = null;
 
