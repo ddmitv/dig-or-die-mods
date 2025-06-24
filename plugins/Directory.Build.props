@@ -11,6 +11,8 @@
     <DebugType>portable</DebugType>
     <DebugSymbols>true</DebugSymbols>
     
+    <NoWarn>Harmony003</NoWarn>
+    
     <Description>https://github.com/NUCLEAR-BOMB/dig-or-die-mods</Description>
   </PropertyGroup>
   
