@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using UnityEngine;
 
 namespace ModUtils.Extensions;
 
@@ -136,5 +137,14 @@ public static class RectIntExtensions {
         int width = Math.Min(self.xMax, other.xMax) - x;
         int height = Math.Min(self.yMax, other.yMax) - y;
         return new RectInt(x, y, width, height);
+    }
+}
+
+public static class Vector2Extensions {
+    public static Vector2 RotateRight(this Vector2 self) {
+        return new Vector2(self.y, -self.x);
+    }
+    public static Vector2 RotateLeft(this Vector2 self) {
+        return new Vector2(-self.y, self.x);
     }
 }
