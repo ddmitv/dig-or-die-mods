@@ -1,5 +1,6 @@
 using BepInEx;
 using HarmonyLib;
+using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -352,4 +353,101 @@ public static class Utils {
     public static uint Sqr(uint x) { return x * x; }
     public static long Sqr(long x) { return x * x; }
     public static ulong Sqr(ulong x) { return x * x; }
+}
+
+public sealed class WeakDictionary<TKey, TValue> where TKey : class {
+    private readonly Dictionary<int, List<KeyValuePair<WeakReference, TValue>>> _buckets = [];
+    private int _cleanupCounter = 0;
+    private const int CleanupInterval = 100;
+
+    public TValue Get(TKey key) {
+        if (key is null) { throw new ArgumentNullException(nameof(key)); }
+
+        if (!TryGet(key, out TValue value)) {
+            return default;
+        }
+        return value;
+    }
+    public bool TryGet(TKey key, out TValue value) {
+        if (key is null) { throw new ArgumentNullException(nameof(key)); }
+
+        Cull();
+        int hashCode = key.GetHashCode();
+        if (!_buckets.TryGetValue(hashCode, out var bucket)) {
+            value = default;
+            return false;
+        }
+
+        for (int i = bucket.Count - 1; i >= 0; --i) {
+            var weakRef = bucket[i].Key;
+            if (ReferenceEquals(weakRef.Target, key)) {
+                value = bucket[i].Value;
+                return true;
+            }
+        }
+        value = default;
+        return false;
+    }
+
+    public void Set(TKey key, TValue value) {
+        if (key is null) { throw new ArgumentNullException(nameof(key)); }
+
+        Cull();
+        int hashCode = key.GetHashCode();
+        if (!_buckets.TryGetValue(hashCode, out var bucket)) {
+            bucket = [new(key: new WeakReference(key), value: value)];
+            _buckets[hashCode] = bucket;
+            return;
+        }
+
+        for (int i = bucket.Count - 1; i >= 0; --i) {
+            var weakRef = bucket[i].Key;
+            if (ReferenceEquals(weakRef.Target, key)) {
+                bucket[i] = new(key: weakRef, value: value);
+                return;
+            }
+        }
+        bucket.Add(new(key: new WeakReference(key), value: value));
+    }
+    public TValue TrySet(TKey key, TValue defaultValue) {
+        if (key is null) { throw new ArgumentNullException(nameof(key)); }
+
+        Cull();
+        int hashCode = key.GetHashCode();
+        if (!_buckets.TryGetValue(hashCode, out var bucket)) {
+            bucket = [new(key: new WeakReference(key), value: defaultValue)];
+            _buckets[hashCode] = bucket;
+            return defaultValue;
+        }
+        for (int i = bucket.Count - 1; i >= 0; --i) {
+            var weakRef = bucket[i].Key;
+            if (ReferenceEquals(weakRef.Target, key)) {
+                return bucket[i].Value;
+            }
+        }
+        bucket.Add(new(key: new WeakReference(key), value: defaultValue));
+        return defaultValue;
+    }
+
+    private void Cull() {
+        _cleanupCounter += 1;
+        if (_cleanupCounter < CleanupInterval) { return; }
+        _cleanupCounter = 0;
+
+        List<int> emptyBuckets = [];
+        foreach (var kvp in _buckets) {
+            var bucket = kvp.Value;
+            for (int i = bucket.Count - 1; i >= 0; --i) {
+                if (!bucket[i].Key.IsAlive) {
+                    bucket.RemoveAt(i);
+                }
+            }
+            if (bucket.Count == 0) {
+                emptyBuckets.Add(kvp.Key);
+            }
+        }
+        foreach (int bucketKey in emptyBuckets) {
+            _buckets.Remove(bucketKey);
+        }
+    }
 }
