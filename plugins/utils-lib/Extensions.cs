@@ -15,11 +15,17 @@ public static class CodeMatcherExtensions {
         return self;
     }
     public static CodeMatcher GetOperand<T>(this CodeMatcher self, out T result) {
-        result = (T)self.Operand;
+        if (self.Operand is not T operand) {
+            throw new InvalidCastException($"Cannot convert operand to type '{typeof(T).FullName}'");
+        }
+        result = operand;
         return self;
     }
     public static CodeMatcher GetOperandAtOffset<T>(this CodeMatcher self, int offset, out T result) {
-        result = (T)self.Instructions()[self.Pos + offset].operand;
+        if (self.Instructions()[self.Pos + offset].operand is not T operand) {
+            throw new InvalidCastException($"Cannot convert operand to type '{typeof(T).FullName}'");
+        }
+        result = operand;
         return self;
     }
     public static CodeMatcher GetLabels(this CodeMatcher self, out List<Label> labels) {
