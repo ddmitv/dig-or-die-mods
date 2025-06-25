@@ -1,5 +1,6 @@
 using BepInEx;
 using BepInEx.Configuration;
+using ModUtils;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -119,7 +120,7 @@ public class WorldRecorder : BaseUnityPlugin {
 
             using FileStream fs = File.Create(filePath);
             BmpEncoder.WriteBmp(fs, imageWidth, imageHeight,
-                (x, y) => cellRenderer(SWorld.Grid[x, imageHeight - 1 - y])
+                (x, y) => cellRenderer(in SWorld.Grid[x, imageHeight - 1 - y])
             );
 
             Logger.LogInfo($"Created world frame | saving image to '{filePath}'");
@@ -243,7 +244,7 @@ public class WorldRecorder : BaseUnityPlugin {
 
             using FileStream fs = File.Create(filePath);
             BmpEncoder.WriteBmp(fs, imageWidth, imageHeight,
-                (x, y) => cellRenderer(_worldCellsCopy[x, imageHeight - 1 - y])
+                (x, y) => cellRenderer(in _worldCellsCopy[x, imageHeight - 1 - y])
             );
         } else {
             Logger.LogInfo($"Frame #{_currentFrameIndex}");
@@ -258,7 +259,7 @@ public class WorldRecorder : BaseUnityPlugin {
 
             for (long y = imageHeight - 1; y >= 0; --y) {
                 for (uint x = 0; x < imageWidth; ++x) {
-                    Color32 color = cellRenderer(_worldCellsCopy[x, y]);
+                    Color32 color = cellRenderer(in _worldCellsCopy[x, y]);
 
                     _frameBuffer[bufferIndex + 0] = color.r;
                     _frameBuffer[bufferIndex + 1] = color.g;
@@ -290,18 +291,33 @@ internal static class CellRenderer {
     private static readonly Color32 MinimapColorGrass = SMisc.GetColor(16777070u);
 
     public enum LightingMode {
+        [Description("Full Brightness")]
         FullBrightness,
+        [Description("Monochrome Lighting")]
         MonochromeLighting,
-        RGBLighting
+        [Description("RGB Lighting")]
+        RGBLighting,
+        [Description("Lighting Map (Monochrome)")]
+        LightingMapMonochrome,
+        [Description("Lighting Map (RGB)")]
+        LightingMapRGB,
+        [Description("Force Vector Map")]
+        ForceVectorMap,
+        [Description("Electricity Map")]
+        ElectricityMap
     }
 
-    public delegate Color32 RenderCellFn(CCell cell);
+    public delegate Color32 RenderCellFn(in CCell cell);
 
     public static RenderCellFn GetRenderer(LightingMode type) {
         return type switch {
             LightingMode.FullBrightness => RenderFullBrightness,
             LightingMode.MonochromeLighting => RenderMonochromeLighting,
             LightingMode.RGBLighting => RenderRGBLighting,
+            LightingMode.LightingMapMonochrome => RenderLightingMapMonochrome,
+            LightingMode.LightingMapRGB => RenderLightingMapRGB,
+            LightingMode.ForceVectorMap => RenderForceVectorMap,
+            LightingMode.ElectricityMap => RenderElectricityMap,
             _ => throw new InvalidEnumArgumentException(nameof(type), (int)type, typeof(LightingMode))
         };
     }
@@ -311,57 +327,100 @@ internal static class CellRenderer {
             LightingMode.FullBrightness => "Full Brightness",
             LightingMode.MonochromeLighting => "Monochrome",
             LightingMode.RGBLighting => "RGB",
+            LightingMode.LightingMapMonochrome => "Lighting Map (Monochrome)",
+            LightingMode.LightingMapRGB => "Lighting Map (RGB)",
+            LightingMode.ForceVectorMap => "Force Vector Map",
+            LightingMode.ElectricityMap => "Electricity Map",
             _ => throw new InvalidEnumArgumentException(nameof(mode), (int)mode, typeof(LightingMode))
         };
     }
 
-    private static Color32 RenderFullBrightness(CCell cell) {
+    private static Color32 RenderFullBrightness(in CCell cell) {
         CItemCell content = cell.GetContent();
 
         Color32 result = MinimapColorNothing;
         if (content != null) {
-            result = cell.HasGrass() ? MinimapColorGrass : content.m_mainColor;
-        } else if (cell.m_water > 0.3f) {
-            result = cell.IsLava() ? GColors.m_lava.Color32 : GColors.m_water.Color32;
+            return cell.HasGrass() ? MinimapColorGrass : content.m_mainColor;
         } else if (cell.HasBgSurface()) {
             result = cell.GetBgSurface().m_color;
         }
-        result.a = byte.MaxValue;
+        if (cell.m_water > 0f) {
+            Color32 liquidColor = cell.IsLava() ? GColors.m_lava.Color32 : GColors.m_water.Color32;
+            if (cell.m_water <= 0.3f) {
+                float blendFactor = cell.m_water / 0.3f;
+                result.r = (byte)Mathf.Lerp(result.r, liquidColor.r, blendFactor);
+                result.g = (byte)Mathf.Lerp(result.g, liquidColor.g, blendFactor);
+                result.b = (byte)Mathf.Lerp(result.b, liquidColor.b, blendFactor);
+            } else if (!cell.IsLava()) {
+                float depth = cell.m_water - 0.3f;
+                float darknessFactor = Mathf.Max(1 - depth * (1f / 60f), 0.5f);
+
+                result.r = (byte)(liquidColor.r * darknessFactor);
+                result.g = (byte)(liquidColor.g * darknessFactor);
+                result.b = (byte)(liquidColor.b * darknessFactor);
+            } else {
+                float depth = cell.m_water - 0.3f;
+                float brightnessFactor = 1f + depth * (1f / 60f);
+
+                result.r = (byte)Mathf.Min(liquidColor.r * brightnessFactor, 255f);
+                result.g = (byte)Mathf.Min(liquidColor.g * brightnessFactor, 190f);
+                result.b = (byte)Mathf.Min(liquidColor.b * brightnessFactor, 170f);
+            }
+        }
         return result;
     }
-    private static Color32 RenderMonochromeLighting(CCell cell) {
-        CItemCell content = cell.GetContent();
-
-        Color32 result = MinimapColorNothing;
-        if (content != null) {
-            result = cell.HasGrass() ? MinimapColorGrass : content.m_mainColor;
-        } else if (cell.m_water > 0.3f) {
-            result = cell.IsLava() ? GColors.m_lava.Color32 : GColors.m_water.Color32;
-        } else if (cell.HasBgSurface()) {
-            result = cell.GetBgSurface().m_color;
-        }
-        float light = Mathf.Clamp01((float)cell.Light * (2f / 255f));
+    private static Color32 RenderMonochromeLighting(in CCell cell) {
+        Color32 result = RenderFullBrightness(cell);
+        float light = Mathf.Min((float)cell.Light * (3f / 255f), 1f);
         result.r = (byte)((float)result.r * light);
         result.g = (byte)((float)result.g * light);
         result.b = (byte)((float)result.b * light);
         result.a = byte.MaxValue;
         return result;
     }
-    private static Color32 RenderRGBLighting(CCell cell) {
-        CItemCell content = cell.GetContent();
-
-        Color32 result = MinimapColorNothing;
-        if (content != null) {
-            result = cell.HasGrass() ? MinimapColorGrass : content.m_mainColor;
-        } else if (cell.m_water > 0.3f) {
-            result = cell.IsLava() ? GColors.m_lava.Color32 : GColors.m_water.Color32;
-        } else if (cell.HasBgSurface()) {
-            result = cell.GetBgSurface().m_color;
-        }
-        result.r = (byte)((float)result.r * Mathf.Clamp01(cell.m_light.r * (2f / 255f)));
-        result.g = (byte)((float)result.g * Mathf.Clamp01(cell.m_light.g * (2f / 255f)));
-        result.b = (byte)((float)result.b * Mathf.Clamp01(cell.m_light.b * (2f / 255f)));
+    private static Color32 RenderRGBLighting(in CCell cell) {
+        Color32 result = RenderFullBrightness(cell);
+        result.r = (byte)((float)result.r * Mathf.Min(cell.m_light.r * (3f / 255f), 1f));
+        result.g = (byte)((float)result.g * Mathf.Min(cell.m_light.g * (3f / 255f), 1f));
+        result.b = (byte)((float)result.b * Mathf.Min(cell.m_light.b * (3f / 255f), 1f));
         result.a = byte.MaxValue;
         return result;
+    }
+    private static Color32 RenderLightingMapMonochrome(in CCell cell) {
+        float lightFactor = Mathf.Min((float)cell.Light * (3f / 255f), 1f);
+        byte lightValue = (byte)(lightFactor * 255);
+        return new Color32(lightValue, lightValue, lightValue, 255);
+    }
+    private static Color32 RenderLightingMapRGB(in CCell cell) {
+        byte r = (byte)(Mathf.Min(cell.m_light.r * (3f / 255f), 1f) * 255);
+        byte g = (byte)(Mathf.Min(cell.m_light.g * (3f / 255f), 1f) * 255);
+        byte b = (byte)(Mathf.Min(cell.m_light.b * (3f / 255f), 1f) * 255);
+        return new Color32(r, g, b, 255);
+    }
+    private static Color32 RenderForceVectorMap(in CCell cell) {
+        Vector2 force = new(cell.m_forceX, cell.m_forceY);
+        float magnitude = Mathf.Clamp01(force.magnitude / 10000f);
+        float angle = Mathf.Atan2(force.y, force.x) * Mathf.Rad2Deg;
+
+        float hue = (angle < 0 ? angle + 360 : angle) / 360f;
+        return Color.HSVToRGB(hue, 1f, magnitude);
+    }
+    private static Color32 RenderElectricityMap(in CCell cell) {
+        static byte SmoothElecColor(byte x) {
+            return (byte)Math.Max(40f,
+                (1 - Utils.Cub(1 - x / 255f)) * 255f
+            );
+        }
+        if (cell.m_elecProd == 255) { // epsilon
+            return new Color32(255, 0, 90, 255);
+        } else if (cell.m_elecCons == 255) { // -epsilon
+            return new Color32(90, 0, 255, 255);
+        } else if (cell.m_elecProd == cell.m_elecCons) {
+            return new Color32(0, 0, 0, 255);
+        } else if (cell.m_elecProd > cell.m_elecCons) {
+            return new Color32(SmoothElecColor(cell.m_elecProd), 0, 0, 255);
+        } else {
+            return new Color32(0, 0, SmoothElecColor(cell.m_elecCons), 255);
+        }
     }
 }
