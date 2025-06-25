@@ -3,7 +3,8 @@ param(
     [switch]$Console,
     [string]$GamePath,
     [Alias("InstallCfgMgr")]
-    [switch]$InstallConfigurationManager
+    [switch]$InstallConfigurationManager,
+    [switch]$InstallMonoDebug
 )
 
 function Get-SteamInstallationPath {
@@ -154,6 +155,70 @@ function Update-IniSetting {
     
     return $output
 }
+function Install-DebugMono {
+    param([string]$GamePath)
+
+    $monoDir = [IO.Path]::Combine($GamePath, "DigOrDie_Data", "Mono")
+    $originalMono = Join-Path $monoDir "mono.dll"
+    $backupMono = Join-Path $monoDir "mono.dll.old"
+    
+    if (-not (Test-Path $originalMono -PathType Leaf)) {
+        Write-Host "[WARNING] mono.dll not found in game directory" -ForegroundColor Yellow
+        return $false
+    }
+
+    $debugMonoUrl = "https://github.com/liesauer/Unity-debugging-dlls/releases/download/v2020.07.10/Unity-debugging-5.x.zip"
+    $expectedChecksum = "058238350B0098A350760516B0557F6E366BC846C2F227322921A59238AF5875"
+    $tempFile = Join-Path ([System.IO.Path]::GetTempPath()) "$(New-Guid).zip"
+
+    try {
+        Write-Host "`nDownloading debug Mono runtime..." -ForegroundColor Cyan
+        Write-Host "  URL: $debugMonoUrl" -ForegroundColor White
+        Invoke-WebRequest -Uri $debugMonoUrl -OutFile $tempFile -UseBasicParsing
+
+        Write-Host "Download successful! ($([math]::Round((Get-Item $tempFile).Length / 1MB, 2)) MB)" -ForegroundColor Green
+        
+        if (-not (Test-Path $tempFile -PathType Leaf)) {
+            Write-Host "[ERROR] Failed to save debug Mono package" -ForegroundColor Red
+            return $false
+        }
+        $tempExtract = Join-Path ([System.IO.Path]::GetTempPath()) "$(New-Guid)"
+        $null = New-Item -ItemType Directory -Path $tempExtract -Force
+        
+        Expand-Archive -Path $tempFile -DestinationPath $tempExtract -Force
+        $sourceMono = [IO.Path]::Combine($tempExtract, "Unity-debugging", "unity-5.4.1", "win32", "mono.dll")
+        
+        if (-not (Test-Path $sourceMono -PathType Leaf)) {
+            Write-Host "[ERROR] Debug Mono DLL not found in package" -ForegroundColor Red
+            return $false
+        }
+        $actualChecksum = (Get-FileHash $sourceMono -Algorithm SHA256).Hash
+        if ($actualChecksum -ne $expectedChecksum) {
+            Write-Host "[ERROR] Checksum verification failed!" -ForegroundColor Red
+            Write-Host "  Expected: $expectedChecksum" -ForegroundColor Yellow
+            Write-Host "  Actual:   $actualChecksum" -ForegroundColor Yellow
+            Write-Host "File may be corrupted or tampered with" -ForegroundColor Red
+            return $false
+        }
+        if (-not (Test-Path $backupMono -PathType Leaf)) {
+            Rename-Item -Path $originalMono -NewName "mono.dll.old" -Force
+            Write-Host "  Created backup: mono.dll.old" -ForegroundColor Green
+        }
+        Copy-Item -Path $sourceMono -Destination $originalMono -Force
+
+        Write-Host "Installed debug Mono runtime" -ForegroundColor Green
+        Write-Host "  at $originalMono" -ForegroundColor DarkGray
+        return $true
+    }
+    catch {
+        Write-Host "[ERROR] Debug Mono install failed: $_" -ForegroundColor Red
+        return $false
+    }
+    finally {
+        if (Test-Path $tempFile) { Remove-Item $tempFile -Force }
+        if (Test-Path $tempExtract) { Remove-Item $tempExtract -Recurse -Force }
+    }
+}
 
 $gameName = "Dig or Die"
 Write-Host "`n=== Dig or Die BepInEx Installer ===" -ForegroundColor Magenta
@@ -191,7 +256,7 @@ $tempFile = Join-Path ([System.IO.Path]::GetTempPath()) "$(New-Guid).zip"
 try {
     Write-Host "`nDownloading BepInEx..." -ForegroundColor Cyan
     Write-Host "  Version: $BepInExVersion" -ForegroundColor White
-    Write-Host "  Download URL: $downloadUrl" -ForegroundColor White
+    Write-Host "  URL: $downloadUrl" -ForegroundColor White
 
     Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile -UseBasicParsing
     
@@ -287,6 +352,10 @@ try {
     Write-Host "`n[ERROR] Configuration failed: $_" -ForegroundColor Yellow
     Write-Host "You may need to manually edit BepInEx.cfg" -ForegroundColor Yellow
 }
+$isDebugMonoInstalled = $false
+if ($InstallMonoDebug) {
+    $isDebugMonoInstalled = Install-DebugMono -GamePath $GamePath
+}
 
 $null = New-Item -ItemType Directory -Path (Join-Path $bepInExPath "plugins") -Force -ErrorAction SilentlyContinue
 $null = New-Item -ItemType Directory -Path (Join-Path $bepInExPath "patchers") -Force -ErrorAction SilentlyContinue
@@ -296,4 +365,5 @@ Write-Host "Game Path:       $GamePath" -ForegroundColor Cyan
 Write-Host "BepInEx Version: $BepInExVersion" -ForegroundColor Cyan
 Write-Host "Console Enabled: $isConsoleSuccessfullyEnabled" -ForegroundColor Cyan
 Write-Host "BepInEx.ConfigurationManager Installed: $isConfigurationManagerSuccessfullyInstalled" -ForegroundColor Cyan
+Write-Host "Debug Mono Installed: $isDebugMonoInstalled" -ForegroundColor Cyan
 Write-Host "`nSuccessfully installed BepInEx!`n" -ForegroundColor Green
