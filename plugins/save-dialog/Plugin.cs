@@ -7,6 +7,7 @@ using System;
 [BepInPlugin("save-dialog", "Save Dialog", "1.0.0")]
 public class SaveDialog : BaseUnityPlugin {
     private static CGuiButton btSaveLoadDialog;
+    private static string getSaveFolderReturnValue = null;
 
     private const int SaveLoadDialogYOffset = 40;
     private const string SaveToTxt = "SAVE TO";
@@ -15,20 +16,6 @@ public class SaveDialog : BaseUnityPlugin {
     void Awake() {
         var harmony = new Harmony(Info.Metadata.GUID);
         harmony.PatchAll(typeof(SaveDialog));
-    }
-
-    private static string GetRelativePathToRoot(string path) {
-        string fullPath = Path.GetFullPath(path);
-        string root = Path.GetPathRoot(fullPath);
-
-        if (string.IsNullOrEmpty(root)) { return ""; }
-
-        string[] parts = fullPath.Substring(root.Length)
-            .Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
-
-        if (parts.Length == 0) { return ""; }
-
-        return string.Join(Path.DirectorySeparatorChar.ToString(), Enumerable.Repeat("..", parts.Length).ToArray());
     }
 
     [HarmonyPostfix]
@@ -63,9 +50,8 @@ public class SaveDialog : BaseUnityPlugin {
                     defaultExt: "save"
                 );
                 if (!string.IsNullOrEmpty(path)) {
-                    string prefixPath = GetRelativePathToRoot(SOutgame.GetSaveFolder());
-                    string savePath = Path.GetFileNameWithoutExtension(Path.Combine(prefixPath, path));
-                    SGameStartEnd.SaveGame(SDataSave.SaveType.Named, savePath);
+                    getSaveFolderReturnValue = Path.GetDirectoryName(path);
+                    SGameStartEnd.SaveGame(SDataSave.SaveType.Named, Path.GetFileNameWithoutExtension(path));
                 }
             }
         } else {
@@ -74,11 +60,19 @@ public class SaveDialog : BaseUnityPlugin {
                     title: "Select save file", filter: "*.save", initialDir: SOutgame.GetSaveFolder()
                 );
                 if (!string.IsNullOrEmpty(path)) {
-                    string prefixPath = GetRelativePathToRoot(SOutgame.GetSaveFolder());
-                    string savePath = Path.GetFileNameWithoutExtension(Path.Combine(prefixPath, path));
-                    SGameStartEnd.LoadGame(SOutgame.Mode.m_name, savePath);
+                    getSaveFolderReturnValue = Path.GetDirectoryName(path);
+                    SGameStartEnd.LoadGame(SOutgame.Mode.m_name, name: Path.GetFileNameWithoutExtension(path));
                 }
             }
         }
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(SOutgame), nameof(SOutgame.GetSaveFolder))]
+    private static bool SOutgame_GetSaveFolder(ref string __result) {
+        if (getSaveFolderReturnValue is null) { return true; }
+        __result = getSaveFolderReturnValue;
+        getSaveFolderReturnValue = null;
+        return false;
     }
 }
