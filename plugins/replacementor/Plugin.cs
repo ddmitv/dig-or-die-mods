@@ -6,15 +6,6 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
 
-public enum ReplaceType {
-    None,
-    Defense,
-    Platform,
-    Light,
-    Dirt,
-    LogicComponent,
-}
-
 internal static class Patches {
     private static readonly HashSet<CItemCell> logicComponentItems = [
         GItems.elecSwitch, GItems.elecSwitchPush, GItems.elecSwitchRelay, GItems.elecCross,
@@ -147,8 +138,19 @@ internal static class Patches {
     }
 }
 
+// Plugin API (and all enumerator values)
+public enum ReplaceType {
+    None,
+    Defense,
+    Platform,
+    Light,
+    Dirt,
+    LogicComponent,
+}
+
 [BepInPlugin("replacementor", "Replacementor", "1.0.0")]
 public class Replacementor : BaseUnityPlugin {
+    // Plugin API (must be non-static)
     public void AddReplaceableItem(CItemCell item, ReplaceType type) {
         Patches.extraReplacableItems.Add(item, type);
     }
