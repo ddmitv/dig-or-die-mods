@@ -353,6 +353,17 @@ public static class Utils {
     public static uint Sqr(uint x) { return x * x; }
     public static long Sqr(long x) { return x * x; }
     public static ulong Sqr(ulong x) { return x * x; }
+
+    public static float Cub(float x) { return x * x * x; }
+    public static double Cub(double x) { return x * x * x; }
+    public static byte Cub(byte x) { return (byte)(x * x * x); }
+    public static sbyte Cub(sbyte x) { return (sbyte)(x * x * x); }
+    public static short Cub(short x) { return (short)(x * x * x); }
+    public static ushort Cub(ushort x) { return (ushort)(x * x * x); }
+    public static int Cub(int x) { return x * x * x; }
+    public static uint Cub(uint x) { return x * x * x; }
+    public static long Cub(long x) { return x * x * x; }
+    public static ulong Cub(ulong x) { return x * x * x; }
 }
 
 public sealed class WeakDictionary<TKey, TValue> where TKey : class {
