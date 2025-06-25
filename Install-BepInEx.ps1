@@ -1,7 +1,9 @@
 param(
     [string]$BepInExVersion = "5.4.23.3",
     [switch]$Console,
-    [string]$GamePath
+    [string]$GamePath,
+    [Alias("InstallCfgMgr")]
+    [switch]$InstallConfigurationManager
 )
 
 function Get-SteamInstallationPath {
@@ -224,6 +226,40 @@ catch {
     exit 1
 }
 
+$isConfigurationManagerSuccessfullyInstalled = $false
+if ($InstallConfigurationManager) {
+    $configManagerUrl = "https://github.com/BepInEx/BepInEx.ConfigurationManager/releases/download/v18.4.1/BepInEx.ConfigurationManager_BepInEx5_v18.4.1.zip"
+    $configManagerTempFile = Join-Path ([System.IO.Path]::GetTempPath()) "$(New-Guid).zip"
+
+    try {
+        Write-Host "`nDownloading BepInEx.ConfigurationManager..." -ForegroundColor Cyan
+        Write-Host "  URL: $configManagerUrl" -ForegroundColor White
+        Invoke-WebRequest -Uri $configManagerUrl -OutFile $configManagerTempFile -UseBasicParsing
+        
+        if (-not (Test-Path $configManagerTempFile -PathType Leaf)) {
+            Write-Host "[WARNING] Failed to save BepInEx.ConfigurationManager" -ForegroundColor Yellow
+        }
+        else {
+            Write-Host "Download successful! ($([math]::Round((Get-Item $configManagerTempFile).Length / 1MB, 2)) MB)" -ForegroundColor Green
+            Write-Host "  Checksum SHA256: $((Get-FileHash $configManagerTempFile -Algorithm SHA256).Hash)" -ForegroundColor White
+
+            Write-Host "Extracting to game directory..." -ForegroundColor Cyan
+            Expand-Archive -Path $configManagerTempFile -DestinationPath $GamePath -Force
+            Write-Host "BepInEx.ConfigurationManager installed!" -ForegroundColor Green
+            $isConfigurationManagerSuccessfullyInstalled = $true
+        }
+    }
+    catch {
+        Write-Host "[WARNING] Failed to install BepInEx.ConfigurationManager: $_" -ForegroundColor Yellow
+    }
+    finally {
+        if (Test-Path $configManagerTempFile -PathType Leaf) {
+            Remove-Item $configManagerTempFile -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+$isConsoleSuccessfullyEnabled = $false
 try {
     $bepInExPath = Join-Path $GamePath "BepInEx"
     $configDir = Join-Path $bepInExPath "config"
@@ -242,6 +278,7 @@ try {
     
     if ($Console) {
         $configLines = Update-IniSetting -Content $configLines -Section "Logging.Console" -Key "Enabled" -Value "true"
+        $isConsoleSuccessfullyEnabled = $true
     }
     
     $configLines | Set-Content $configPath -Force
@@ -257,5 +294,6 @@ $null = New-Item -ItemType Directory -Path (Join-Path $bepInExPath "patchers") -
 Write-Host "`n=== Installation Summary ===" -ForegroundColor Magenta
 Write-Host "Game Path:       $GamePath" -ForegroundColor Cyan
 Write-Host "BepInEx Version: $BepInExVersion" -ForegroundColor Cyan
-Write-Host "Console Enabled: $($Console.IsPresent)" -ForegroundColor Cyan
+Write-Host "Console Enabled: $isConsoleSuccessfullyEnabled" -ForegroundColor Cyan
+Write-Host "BepInEx.ConfigurationManager Installed: $isConfigurationManagerSuccessfullyInstalled" -ForegroundColor Cyan
 Write-Host "`nSuccessfully installed BepInEx!`n" -ForegroundColor Green
