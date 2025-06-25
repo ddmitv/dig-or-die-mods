@@ -26,13 +26,19 @@ You can follow instructions specified in [Automatic BepInEx Installation](#autom
 2. Open Powershell where you download the `Install-BepInEx.ps1` script \
    Go to the folder location and type `powershell.exe` on the address bar.
 
-3. Run the `.\Install-BepInEx.ps1` command to execute script and install BepInEx.
+3. Run the following command to execute script and install BepInEx:
+   ```powershell
+   .\Install-BepInEx.ps1
+   ```
 
 > [!IMPORTANT]
 > If Powershell script execution is disable, start Windows Powershell with the "Run as Administrator" option and allow running unsigned scripts by entering:
+> ```powershell
+> Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 > ```
-> Set-ExecutionPolicy remotesigned
-> ```
+
+> [!NOTE]
+> Provide options `-Console` to additionally enable console, `-InstallConfigurationManager` or `-InstallCfgMgr` to install plugin [BepInEx.ConfigurationManager](https://github.com/BepInEx/BepInEx.ConfigurationManager), `-InstallMonoDebug` to install debug Mono runtime (required when debugging with dnSpy).
 
 If you encountered an error, please follow provided instructions, or, manually install BepInEx.
 
