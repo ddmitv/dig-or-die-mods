@@ -364,6 +364,13 @@ public static class Utils {
     public static uint Cub(uint x) { return x * x * x; }
     public static long Cub(long x) { return x * x * x; }
     public static ulong Cub(ulong x) { return x * x * x; }
+
+    public static float EaseOutQuad(float x) {
+        return 1f - Sqr(1f - x);
+    }
+    public static float EaseOutCubic(float x) {
+        return 1f - Cub(1f - x);
+    }
 }
 
 public sealed class WeakDictionary<TKey, TValue> where TKey : class {
