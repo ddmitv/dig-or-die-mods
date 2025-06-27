@@ -399,7 +399,7 @@ internal static class CellRenderer {
     }
     private static Color32 RenderForceVectorMap(in CCell cell) {
         Vector2 force = new(cell.m_forceX, cell.m_forceY);
-        float magnitude = Mathf.Clamp01(force.magnitude / 10000f);
+        float magnitude = Utils.EaseOutQuad(Mathf.Clamp01(force.magnitude / 46340f /*approx = sqrt(32767^2+32767^2)*/));
         float angle = Mathf.Atan2(force.y, force.x) * Mathf.Rad2Deg;
 
         float hue = (angle < 0 ? angle + 360 : angle) / 360f;
@@ -408,7 +408,7 @@ internal static class CellRenderer {
     private static Color32 RenderElectricityMap(in CCell cell) {
         static byte SmoothElecColor(byte x) {
             return (byte)Math.Max(40f,
-                (1 - Utils.Cub(1 - x / 255f)) * 255f
+                Utils.EaseOutCubic(x / 255f) * 255f
             );
         }
         if (cell.m_elecProd == 255) { // epsilon
