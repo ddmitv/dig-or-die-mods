@@ -155,7 +155,7 @@ public enum ReplaceType {
     LogicComponent,
 }
 
-[BepInPlugin("replacementor", "Replacementor", "1.0.0")]
+[BepInPlugin("replacementor", "Replacementor", "1.0.1")]
 public class Replacementor : BaseUnityPlugin {
     // Plugin API (must be non-static)
     public void AddReplaceableItem(CItemCell item, ReplaceType type) {
