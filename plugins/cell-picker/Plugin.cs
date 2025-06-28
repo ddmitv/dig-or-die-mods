@@ -32,9 +32,11 @@ internal static class PickCellPatch {
     private static void SGame_OnUpdate() {
         if (CellPicker.pickCell.IsKeyDown()) {
             PickMouseCellItem();
-        } else if (CellPicker.configPickWire.Value.IsDown()) {
+        }
+        if (CellPicker.configPickWire.Value.IsDown()) {
             PickElectricWire();
-        } else if (CellPicker.configClearSelectedItem.Value.IsDown()) {
+        }
+        if (CellPicker.configClearSelectedItem.Value.IsDown()) {
             var inventory = SItems.GetMyInventory();
             if (inventory is not null) {
                 inventory.ItemSelected = null;
