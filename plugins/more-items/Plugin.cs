@@ -112,6 +112,11 @@ public class MoreItemsPlugin : BaseUnityPlugin {
         var configUniqualizeVersionBuild = Config.Bind<bool>("General", "UniqualizeVersionBuild", defaultValue: false,
             "Safe guard to prevent joining to server with different mod version"
         );
+        var configEnable = Config.Bind<bool>("General", "Enable", defaultValue: true,
+            description: "Enables the plugin"
+        );
+        if (!configEnable.Value) { return; }
+
         if (configUniqualizeVersionBuild.Value) {
             Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
         }
