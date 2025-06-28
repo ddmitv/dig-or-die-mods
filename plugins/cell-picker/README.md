@@ -21,3 +21,17 @@ Clicking on the cell when the player's doesn't have respective item, will do not
 **Default value:** `true`
 
 Enables the plugin.
+
+### `[General]` `PickWire`
+
+**Setting type:** `KeyboardShortcut` \
+**Default value:** ` `
+
+When pressed, picks electrical wire item.
+
+### `[General]` `ClearSelectedItem`
+
+**Setting type:** `KeyboardShortcut` \
+**Default value:** ` `
+
+When pressed, clears current selected item.

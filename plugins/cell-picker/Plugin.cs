@@ -6,8 +6,12 @@ using UnityEngine;
 
 internal static class PickCellPatch {
     private static void PickMouseCellItem() {
-        var mouseCellContent = SGame.MouseCell.GetContent();
-        if (mouseCellContent is null) { return; }
+        CItemCell mouseCellContent = SGame.MouseCell.GetContent();
+        if (mouseCellContent is null) {
+            CItem_Wall backwallItem = SGame.MouseCell.GetBackwall();
+            if (backwallItem is null) { return; }
+            mouseCellContent = backwallItem;
+        }
 
         var inventory = SItems.GetMyInventory();
         var stack = inventory?.GetStack(mouseCellContent);
@@ -28,9 +32,13 @@ internal static class PickCellPatch {
     private static void SGame_OnUpdate() {
         if (CellPicker.pickCell.IsKeyDown()) {
             PickMouseCellItem();
-        }
-        if (CellPicker.configPickWire.Value.IsDown()) {
+        } else if (CellPicker.configPickWire.Value.IsDown()) {
             PickElectricWire();
+        } else if (CellPicker.configClearSelectedItem.Value.IsDown()) {
+            var inventory = SItems.GetMyInventory();
+            if (inventory is not null) {
+                inventory.ItemSelected = null;
+            }
         }
     }
 }
@@ -40,11 +48,13 @@ public class CellPicker : BaseUnityPlugin {
     public static SInputs.KeyBinding pickCell = null;
     public static ConfigEntry<bool> configIgnoreEmptyItem = null;
     public static ConfigEntry<KeyboardShortcut> configPickWire = null;
+    public static ConfigEntry<KeyboardShortcut> configClearSelectedItem = null;
 
     private void Start() {
         configIgnoreEmptyItem = Config.Bind<bool>("General", "IgnoreEmptyItem", defaultValue: true);
         var configEnabled = Config.Bind<bool>("General", "Enabled", defaultValue: true);
         configPickWire = Config.Bind<KeyboardShortcut>("General", "PickWire", defaultValue: KeyboardShortcut.Empty);
+        configClearSelectedItem = Config.Bind<KeyboardShortcut>("General", "ClearSelectedItem", defaultValue: KeyboardShortcut.Empty);
 
         if (!configEnabled.Value) { return; }
 
