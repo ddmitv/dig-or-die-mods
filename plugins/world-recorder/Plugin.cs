@@ -289,6 +289,7 @@ public class WorldRecorder : BaseUnityPlugin {
 internal static class CellRenderer {
     private static readonly Color32 MinimapColorNothing = SMisc.GetColor(16049106u);
     private static readonly Color32 MinimapColorGrass = SMisc.GetColor(16777070u);
+    private static readonly Color32 ColorBlack = new Color32(0, 0, 0, 0);
 
     public enum LightingMode {
         [Description("Full Brightness")]
@@ -304,7 +305,9 @@ internal static class CellRenderer {
         [Description("Force Vector Map")]
         ForceVectorMap,
         [Description("Electricity Map")]
-        ElectricityMap
+        ElectricityMap,
+        [Description("Discovered Map")]
+        DiscoveredMap,
     }
 
     public delegate Color32 RenderCellFn(in CCell cell);
@@ -318,6 +321,7 @@ internal static class CellRenderer {
             LightingMode.LightingMapRGB => RenderLightingMapRGB,
             LightingMode.ForceVectorMap => RenderForceVectorMap,
             LightingMode.ElectricityMap => RenderElectricityMap,
+            LightingMode.DiscoveredMap => RenderDiscoveredMap,
             _ => throw new InvalidEnumArgumentException(nameof(type), (int)type, typeof(LightingMode))
         };
     }
@@ -331,6 +335,7 @@ internal static class CellRenderer {
             LightingMode.LightingMapRGB => "Lighting Map (RGB)",
             LightingMode.ForceVectorMap => "Force Vector Map",
             LightingMode.ElectricityMap => "Electricity Map",
+            LightingMode.DiscoveredMap => "Discovered Map",
             _ => throw new InvalidEnumArgumentException(nameof(mode), (int)mode, typeof(LightingMode))
         };
     }
@@ -422,5 +427,10 @@ internal static class CellRenderer {
         } else {
             return new Color32(0, 0, SmoothElecColor(cell.m_elecCons), 255);
         }
+    }
+    private static Color32 RenderDiscoveredMap(in CCell cell) {
+        if (!cell.HasFlag(CCell.Flag_IsMapped)) { return ColorBlack; }
+
+        return RenderFullBrightness(cell);
     }
 }
