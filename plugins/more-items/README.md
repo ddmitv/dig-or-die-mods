@@ -3,11 +3,11 @@
 
 A plugin for adding entirely new items to the base game.
 
-Adds new 28 items with custom recipes:
+Adds new 30 items with custom recipes:
 - 7 devices
 - 2 walls and 1 soil
 - 1 repair turret and 2 collectors
-- 5 turrets
+- 7 turrets
 - 5 weapons
 - 2 explosives
 - 2 electrical generators and 2 water vaporizers
@@ -51,6 +51,8 @@ Adds new 28 items with custom recipes:
 | Electrified Spikes MK2                | Improved Electrified Spikes for late-game                                                                         |
 | MB-X Plasma Diffuser                  | A gun shooting electrified particles which on contact creates large energy explosion                              |
 | Advanced Metal Detector               | Searches for all metal vein with configurable 120m range                                                          |
+| Overcharged Plasma Turret             | A stationary Overcharged Plasma Gun                                                                               |
+| Duo Rotating Turret                   | Upgraded Rotating Turret which shoots two times faster                                                            |
 
 > [!CAUTION]
 > If you want to use this plugin on existing save, please make sure you've backup of it.
