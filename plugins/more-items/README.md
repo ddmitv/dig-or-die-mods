@@ -89,3 +89,10 @@ Many recipes requires boss loot items, default value is the half than multiplaye
 Safe guard to prevent joining to server with different mod version.
 
 When using this config the build version will (usually) look like a random sequence of numbers.
+
+### `[General]` `Enable`
+
+**Setting type:** `bool` \
+**Default value:** `true`
+
+Enables the plugin.
