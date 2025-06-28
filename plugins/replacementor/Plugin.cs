@@ -39,7 +39,14 @@ internal static class Patches {
     }
     private static bool AreBothReplaceable(CItemCell oldItem, CItemCell newItem) {
         if (oldItem == null || newItem == null || oldItem == newItem) { return false; }
-        return GetReplaceType(oldItem) == GetReplaceType(newItem);
+
+        var oldType = GetReplaceType(oldItem);
+        if (oldType == ReplaceType.None) { return false; }
+
+        var newType = GetReplaceType(newItem);
+        if (newType == ReplaceType.None) { return false; }
+
+        return oldType == newType;
     }
 
     [HarmonyTranspiler]
@@ -82,7 +89,7 @@ internal static class Patches {
             .InsertAndAdvance(
                 new(OpCodes.Ldloc_S, (byte)12),
                 new(OpCodes.Ldloc_0),
-                Transpilers.EmitDelegate((int2 p, CItemCell oldItem, CItemCell newItem) => {
+                Transpilers.EmitDelegate(static (int2 p, CItemCell oldItem, CItemCell newItem) => {
                     if (AreBothReplaceable(oldItem, newItem)) {
                         SPickups.CreatePickup(oldItem, nb: 1f, p + new Vector2(0.5f, 0.5f));
                     }
@@ -106,7 +113,7 @@ internal static class Patches {
             .InsertAndAdvance(
                 new(OpCodes.Ldloc_S, (byte)6),
                 new(OpCodes.Ldloc_S, (byte)4),
-                Transpilers.EmitDelegate((ushort2 p, CItemCell oldItem, CItemCell newItem) => {
+                Transpilers.EmitDelegate(static (ushort2 p, CItemCell oldItem, CItemCell newItem) => {
                     if (AreBothReplaceable(oldItem, newItem)) {
                         SPickups.CreatePickup(oldItem, nb: 1f, (int2)p + new Vector2(0.5f, 0.5f));
                     }
