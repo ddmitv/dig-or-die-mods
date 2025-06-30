@@ -132,8 +132,7 @@ public class WorldRecorder : BaseUnityPlugin {
         }
 
         if (configToggleKey.Value.IsDown()) {
-            _isRecording ^= true;
-            if (_isRecording) {
+            if (!_isRecording) {
                 StartRecording();
             } else {
                 StopRecording();
@@ -213,6 +212,7 @@ public class WorldRecorder : BaseUnityPlugin {
             }
         }
 
+        _isRecording = true;
         Logger.LogInfo("Starting world recording");
         DisplayScreenMessage($"Starting world recording... (lighting: {CellRenderer.LightingModeToString(configLightingMode.Value)})");
     }
@@ -232,6 +232,7 @@ public class WorldRecorder : BaseUnityPlugin {
                 ffmpegProcess = null;
             }
         }
+        _isRecording = false;
         Logger.LogInfo($"Stopping world recording ({_currentFrameIndex} frames)");
         DisplayScreenMessage($"Stopping world recording... ({_currentFrameIndex} frames)");
     }
