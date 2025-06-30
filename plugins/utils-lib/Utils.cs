@@ -1,6 +1,5 @@
 using BepInEx;
 using HarmonyLib;
-using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -370,6 +369,19 @@ public static class Utils {
     }
     public static float EaseOutCubic(float x) {
         return 1f - Cub(1f - x);
+    }
+
+    public static bool IsStringNullOrWhiteSpace(string value) {
+        if (value == null) {
+            return true;
+        }
+
+        for (int i = 0; i < value.Length; i++) {
+            if (!char.IsWhiteSpace(value[i])) {
+                return false;
+            }
+        }
+        return true;
     }
 }
 
