@@ -204,9 +204,11 @@ public class WorldRecorder : BaseUnityPlugin {
                 ffmpegProcess.BeginErrorReadLine();
             } catch (Win32Exception ex) {
                 Logger.LogError($"Failed to find FFmpeg (filename: {ffmpegStartInfo.FileName}): {ex.Message}");
+                DisplayScreenMessage($"Failed to find FFmpeg (filename: {ffmpegStartInfo.FileName})");
                 return;
             } catch (Exception ex) {
                 Logger.LogError($"FFmpeg failed to start: {ex.Message}");
+                DisplayScreenMessage($"Failed to start FFmpeg");
                 return;
             }
         }
