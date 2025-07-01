@@ -21,9 +21,9 @@ You can follow instructions specified in [Automatic BepInEx Installation](#autom
 ## Automatic BepInEx Installation
 
 1. Download Powershell script from [`Install-BepInEx.ps1`](https://github.com/NUCLEAR-BOMB/dig-or-die-mods/blob/main/Install-BepInEx.ps1) \
-   In the top right, **right click** the `Raw` button
+   In the top right, left click the *Download raw file* button (it has a download icon).
 
-2. Open Powershell where you download the `Install-BepInEx.ps1` script \
+2. Open Powershell where you downloaded the `Install-BepInEx.ps1` script \
    Go to the folder location and type `powershell.exe` on the address bar.
 
 3. Run the following command to execute script and install BepInEx:
