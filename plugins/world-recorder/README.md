@@ -44,6 +44,15 @@ Allows to record entire world into video (or sequence of .bmp files) or take a s
 >    - Under "System variables", select `Path` -> Edit
 >    - Click New -> Add the path to the `bin` folder (e.g., `C:\Program Files\ffmpeg\bin`)
 >    - Click OK to save all changes
+>
+> ### Method 3: Install from Winget
+>
+> 1. Press Win+R or open command prompt/powershell and type
+>    ```powershell
+>    winget install --id=Gyan.FFmpeg -e
+>    ```
+> 2. Wait until FFmpeg is installed.
+> 
 > </details>
 
 > [!TIP]
