@@ -118,6 +118,22 @@ Multiplies all item recipe's ingredients (ignoring unique).
 > If an ingredient is a boss item loot, it won't be affected. What counts as "boss item":
 > "Mad Crab Material" (`bossMadCrabMaterial`), "Mad Crab Sonar" (`bossMadCrabSonar`), "Energy Master Gem" (`masterGem`), "Demon's Skin" (`lootBalrog`), "Dweller Lord Shell Spike" (`lootDwellerLord`).
 
+### `[UltraHardcore]` `MonsterDamageMultPerNight`
+
+**Setting type:** `float` \
+**Default value:** `1`
+
+On the end of night multiplies monster damage by provided value.
+For example, if before monster damage multiplier (param `m_monstersDamagesMult`) was `1.5`, and if the `MonsterDamageMultPerNight = 1.1`, then after the night it would be `1.65`, and then the next night `1.815` and etc.
+
+### `[UltraHardcore]` `MonsterHpMultPerNight`
+
+**Setting type:** `float` \
+**Default value:** `1`
+
+On the end of night multiplies monster health by provided value.
+For example, if before monster health multiplier (param `m_monstersHpMult`) was `1.5`, and if the `MonsterHpMultPerNight = 1.1`, then after the night it would be `1.65`, and then the next night `1.815` and etc.
+
 ### `[General]` `UniqualizeVersionBuild`
 
 **Setting type:** `bool` \

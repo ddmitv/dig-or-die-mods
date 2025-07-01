@@ -327,6 +327,14 @@ internal static class IngredientMultiplierPatch {
         }
     }
 }
+internal static class OnEndOfNightPatch {
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(CMode), nameof(CMode.OnEndOfNight))]
+    private static void CMode_OnEndOfNight() {
+        SOutgame.Params.m_monstersDamagesMult *= UltraHardcorePlugin.configMonsterDamageMultPerNight.Value;
+        SOutgame.Params.m_monstersHpMult *= UltraHardcorePlugin.configMonsterHpMultPerNight.Value;
+    }
+}
 
 [BepInPlugin("ultra-hardcore", "Ultra Hardcore", "1.0.0")]
 public class UltraHardcorePlugin : BaseUnityPlugin {
@@ -334,6 +342,8 @@ public class UltraHardcorePlugin : BaseUnityPlugin {
     public static ConfigEntry<bool> configPermanentMist;
     public static ConfigEntry<bool> configPermanentAcidWater;
     public static ConfigEntry<uint> configIngredientMultiplier;
+    public static ConfigEntry<float> configMonsterDamageMultPerNight;
+    public static ConfigEntry<float> configMonsterHpMultPerNight;
 
     private void Start() {
         configPlayerHpMax = Config.Bind<float>(
@@ -395,6 +405,14 @@ public class UltraHardcorePlugin : BaseUnityPlugin {
             section: "UltraHardcore", key: "IngredientMultiplier", defaultValue: 1,
             description: "Multiplies all recipe's ingredients (ignoring unique) by provided number"
         );
+        configMonsterDamageMultPerNight = Config.Bind<float>(
+            section: "UltraHardcore", key: "MonsterDamageMultPerNight", defaultValue: 1f,
+            description: "On the end of night multiplies monster damage by provided value"
+        );
+        configMonsterHpMultPerNight = Config.Bind<float>(
+            section: "UltraHardcore", key: "MonsterHpMultPerNight", defaultValue: 1f,
+            description: "On the end of night multiplies monster health by provided value"
+        );
 
         var configUniqualizeVersionBuild = Config.Bind<bool>(
             section: "General", key: "UniqualizeVersionBuild", defaultValue: false,
@@ -447,6 +465,9 @@ public class UltraHardcorePlugin : BaseUnityPlugin {
         }
         if (configIngredientMultiplier.Value != 1) {
             harmony.PatchAll(typeof(IngredientMultiplierPatch));
+        }
+        if (configMonsterDamageMultPerNight.Value != 1f || configMonsterHpMultPerNight.Value != 1f) {
+            harmony.PatchAll(typeof(OnEndOfNightPatch));
         }
     }
 }
