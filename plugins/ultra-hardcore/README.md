@@ -10,6 +10,9 @@ All effects of this plugin will apply at any difficulty level.
 
 # Configuration
 
+> [!NOTE]
+> To apply any of the settings below, restart the game.
+
 ### `[UltraHardcore]` `HpMax`
 
 **Setting type:** `float` \
