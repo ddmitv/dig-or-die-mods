@@ -336,7 +336,7 @@ internal static class OnEndOfNightPatch {
     }
 }
 
-[BepInPlugin("ultra-hardcore", "Ultra Hardcore", "1.0.0")]
+[BepInPlugin("ultra-hardcore", "Ultra Hardcore", "1.1.0")]
 public class UltraHardcorePlugin : BaseUnityPlugin {
     public static ConfigEntry<float> configPlayerHpMax;
     public static ConfigEntry<bool> configPermanentMist;
