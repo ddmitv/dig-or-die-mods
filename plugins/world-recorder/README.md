@@ -5,6 +5,23 @@ Allows to record entire world into video (or sequence of .bmp files) or take a s
 
 ![Showcase](readme-res/showcase.gif)
 
+<details>
+<summary><b>Other Videos</b></summary>
+
+> Degraded quality due to `.mp4` -> `.gif` conversion.
+> The original video quality can be configured from FFmpeg encoding arguments (see below).
+
+**Used RGB lighting mode:**
+
+![RGB World](readme-res/rgb-world.gif)
+
+**Long recording of crystal growing in lava:**
+
+![Crystal in the world of lava](readme-res/lava-crystal.gif)
+
+</details>
+<br>
+
 > [!IMPORTANT]
 > For video encoding, the FFmpeg program is required.
 > <details>
