@@ -20,27 +20,42 @@ You can follow instructions specified in [Automatic BepInEx Installation](#autom
 
 ## Automatic BepInEx Installation
 
-1. Download Powershell script from [`Install-BepInEx.ps1`](https://github.com/NUCLEAR-BOMB/dig-or-die-mods/blob/main/Install-BepInEx.ps1) \
-   In the top right, left click the *Download raw file* button (it has a download icon).
+Open PowerShell.
+1. **Start menu method:**
+   - Right-click on the start menu.
+   - Choose `Windows PowerShell` (for Windows 10) or `Terminal` (for Windows 11).
+2. **Search and launch method:**
+   - Press the Windows key.
+   - Type `PowerShell` or `Terminal` (for Windows 11).
+   - Left-click `Windows PowerShell` match to launch PowerShell.
 
-2. Open Powershell where you downloaded the `Install-BepInEx.ps1` script \
-   Go to the folder location and type `powershell.exe` on the address bar.
+### One-Command Installation (Recommended)
 
-3. Run the following command to execute script and install BepInEx:
-   ```powershell
-   .\Install-BepInEx.ps1
-   ```
+Copy the following command, paste it into PowerShell console and press `Enter`.
+```powershell
+irm "https://raw.githubusercontent.com/NUCLEAR-BOMB/dig-or-die-mods/main/Install-BepInEx.ps1" | iex
+```
 
-> [!IMPORTANT]
-> If Powershell script execution is disable, start Windows Powershell with the "Run as Administrator" option and allow running unsigned scripts by entering:
+If you encountered an error, please follow provided instructions in error message, or, manually install BepInEx.
+
+### Installation with Extra Options
+
+| Option              | Description |
+| ------------------- | ----------- |
+| `-Console`          | Enable logging console on game startup. <br> Can be done manually after installation by changing `Enabled = false` -> `Enabled = true` in `[Logging.Console]` section in `Dig or Die/BepInEx/config/BepInEx.cfg` |
+| `-InstallCfgMgr`    | Install plugin [BepInEx.ConfigurationManager](https://github.com/BepInEx/BepInEx.ConfigurationManager) |
+| `-InstallMonoDebug` | Install debug Mono runtime (required when debugging with dnSpy) |
+
+Add these parameters after the command and run it:
+```powershell
+&([scriptblock]::Create((irm "https://raw.githubusercontent.com/NUCLEAR-BOMB/dig-or-die-mods/main/Install-BepInEx.ps1")))
+```
+
+> [!TIP]
+> Example:
 > ```powershell
-> Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+> &([scriptblock]::Create((irm "https://raw.githubusercontent.com/NUCLEAR-BOMB/dig-or-die-mods/main/Install-BepInEx.ps1"))) -Console -InstallCfgMgr
 > ```
-
-> [!NOTE]
-> Provide options `-Console` to additionally enable console, `-InstallConfigurationManager` or `-InstallCfgMgr` to install plugin [BepInEx.ConfigurationManager](https://github.com/BepInEx/BepInEx.ConfigurationManager), `-InstallMonoDebug` to install debug Mono runtime (required when debugging with dnSpy).
-
-If you encountered an error, please follow provided instructions, or, manually install BepInEx.
 
 ## Manual BepInEx Installation
 
@@ -108,7 +123,7 @@ but the following instructions are specialized for Dig or Die.
 
 You can download these from [Github Releases](https://github.com/NUCLEAR-BOMB/dig-or-die-mods/releases) page (or compile them yourself, see [Building Plugins](#building-plugins)).
 
-Place plugin `.dll` (e.g. `precise_clock.dll`) into `Dig or Die/BepInEx/plugins`.
+Place plugin `.dll` (e.g. `precise_clock.dll`) into `Dig or Die/BepInEx/plugins` folder.
 
 Run the game **through Steam**. Plugins should now be active.
 
