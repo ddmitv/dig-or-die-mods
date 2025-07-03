@@ -28,14 +28,15 @@ Allows to record entire world into video (or sequence of .bmp files) or take a s
 > <summary>Installing FFmpeg</summary>
 > 
 > ### Method 1: Place in game directory
-> 
-> 1. Download the same ZIP file as above
+>
+> 1. Download the FFmpeg Windows build from [FFmpeg's official site](https://ffmpeg.org/download.html#build-windows)
+>    - Direct link: https://www.gyan.dev/ffmpeg/builds/#release-builds
 > 2. Extract only `ffmpeg.exe` from the `bin` folder
 > 3. Place `ffmpeg.exe` in the same folder where plugin's `.dll` (`world_recorder.dll`) is located.
 > 
 > ### Method 2: Install to system PATH
 > 
-> 1. Download the Windows build from [FFmpeg's official site](https://ffmpeg.org/download.html#build-windows)
+> 1. Download the FFmpeg Windows build from [FFmpeg's official site](https://ffmpeg.org/download.html#build-windows)
 >    - Direct link: https://www.gyan.dev/ffmpeg/builds/#release-builds
 > 2. Choose the `ffmpeg-release-essentials.zip` (`.7z`) file
 > 3. Extract the `.zip` (`.7z`) to a permanent location (e.g., `C:\Program Files\ffmpeg`)
