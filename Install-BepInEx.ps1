@@ -5,6 +5,8 @@ param(
     [Alias("InstallCfgMgr")]
     [switch]$InstallConfigurationManager,
     [switch]$InstallMonoDebug,
+    [switch]$InstallDemystifyExceptions,
+    [switch]$UseCecilHarmonyBackend,
     [switch]$NonInteractive
 )
 
@@ -252,10 +254,10 @@ function Show-Menu {
                 UpArrow {
                     $currentIndex = [Math]::Max(0, $currentIndex - 1)
                 }
-                DownArrow{
+                DownArrow {
                     $currentIndex = [Math]::Min($Options.Count, $currentIndex + 1)
                 }
-                {($_ -eq "Enter") -or ($_ -eq "Space")} {
+                Enter {
                     if ($currentIndex -eq 0) { break loop }
                     $Options[$currentIndex - 1].Selected = -not $Options[$currentIndex - 1].Selected
                 }
@@ -268,20 +270,53 @@ function Show-Menu {
     }
     return $Options
 }
+function Install-Plugin {
+    param([string]$Name, [string]$DownloadURL)
+
+    $pluginTempFile = Join-Path ([System.IO.Path]::GetTempPath()) "$Name-$(New-Guid).zip"
+    try {
+        Write-Host "`nDownloading $Name..." -ForegroundColor Cyan
+        Write-Host "  URL: $DownloadURL" -ForegroundColor White
+        Invoke-WebRequest -Uri $DownloadURL -OutFile $pluginTempFile -UseBasicParsing
+        
+        if (-not (Test-Path $pluginTempFile -PathType Leaf)) {
+            Write-Host "[WARNING] Failed to save $Name" -ForegroundColor Yellow
+            return $false
+        }
+        Write-Host "Download successful! ($([math]::Round((Get-Item $pluginTempFile).Length / 1MB, 2)) MB)" -ForegroundColor Green
+        Write-Host "  Checksum SHA256: $((Get-FileHash $pluginTempFile -Algorithm SHA256).Hash)" -ForegroundColor White
+
+        Write-Host "Extracting to game directory..." -ForegroundColor Cyan
+        Expand-Archive -Path $pluginTempFile -DestinationPath $GamePath -Force
+        Write-Host "$Name installed!" -ForegroundColor Green
+    } catch {
+        Write-Host "[WARNING] Failed to install $($Name): $_" -ForegroundColor Yellow
+        return $false
+    } finally {
+        if (Test-Path $pluginTempFile -PathType Leaf) {
+            Remove-Item $pluginTempFile -Force -ErrorAction SilentlyContinue
+        }
+    }
+    return $true
+}
 #endregion Functions
 
 if (-not $NonInteractive) {
     $menuItems = @(
-        @{Name = "Enable Console (enable logging console on game startup)"; Selected = $Console.IsPresent}
-        @{Name = "Install plugin BepInEx.ConfigurationManager"; Selected = $InstallConfigurationManager.IsPresent}
-        @{Name = "Install Mono Debug (required when debugging with dnSpy)"; Selected = $InstallMonoDebug.IsPresent}
+        @{Name = "Enable Console (enable logging console on game startup)"; Selected = $Console.IsPresent},
+        @{Name = "Install plugin BepInEx.ConfigurationManager"; Selected = $InstallConfigurationManager.IsPresent},
+        @{Name = "Install Mono Debug (required when debugging with dnSpy)"; Selected = $InstallMonoDebug.IsPresent},
+        @{Name = "Install preloader patcher BepInEx.Debug.DemystifyExceptions"; Selected = $InstallDemystifyExceptions.IsPresent},
+        @{Name = "Use cecil Harmony backend"; Selected = $UseCecilHarmonyBackend.IsPresent}
     )
-    Write-Host "Use arrow keys to navigate, Enter/Space to toggle" -ForegroundColor DarkGray
+    Write-Host "Use UP/DOWN to select options, ENTER to toggle.`nSelect 'Continue...' and press ENTER to start installation." -ForegroundColor DarkGray
     $selection = Show-Menu -Options $menuItems
 
     $Console = $selection[0].Selected
     $InstallConfigurationManager = $selection[1].Selected
     $InstallMonoDebug = $selection[2].Selected
+    $InstallDemystifyExceptions = $selection[3].Selected
+    $UseCecilHarmonyBackend = $selection[4].Selected
 }
 
 $gameName = "Dig or Die"
@@ -357,38 +392,15 @@ catch {
 
 $isConfigurationManagerSuccessfullyInstalled = $false
 if ($InstallConfigurationManager) {
-    $configManagerUrl = "https://github.com/BepInEx/BepInEx.ConfigurationManager/releases/download/v18.4.1/BepInEx.ConfigurationManager_BepInEx5_v18.4.1.zip"
-    $configManagerTempFile = Join-Path ([System.IO.Path]::GetTempPath()) "$(New-Guid).zip"
-
-    try {
-        Write-Host "`nDownloading BepInEx.ConfigurationManager..." -ForegroundColor Cyan
-        Write-Host "  URL: $configManagerUrl" -ForegroundColor White
-        Invoke-WebRequest -Uri $configManagerUrl -OutFile $configManagerTempFile -UseBasicParsing
-        
-        if (-not (Test-Path $configManagerTempFile -PathType Leaf)) {
-            Write-Host "[WARNING] Failed to save BepInEx.ConfigurationManager" -ForegroundColor Yellow
-        }
-        else {
-            Write-Host "Download successful! ($([math]::Round((Get-Item $configManagerTempFile).Length / 1MB, 2)) MB)" -ForegroundColor Green
-            Write-Host "  Checksum SHA256: $((Get-FileHash $configManagerTempFile -Algorithm SHA256).Hash)" -ForegroundColor White
-
-            Write-Host "Extracting to game directory..." -ForegroundColor Cyan
-            Expand-Archive -Path $configManagerTempFile -DestinationPath $GamePath -Force
-            Write-Host "BepInEx.ConfigurationManager installed!" -ForegroundColor Green
-            $isConfigurationManagerSuccessfullyInstalled = $true
-        }
-    }
-    catch {
-        Write-Host "[WARNING] Failed to install BepInEx.ConfigurationManager: $_" -ForegroundColor Yellow
-    }
-    finally {
-        if (Test-Path $configManagerTempFile -PathType Leaf) {
-            Remove-Item $configManagerTempFile -Force -ErrorAction SilentlyContinue
-        }
-    }
+    $isConfigurationManagerSuccessfullyInstalled = Install-Plugin -Name "BepInEx.ConfigurationManager" -DownloadURL "https://github.com/BepInEx/BepInEx.ConfigurationManager/releases/download/v18.4.1/BepInEx.ConfigurationManager_BepInEx5_v18.4.1.zip"
+}
+$isDemystifyExceptionsSuccessfullyInstalled = $false
+if ($InstallDemystifyExceptions) {
+    $isDemystifyExceptionsSuccessfullyInstalled = Install-Plugin -Name "BepInEx.Debug.DemystifyExceptions" -DownloadURL "https://github.com/BepInEx/BepInEx.Debug/releases/download/r11/DemystifyExceptions_r11.zip"
 }
 
 $isConsoleSuccessfullyEnabled = $false
+$isCecilHarmonyBackendSuccessfullyEnabled = $false
 try {
     $bepInExPath = Join-Path $GamePath "BepInEx"
     $configDir = Join-Path $bepInExPath "config"
@@ -409,6 +421,10 @@ try {
         $configLines = Update-IniSetting -Content $configLines -Section "Logging.Console" -Key "Enabled" -Value "true"
         $isConsoleSuccessfullyEnabled = $true
     }
+    if ($UseCecilHarmonyBackend) {
+        $configLines = Update-IniSetting -Content $configLines -Section "Preloader" -Key "HarmonyBackend" -Value "cecil"
+        $isCecilHarmonyBackendSuccessfullyEnabled = $true
+    }
     
     $configLines | Set-Content $configPath -Force
     Write-Host "Configuration updated successfully!" -ForegroundColor Green
@@ -428,6 +444,8 @@ Write-Host "`n=== Installation Summary ===" -ForegroundColor Magenta
 Write-Host "Game Path:       $GamePath" -ForegroundColor Cyan
 Write-Host "BepInEx Version: $BepInExVersion" -ForegroundColor Cyan
 Write-Host "Console Enabled: $isConsoleSuccessfullyEnabled" -ForegroundColor Cyan
+Write-Host "Use cecil Harmony backend: $isCecilHarmonyBackendSuccessfullyEnabled" -ForegroundColor Cyan
 Write-Host "BepInEx.ConfigurationManager Installed: $isConfigurationManagerSuccessfullyInstalled" -ForegroundColor Cyan
+Write-Host "BepInEx.Debug.DemystifyExceptions Installed: $isDemystifyExceptionsSuccessfullyInstalled" -ForegroundColor Cyan
 Write-Host "Debug Mono Installed: $isDebugMonoInstalled" -ForegroundColor Cyan
 Write-Host "`nSuccessfully installed BepInEx!`n" -ForegroundColor Green
