@@ -212,16 +212,14 @@ function Install-DebugMono {
 
         Write-Host "Installed debug Mono runtime" -ForegroundColor Green
         Write-Host "  at $originalMono" -ForegroundColor DarkGray
-        return $true
-    }
-    catch {
+    } catch {
         Write-Host "[ERROR] Debug Mono install failed: $_" -ForegroundColor Red
         return $false
-    }
-    finally {
+    } finally {
         if (Test-Path $tempFile) { Remove-Item $tempFile -Force }
         if (Test-Path $tempExtract) { Remove-Item $tempExtract -Recurse -Force }
     }
+    return $true
 }
 
 function Show-Menu {
@@ -307,7 +305,7 @@ if (-not $NonInteractive) {
         @{Name = "Install plugin BepInEx.ConfigurationManager"; Selected = $InstallConfigurationManager.IsPresent},
         @{Name = "Install Mono Debug (required when debugging with dnSpy)"; Selected = $InstallMonoDebug.IsPresent},
         @{Name = "Install preloader patcher BepInEx.Debug.DemystifyExceptions"; Selected = $InstallDemystifyExceptions.IsPresent},
-        @{Name = "Use cecil Harmony backend"; Selected = $UseCecilHarmonyBackend.IsPresent}
+        @{Name = "Use ""cecil"" Harmony backend"; Selected = $UseCecilHarmonyBackend.IsPresent}
     )
     Write-Host "Use UP/DOWN to select options, ENTER to toggle.`nSelect 'Continue...' and press ENTER to start installation." -ForegroundColor DarkGray
     $selection = Show-Menu -Options $menuItems
@@ -381,8 +379,7 @@ try {
     Expand-Archive -Path $tempFile -DestinationPath $GamePath -Force
     Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
     Write-Host "Extraction complete!" -ForegroundColor Green
-}
-catch {
+} catch {
     Write-Host "`n[ERROR] Extraction failed: $_" -ForegroundColor Red
     if (Test-Path $tempFile -PathType Leaf) {
         Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
