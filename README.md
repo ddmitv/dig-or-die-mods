@@ -29,33 +29,12 @@ Open PowerShell.
    - Type `PowerShell` or `Terminal` (for Windows 11).
    - Left-click `Windows PowerShell` match to launch PowerShell.
 
-### One-Command Installation (Recommended)
-
 Copy the following command, paste it into PowerShell console and press `Enter`.
 ```powershell
 irm "https://raw.githubusercontent.com/NUCLEAR-BOMB/dig-or-die-mods/main/Install-BepInEx.ps1" | iex
 ```
 
 If you encountered an error, please follow provided instructions in error message, or, manually install BepInEx.
-
-### Installation with Extra Options
-
-| Option              | Description |
-| ------------------- | ----------- |
-| `-Console`          | Enable logging console on game startup. <br> Can be done manually after installation by changing `Enabled = false` -> `Enabled = true` in `[Logging.Console]` section in `Dig or Die/BepInEx/config/BepInEx.cfg` |
-| `-InstallCfgMgr`    | Install plugin [BepInEx.ConfigurationManager](https://github.com/BepInEx/BepInEx.ConfigurationManager) |
-| `-InstallMonoDebug` | Install debug Mono runtime (required when debugging with dnSpy) |
-
-Add these parameters after the command and run it:
-```powershell
-&([scriptblock]::Create((irm "https://raw.githubusercontent.com/NUCLEAR-BOMB/dig-or-die-mods/main/Install-BepInEx.ps1")))
-```
-
-> [!TIP]
-> Example:
-> ```powershell
-> &([scriptblock]::Create((irm "https://raw.githubusercontent.com/NUCLEAR-BOMB/dig-or-die-mods/main/Install-BepInEx.ps1"))) -Console -InstallCfgMgr
-> ```
 
 ## Manual BepInEx Installation
 
