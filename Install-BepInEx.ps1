@@ -4,9 +4,11 @@ param(
     [string]$GamePath,
     [Alias("InstallCfgMgr")]
     [switch]$InstallConfigurationManager,
-    [switch]$InstallMonoDebug
+    [switch]$InstallMonoDebug,
+    [switch]$NonInteractive
 )
 
+#region Functions
 function Get-SteamInstallationPath {
     $installPath = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Wow6432Node\Valve\Steam" -Name "InstallPath" -ErrorAction SilentlyContinue).InstallPath
     if (($null -ne $installPath) -and (Test-Path $installPath -PathType Container)) { return $installPath }
@@ -218,6 +220,68 @@ function Install-DebugMono {
         if (Test-Path $tempFile) { Remove-Item $tempFile -Force }
         if (Test-Path $tempExtract) { Remove-Item $tempExtract -Recurse -Force }
     }
+}
+
+function Show-Menu {
+    param([array]$Options)
+
+    $currentIndex = 0
+    $menuStartLine = [Console]::CursorTop
+    try {
+        [Console]::CursorVisible = $false
+        :loop while ($true) {
+            for ($i = 0; $i -lt $Options.Count + 1; $i++) {
+                [Console]::SetCursorPosition(0, $menuStartLine + $i)
+                $selectedPrefix = if ($i -eq $currentIndex) { ">" } else { " " }
+                if ($i -eq 0) {
+                    $line = "$selectedPrefix Continue..."
+                } else {
+                    $enabledPrefix = if ($Options[$i - 1].Selected) { "[x]" } else { "[ ]" }
+                    $line = "$selectedPrefix $enabledPrefix $($Options[$i - 1].Name)"
+                }
+                $line = $line.PadRight([Console]::WindowWidth, ' ')
+                
+                if ($i -eq $currentIndex) {
+                    Write-Host $line -BackgroundColor Cyan -ForegroundColor Black -NoNewline
+                } else {
+                    Write-Host $line -NoNewline
+                }
+            }
+            $key = [Console]::ReadKey($true)
+            switch ($key.Key) {
+                UpArrow {
+                    $currentIndex = [Math]::Max(0, $currentIndex - 1)
+                }
+                DownArrow{
+                    $currentIndex = [Math]::Min($Options.Count, $currentIndex + 1)
+                }
+                {($_ -eq "Enter") -or ($_ -eq "Space")} {
+                    if ($currentIndex -eq 0) { break loop }
+                    $Options[$currentIndex - 1].Selected = -not $Options[$currentIndex - 1].Selected
+                }
+            }
+        }
+    }
+    finally {
+        [Console]::CursorVisible = $true
+        [Console]::SetCursorPosition(0, $menuStartLine + $Options.Count + 1)
+    }
+    return $Options
+}
+#endregion Functions
+
+if (-not $NonInteractive) {
+    $menuItems = @(
+        @{Name = "Enable Console (enable logging console on game startup)"; Selected = $Console.IsPresent}
+        @{Name = "Install plugin BepInEx.ConfigurationManager"; Selected = $InstallConfigurationManager.IsPresent}
+        @{Name = "Install Mono Debug (required when debugging with dnSpy)"; Selected = $InstallMonoDebug.IsPresent}
+    )
+    Write-Host "Use arrow keys to navigate, Enter/Space to toggle" -ForegroundColor DarkGray
+    $selection = Show-Menu -Options $menuItems
+
+    $Console = $selection[0].Selected
+    $InstallConfigurationManager = $selection[1].Selected
+    $InstallMonoDebug = $selection[2].Selected
 }
 
 $gameName = "Dig or Die"
