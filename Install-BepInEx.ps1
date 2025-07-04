@@ -173,7 +173,7 @@ function Install-DebugMono {
 
     $debugMonoUrl = "https://github.com/liesauer/Unity-debugging-dlls/releases/download/v2020.07.10/Unity-debugging-5.x.zip"
     $expectedChecksum = "058238350B0098A350760516B0557F6E366BC846C2F227322921A59238AF5875"
-    $tempFile = Join-Path ([System.IO.Path]::GetTempPath()) "$(New-Guid).zip"
+    $tempFile = Join-Path ([IO.Path]::GetTempPath()) "$(New-Guid).zip"
 
     try {
         Write-Host "`nDownloading debug Mono runtime..." -ForegroundColor Cyan
@@ -186,7 +186,7 @@ function Install-DebugMono {
             Write-Host "[ERROR] Failed to save debug Mono package" -ForegroundColor Red
             return $false
         }
-        $tempExtract = Join-Path ([System.IO.Path]::GetTempPath()) "$(New-Guid)"
+        $tempExtract = Join-Path ([IO.Path]::GetTempPath()) "$(New-Guid)"
         $null = New-Item -ItemType Directory -Path $tempExtract -Force
         
         Expand-Archive -Path $tempFile -DestinationPath $tempExtract -Force
@@ -271,7 +271,7 @@ function Show-Menu {
 function Install-Plugin {
     param([string]$Name, [string]$DownloadURL)
 
-    $pluginTempFile = Join-Path ([System.IO.Path]::GetTempPath()) "$Name-$(New-Guid).zip"
+    $pluginTempFile = Join-Path ([IO.Path]::GetTempPath()) "$Name-$(New-Guid).zip"
     try {
         Write-Host "`nDownloading $Name..." -ForegroundColor Cyan
         Write-Host "  URL: $DownloadURL" -ForegroundColor White
@@ -348,7 +348,7 @@ if ((-not ([version]::TryParse($BepInExVersion, [ref]$parseBepInExVersion)) -or 
 
 $versionNumber = "win_x86_$BepInExVersion" -replace '.*?(\d+\.\d+\.\d+\.\d+)$', '$1'
 $downloadUrl = "https://github.com/BepInEx/BepInEx/releases/download/v$versionNumber/BepInEx_win_x86_$BepInExVersion.zip"
-$tempFile = Join-Path ([System.IO.Path]::GetTempPath()) "$(New-Guid).zip"
+$tempFile = Join-Path ([IO.Path]::GetTempPath()) "$(New-Guid).zip"
 
 try {
     Write-Host "`nDownloading BepInEx..." -ForegroundColor Cyan
