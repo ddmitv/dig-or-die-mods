@@ -12,7 +12,7 @@
     <DebugSymbols>true</DebugSymbols>
     <OutputType>Exe</OutputType>
     
-    <Description>https://github.com/NUCLEAR-BOMB/dig-or-die-mods</Description>
+    <Description>https://github.com/ddmitv/dig-or-die-mods</Description>
   </PropertyGroup>
   
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">

@@ -11,7 +11,7 @@ It includes:
 All available plugins can be found in `plugins/` folder.
 Each plugin contains a `REAMDE.md` describing what it does.
 
-Checkout the [Wiki page](https://github.com/NUCLEAR-BOMB/dig-or-die-mods/wiki) for documentation for game internals and other.
+Checkout the [Wiki page](https://github.com/ddmitv/dig-or-die-mods/wiki) for documentation for game internals and other.
 
 # Plugin Installation
 
@@ -31,7 +31,7 @@ Open PowerShell.
 
 Copy the following command, paste it into PowerShell console and press `Enter`.
 ```powershell
-irm "https://raw.githubusercontent.com/NUCLEAR-BOMB/dig-or-die-mods/main/Install-BepInEx.ps1" | iex
+irm "https://raw.githubusercontent.com/ddmitv/dig-or-die-mods/main/Install-BepInEx.ps1" | iex
 ```
 
 If you encountered an error, please follow provided instructions in error message, or, manually install BepInEx.
@@ -100,7 +100,7 @@ but the following instructions are specialized for Dig or Die.
 
 ## Download plugin .dll
 
-You can download these from [Github Releases](https://github.com/NUCLEAR-BOMB/dig-or-die-mods/releases) page (or compile them yourself, see [Building Plugins](#building-plugins)).
+You can download these from [Github Releases](https://github.com/ddmitv/dig-or-die-mods/releases) page (or compile them yourself, see [Building Plugins](#building-plugins)).
 
 Place plugin `.dll` (e.g. `precise_clock.dll`) into `Dig or Die/BepInEx/plugins` folder.
 
@@ -161,7 +161,7 @@ To reset configuration to default delete the configuration file and next time th
 
 Clone the repository:
 ```bash
-git clone https://github.com/NUCLEAR-BOMB/dig-or-die-mods.git
+git clone https://github.com/ddmitv/dig-or-die-mods.git
 cd dig-or-die-mods
 ```
 
@@ -178,7 +178,7 @@ If build successfully, they will be automatically copied to `BepInEx/plugins` in
 
 # Modifying Save Files
 
-Download `save-tool.exe` from [Github Releases](https://github.com/NUCLEAR-BOMB/dig-or-die-mods/releases) page (or compile it yourself).
+Download `save-tool.exe` from [Github Releases](https://github.com/ddmitv/dig-or-die-mods/releases) page (or compile it yourself).
 
 The `save-tool` is a command line utility for compressing and decompressing save files.
 You need to run it through command line. To list all available options use `--help`.
