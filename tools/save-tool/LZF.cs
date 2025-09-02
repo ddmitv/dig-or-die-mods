@@ -4,6 +4,8 @@
 
 using System;
 
+namespace SaveTool.Utils;
+
 public static class CLZF2
 {
 	public static byte[] Compress(byte[] inputBytes)
@@ -19,7 +21,7 @@ public static class CLZF2
 		return array2;
 	}
 
-	public static byte[] Decompress(byte[] inputBytes)
+	public static byte[]? Decompress(byte[] inputBytes)
 	{
 		byte[] array = new byte[inputBytes.Length * 12];
 		int i;

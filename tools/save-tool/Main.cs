@@ -8,6 +8,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 
+namespace SaveTool;
+
 static class Extensions {
     public static string ToLowerFirstChar(this string input) {
         return char.ToLower(input[0]) + input.Substring(1);
@@ -16,18 +18,19 @@ static class Extensions {
 
 enum Action {
     Compress,
-    Decompress
+    Decompress,
+    Convert,
 }
 
 class ParsedArgs {
     public Action? action = null;
-    public string path = null;
-    public string output = null;
+    public string? path = null;
+    public string? output = null;
     public bool force = false;
     public bool openInImHex = false;
     public bool printHelp = false;
 }
-static class SaveTool {
+static class Program {
     static ParsedArgs ParseArgs(string[] args) {
         ParsedArgs result = new();
 
@@ -38,6 +41,9 @@ static class SaveTool {
                 break;
             case "--decompress" or "-d":
                 result.action = Action.Decompress;
+                break;
+            case "--convert" or "-u":
+                result.action = Action.Convert;
                 break;
             case "--output" or "-o":
                 if (i + 1 >= args.Length) {
@@ -70,10 +76,10 @@ static class SaveTool {
             return result;
         }
         if (result.action is null) {
-            throw new ArgumentException($"Expected '--compress'/'-c' or '--decompress'/'-d'");
+            throw new ArgumentException($"Expected '--compress'/'-c' or '--decompress'/'-d' or '--convert'/'-u'");
         }
         if (result.path is null) {
-            throw new ArgumentException($"Expected path to the compressed/decompressed save file");
+            throw new ArgumentException($"Expected path to the compressed/decompressed/convert save file");
         }
 
         return result;
@@ -96,7 +102,7 @@ Usage: save-tool <source> [options]
 
     static string GetOutputPathExtensions(Action action) {
         return action switch {
-            Action.Compress => ".save",
+            Action.Compress or Action.Convert => ".save",
             Action.Decompress => ".uncompressed-save",
             _ => throw new InvalidEnumArgumentException()
         };
@@ -109,25 +115,26 @@ Usage: save-tool <source> [options]
         }
         Process.Start(imHexPath, $"\"{path}\"");
     }
-    static string BytesToString(byte[] bytes) {
-        StringBuilder hex = new StringBuilder(bytes.Length * 2);
-        foreach (byte b in bytes) {
-            hex.AppendFormat("{0:X2}", b);
+    static string GetOutputPath(ParsedArgs args) {
+        string resultPath = args.output ?? Path.ChangeExtension(args.path, GetOutputPathExtensions(args.action!.Value));
+        if (Directory.Exists(resultPath)) {
+            string resultPathFileName = Path.GetFileName(args.path);
+            resultPath = Path.Combine(resultPath, Path.ChangeExtension(resultPathFileName, GetOutputPathExtensions(args.action!.Value)));
         }
-        return hex.ToString();
-    }
-
-    static int PerformAction(ParsedArgs args, byte[] rawData) {
-        string resultPath = args.output ?? Path.ChangeExtension(args.path, GetOutputPathExtensions((Action)args.action));
         string backupPath = resultPath + ".backup";
         if (!args.force && File.Exists(resultPath) && !File.Exists(backupPath)) {
             Console.WriteLine($"Created backup for previous version of the file: '{backupPath}'");
             File.Move(resultPath, backupPath);
         }
+        return resultPath;
+    }
 
+    static int PerformAction(ParsedArgs args, byte[] rawData) {
         switch (args.action) {
         case Action.Decompress: {
-            byte[] decompressedData = CLZF2.Decompress(rawData);
+            string resultPath = GetOutputPath(args);
+
+            byte[]? decompressedData = Utils.CLZF2.Decompress(rawData);
             if (decompressedData is null) {
                 Console.Error.WriteLine("Decompression error: EINVAL");
                 return 1;
@@ -140,11 +147,15 @@ Usage: save-tool <source> [options]
             }
 
             Console.WriteLine($"Successfully decompressed at '{Path.GetFullPath(resultPath)}'");
-
+            if (args.openInImHex) {
+                OpenInImHex(Path.GetFullPath(resultPath));
+            }
             break;
         }
         case Action.Compress: {
-            byte[] compressedData = CLZF2.Compress(rawData);
+            string resultPath = GetOutputPath(args);
+
+            byte[] compressedData = Utils.CLZF2.Compress(rawData);
             if (compressedData is null) {
                 Console.Error.WriteLine("Compression error: EINVAL");
                 return 1;
@@ -156,14 +167,26 @@ Usage: save-tool <source> [options]
                 return 1;
             }
             Console.WriteLine($"Successfully compressed at '{Path.GetFullPath(resultPath)}'");
+            break;
+        }
+        case Action.Convert: {
+            string resultPath = GetOutputPath(args);
 
+            Data.GameState gameState;
+            gameState = SaveTool.V0_25_Converter.Deserialize(new BinaryReader(new MemoryStream(rawData)));
+            byte[] compressedData = SaveTool.V1_11_Converter.Serialize(gameState);
+
+            try {
+                File.WriteAllBytes(resultPath, compressedData);
+            } catch (Exception exception) {
+                Console.Error.WriteLine($"File writing error: {exception.Message.ToLowerFirstChar()}");
+                return 1;
+            }
+            Console.WriteLine($"Successfully converter at '{Path.GetFullPath(resultPath)}'");
             break;
         }
         default:
             throw new InvalidEnumArgumentException();
-        }
-        if (args.openInImHex) {
-            OpenInImHex(Path.GetFullPath(resultPath));
         }
         return 0;
     }

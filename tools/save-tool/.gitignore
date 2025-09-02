@@ -3,4 +3,6 @@
 !.gitignore
 !LZF.cs
 !Main.cs
+!GameState.cs
+!SaveConverters.cs
 !save-tools.csproj
