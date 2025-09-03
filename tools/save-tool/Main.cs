@@ -21,6 +21,10 @@ enum Action {
     Decompress,
     Convert,
 }
+enum SaveVersion {
+    V0_13,
+    V0_25,
+}
 
 class ParsedArgs {
     public Action? action = null;
@@ -29,6 +33,7 @@ class ParsedArgs {
     public bool force = false;
     public bool openInImHex = false;
     public bool printHelp = false;
+    public SaveVersion? saveVersion = null;
 }
 static class Program {
     static ParsedArgs ParseArgs(string[] args) {
@@ -60,6 +65,12 @@ static class Program {
                 break;
             case "-h" or "--help":
                 result.printHelp = true;
+                break;
+            case "-v0.13":
+                result.saveVersion = SaveVersion.V0_13;
+                break;
+            case "-v0.25":
+                result.saveVersion = SaveVersion.V0_25;
                 break;
             default:
                 if (args[i].StartsWith("-")) {
@@ -173,8 +184,15 @@ Usage: save-tool <source> [options]
         case Action.Convert: {
             string resultPath = GetOutputPath(args);
 
-            Data.GameState gameState;
-            gameState = SaveTool.V0_25_Converter.Deserialize(new BinaryReader(new MemoryStream(rawData)));
+            using var saveReader = new BinaryReader(new MemoryStream(rawData));
+            Data.GameState? gameState = null;
+            if (args.saveVersion == SaveVersion.V0_25) {
+                gameState = SaveTool.V0_25_Converter.Deserialize(saveReader);
+            } else if (args.saveVersion == SaveVersion.V0_13) {
+                gameState = SaveTool.V0_13_Converter.Deserialize(saveReader);
+            } else {
+                throw new InvalidEnumArgumentException();
+            }
             byte[] compressedData = SaveTool.V1_11_Converter.Serialize(gameState);
 
             try {
@@ -183,7 +201,7 @@ Usage: save-tool <source> [options]
                 Console.Error.WriteLine($"File writing error: {exception.Message.ToLowerFirstChar()}");
                 return 1;
             }
-            Console.WriteLine($"Successfully converter at '{Path.GetFullPath(resultPath)}'");
+            Console.WriteLine($"Successfully converter save at '{Path.GetFullPath(args.path)}' to '{Path.GetFullPath(resultPath)}'");
             break;
         }
         default:
