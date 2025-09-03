@@ -14,6 +14,9 @@ namespace SaveTool;
 
 public class SaveLoadingException(string message) : Exception(message) { }
 
+public class UnsafeDeserializationException(string assemblyName, string typeName)
+    : Exception($"Unsafe deserialization from type '{typeName}', assembly: '{assemblyName}'") { }
+
 public static class BinaryFormatterHelpers {
     private sealed class Vector2_SerializationSurrogate : ISerializationSurrogate {
         public void GetObjectData(object obj, SerializationInfo info, StreamingContext context) {
@@ -25,7 +28,21 @@ public static class BinaryFormatterHelpers {
         }
     }
     private sealed class FormatterBinder : SerializationBinder {
+        private readonly HashSet<string> _allowedTypes = [
+            "System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+            "System.Double, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+            "System.Single, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+            "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+            "System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+            "System.Collections.Generic.List`1[[System.String, mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+            "int2, Assembly-CSharp",
+            "UnityEngine.Vector2, UnityEngine",
+        ];
+
         public override Type? BindToType(string assemblyName, string typeName) {
+            if (!_allowedTypes.Contains($"{typeName}, {assemblyName}")) {
+                throw new UnsafeDeserializationException(assemblyName, typeName);
+            }
             if (typeName == "int2" && assemblyName == "Assembly-CSharp") {
                 return typeof(Data.int2);
             }
@@ -126,8 +143,8 @@ public static class V0_25_Converter {
             mainPlayer.inventory.barItems[i] = reader.ReadUInt16();
         }
         // v0.25: stores bar index of selected item slot
-        // latest: stores item instanceId of selected item slot
-        // FIX (also need convert save item instanceId -> game item instanceId)
+        // v1.11: stores item instanceId of selected item slot
+        // also need convert save item instanceId -> game item instanceId
         // player.inventory.itemSelected = player.inventory.barItems[reader.ReadInt32()];
         _ = reader.ReadInt32();
 

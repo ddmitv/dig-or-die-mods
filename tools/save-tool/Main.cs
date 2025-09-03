@@ -91,6 +91,7 @@ Usage: save-tool <source> [options]
     -h --help          Show this message.
     -c --compress      Compress the <source> file with LZF algorithm.
     -d --decompress    Decompress the <source> file with LZF algorithm.
+    -u --convert       Convert old save file format to new one.
     -o --output        Specify the location of the output file explicitly.
                        By default, it will use this template:
                        '<path>/<filename>.save' if compressing, '<path>/<filename>.uncompressed-save' if decompressing.
