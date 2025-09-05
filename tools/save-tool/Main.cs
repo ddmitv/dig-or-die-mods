@@ -14,6 +14,13 @@ static class Extensions {
     public static string ToLowerFirstChar(this string input) {
         return char.ToLower(input[0]) + input.Substring(1);
     }
+    public static string RemovePrefix(this string str, string prefix) {
+        if (str.StartsWith(prefix)) {
+            return str.Substring(prefix.Length);
+        } else {
+            return str;
+        }
+    }
 }
 
 enum Action {
@@ -67,14 +74,17 @@ static class Program {
             case "-h" or "--help":
                 result.printHelp = true;
                 break;
-            case "-v0.13":
-                result.saveVersion = SaveVersion.V0_13;
-                break;
-            case "-v0.25":
-                result.saveVersion = SaveVersion.V0_25;
-                break;
-            case "-v0.06":
-                result.saveVersion = SaveVersion.V0_06;
+            case "--save-ver":
+                if (i + 1 >= args.Length) {
+                    throw new ArgumentException("Expected save version after '--save-ver'. Available versions: '0.25', '0.13', '0.06'");
+                }
+                result.saveVersion = args[i + 1].RemovePrefix("v") switch {
+                    "0.13" => SaveVersion.V0_13,
+                    "0.25" => SaveVersion.V0_25,
+                    "0.06" => SaveVersion.V0_06,
+                    _ => throw new ArgumentException("Unknown save version. Available versions: '0.25', '0.13', '0.06'"),
+                };
+                i += 1;
                 break;
             default:
                 if (args[i].StartsWith("-")) {
@@ -96,22 +106,29 @@ static class Program {
         if (result.path is null) {
             throw new ArgumentException($"Expected path to the compressed/decompressed/convert save file");
         }
+        if (result.action == Action.Convert && result.saveVersion is null) {
+            throw new ArgumentException("Expected '--save-ver' option when '--convert'/'-u' is used");
+        }
+        if (result.action != Action.Convert && result.saveVersion is not null) {
+            throw new ArgumentException("'--save-ver' must be used only when '--convert'/'-u' is used");
+        }
 
         return result;
     }
     static void PrintHelp() {
         Console.WriteLine("""
 Usage: save-tool <source> [options]
-    <source>           Path to the input file.
-    -h --help          Show this message.
-    -c --compress      Compress the <source> file with LZF algorithm.
-    -d --decompress    Decompress the <source> file with LZF algorithm.
-    -u --convert       Convert old save file format to new one.
-    -o --output        Specify the location of the output file explicitly.
-                       By default, it will use this template:
-                       '<path>/<filename>.save' if compressing, '<path>/<filename>.uncompressed-save' if decompressing.
-    -f --force         Will not overwrite existing files unless this option is specified.
-    --imhex            Open the output file in the ImHex. Will use ImHex at 'C:/ProgramFiles/ImHex/imhex-gui.exe'.
+    <source>                     Path to the input file.
+    -h --help                    Show this message.
+    -c --compress                Compress the <source> file with LZF algorithm.
+    -d --decompress              Decompress the <source> file with LZF algorithm.
+    -u --convert                 Convert old save file format to new one.
+    -o --output                  Specify the location of the output file explicitly.
+                                 By default, it will use this template:
+                                 '<path>/<filename>.save' if compressing, '<path>/<filename>.uncompressed-save' if decompressing.
+    --save-ver <0.25|0.13|0.06>  Version of input save (must be used with --convert/-u).
+    -f --force                   Will not overwrite existing files unless this option is specified.
+    --imhex                      Open the output file in the ImHex. Will use ImHex at 'C:/ProgramFiles/ImHex/imhex-gui.exe'.
 """
     );
     }
@@ -157,8 +174,8 @@ Usage: save-tool <source> [options]
             }
             try {
                 File.WriteAllBytes(resultPath, decompressedData);
-            } catch (Exception exception) {
-                Console.Error.WriteLine($"File writing error: {exception.Message.ToLowerFirstChar()}");
+            } catch (Exception ex) {
+                Console.Error.WriteLine($"File writing error: {ex.Message.ToLowerFirstChar()}");
                 return 1;
             }
 
@@ -178,8 +195,8 @@ Usage: save-tool <source> [options]
             }
             try {
                 File.WriteAllBytes(resultPath, compressedData);
-            } catch (Exception exception) {
-                Console.Error.WriteLine($"File writing error: {exception.Message.ToLowerFirstChar()}");
+            } catch (Exception ex) {
+                Console.Error.WriteLine($"File writing error: {ex.Message.ToLowerFirstChar()}");
                 return 1;
             }
             Console.WriteLine($"Successfully compressed at '{Path.GetFullPath(resultPath)}'");
@@ -189,22 +206,18 @@ Usage: save-tool <source> [options]
             string resultPath = GetOutputPath(args);
 
             using var saveReader = new BinaryReader(new MemoryStream(rawData));
-            Data.GameState? gameState = null;
-            if (args.saveVersion == SaveVersion.V0_25) {
-                gameState = SaveTool.V0_25_Converter.Deserialize(saveReader);
-            } else if (args.saveVersion == SaveVersion.V0_13) {
-                gameState = SaveTool.V0_13_Converter.Deserialize(saveReader);
-            } else if (args.saveVersion == SaveVersion.V0_06) {
-                gameState = SaveTool.V0_06_Converter.Deserialize(saveReader);
-            } else {
-                throw new InvalidEnumArgumentException();
-            }
-            byte[] compressedData = SaveTool.V1_11_Converter.Serialize(gameState);
+            Data.GameState gameState = args.saveVersion switch {
+                SaveVersion.V0_25 => V0_25_Converter.Deserialize(saveReader),
+                SaveVersion.V0_13 => V0_13_Converter.Deserialize(saveReader),
+                SaveVersion.V0_06 => V0_06_Converter.Deserialize(saveReader),
+                _ => throw new InvalidEnumArgumentException(),
+            };
+            byte[] compressedData = V1_11_Converter.Serialize(gameState);
 
             try {
                 File.WriteAllBytes(resultPath, compressedData);
-            } catch (Exception exception) {
-                Console.Error.WriteLine($"File writing error: {exception.Message.ToLowerFirstChar()}");
+            } catch (Exception ex) {
+                Console.Error.WriteLine($"File writing error: {ex.Message.ToLowerFirstChar()}");
                 return 1;
             }
             Console.WriteLine($"Successfully converter save at '{Path.GetFullPath(args.path)}' to '{Path.GetFullPath(resultPath)}'");
@@ -229,7 +242,7 @@ Usage: save-tool <source> [options]
         try {
             parsedArgs = ParseArgs(args);
         } catch (Exception exception) {
-            Console.Error.WriteLine(exception.Message);
+            Console.Error.WriteLine($"Command option error: {exception.Message.ToLowerFirstChar()}");
             return 1;
         }
         if (parsedArgs.printHelp) {
@@ -240,12 +253,16 @@ Usage: save-tool <source> [options]
         byte[] rawData;
         try {
             rawData = File.ReadAllBytes(parsedArgs.path);
-        } catch (Exception exception) {
-            Console.Error.WriteLine($"File reading error: {exception.Message.ToLowerFirstChar()}");
+        } catch (Exception ex) {
+            Console.Error.WriteLine($"File reading error: {ex.Message.ToLowerFirstChar()}");
             return 1;
         }
-
-        return PerformAction(parsedArgs, rawData);
+        try {
+            return PerformAction(parsedArgs, rawData);
+        } catch (Exception ex) {
+            Console.Error.WriteLine($"Error while performing action: {ex.Message.ToLowerFirstChar()}");
+            return 1;
+        }
     }
 }
 
