@@ -4,7 +4,7 @@
     <AssemblyName>save-tool</AssemblyName>
     <RootNamespace>SaveTool</RootNamespace>
     <Product>Save Tool</Product>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 </Project>
