@@ -531,7 +531,8 @@ public static class V0_13_Converter {
         }
         // old format: stores bar index of selected bar item slot
         // new format: stores item id of selected item slot
-        mainPlayer.inventory.itemSelected = mainPlayer.inventory.barItems[reader.ReadInt32()];
+        int barItemSelected = reader.ReadInt32();
+        mainPlayer.inventory.itemSelected = barItemSelected < 0 ? (ushort)0 : mainPlayer.inventory.barItems[barItemSelected];
 
         gameState.pickups = new Data.Pickup[reader.ReadInt32()];
         for (int i = 0; i < gameState.pickups.Length; ++i) {
