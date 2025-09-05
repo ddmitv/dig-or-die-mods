@@ -99,7 +99,7 @@ public struct Params() {
     public bool m_clientGetHostItems = true;
     public bool m_banGiveLootToHost = true;
     public bool m_devMode;
-    public bool m_checkMinerals = true;
+    public bool m_checkMinerals = false; // default in game: true
     public bool m_dynamicSpawn;
     public float m_cloudCycleDistance = 1624f;
     public float m_cloudCycleDuration = 200f;
