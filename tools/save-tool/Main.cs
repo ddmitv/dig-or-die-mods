@@ -24,6 +24,7 @@ enum Action {
 enum SaveVersion {
     V0_13,
     V0_25,
+    V0_06,
 }
 
 class ParsedArgs {
@@ -71,6 +72,9 @@ static class Program {
                 break;
             case "-v0.25":
                 result.saveVersion = SaveVersion.V0_25;
+                break;
+            case "-v0.06":
+                result.saveVersion = SaveVersion.V0_06;
                 break;
             default:
                 if (args[i].StartsWith("-")) {
@@ -190,6 +194,8 @@ Usage: save-tool <source> [options]
                 gameState = SaveTool.V0_25_Converter.Deserialize(saveReader);
             } else if (args.saveVersion == SaveVersion.V0_13) {
                 gameState = SaveTool.V0_13_Converter.Deserialize(saveReader);
+            } else if (args.saveVersion == SaveVersion.V0_06) {
+                gameState = SaveTool.V0_06_Converter.Deserialize(saveReader);
             } else {
                 throw new InvalidEnumArgumentException();
             }

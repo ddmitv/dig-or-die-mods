@@ -1,10 +1,11 @@
 ﻿
 using System;
-using System.IO;
 using System.Collections.Generic;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Runtime.Serialization;
+using System.IO;
 using System.Reflection;
+using System.Runtime.Remoting.Messaging;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace SaveTool;
 
@@ -406,16 +407,6 @@ public static class V0_13_Converter {
         "lightSun", "teleport", "rocketTop", "rocketTank", "rocketEngine"
     ];
 
-    private static int GetSaveOffset(int x) {
-        uint hash = (uint)x * 0x9e3779b1U;
-        hash = ((hash >> 15) ^ hash) * 0x85ebca77U;
-        hash = ((hash >> 13) ^ hash) * 0xc2b2ae3dU;
-        hash = (hash >> 16) ^ hash;
-
-        ulong product = hash * 10UL;
-        return (int)(product / 0xFFFFFFFFUL);
-    }
-
     private static uint ConvertCellFlags(uint x) {
         // generated with https://programming.sirrida.de/calcperm.php
         // index vector: * * * * * * * * * * 8 * 9 10 11 * 12 * 13 * 14 * * * 0 * * 4 18 * 15 * *
@@ -472,7 +463,7 @@ public static class V0_13_Converter {
         // new cell layout: uint32 flags, uint16 contentId, uint16 contentHP, float water, int16 forceX, int16 forceY, byte lightR, byte lightG, byte lightB (19 bytes)
         int worldDataIdx = 0;
         for (int i = 0; i < 1024; ++i) {
-            worldDataIdx += GetSaveOffset(i);
+            worldDataIdx += V1_11_Converter.GetSaveOffset(i);
             for (int j = 0; j < 1024; ++j) {
                 // convert bit flags in old to new format that are doing same function
                 uint newFlags = ConvertCellFlags(reader.ReadUInt32());
@@ -584,7 +575,249 @@ public static class V0_13_Converter {
     }
 }
 
+public static class V0_06_Converter {
+    private static readonly Dictionary<short, string> mapUnitIdToCodeName = new() {
+        { 0, "player" },
+        { 1, "defense" },
+        { 100, "hound" },
+        { 101, "firefly" },
+        { 110, "fireflyRed" },
+        { 111, "dweller" },
+        { 112, "fish" },
+        { 121, "houndBlack" },
+        { 122, "fireflyBlack" },
+        { 123, "dwellerBlack" },
+        { 124, "fishBlack" },
+    };
+    private static readonly Dictionary<short, ushort> mapItemId = new() {
+        { -1, 0 },   // null (empty bar item)
+        { 0, 0 },    // null
+        { 1000, 1 },   // "Grass" (no equivalent)
+        { 1010, 1 },   // dirt
+        { 1100, 2 },   // rock
+        { 1110, 3 },   // iron
+        { 1120, 4 },   // coal
+        { 1200, 5 },   // aluminium
+        { 1210, 6 },   // rockFlying
+        { 1220, 7 },   // rockGaz
+        { 1300, 8 },   // granit
+        { 2000, 9 },   // metalScrap
+        { 2010, 10 },  // wood
+        { 2020, 11 },  // bush
+        { 2030, 12 },  // flowerBlue
+        { 2040, 13 },  // flowerWhite
+        { 2400, 14 },  // lightGem
+        { 2410, 15 },  // energyGem
+        { 2420, 16 },  // dogHorn
+        { 2430, 17 },  // dogHorn3
+        { 2440, 18 },  // moleShell
+        { 2450, 19 },  // moleShellBlack
+        { 2460, 0 },   // "Black Tiger Fish Skin" (no equivalent)
+        { 2700, 0 },   // "Empty Bottle" (no equivalent)
+        { 3000, 20 },  // miniaturizorMK1
+        { 3001, 21 },  // miniaturizorMK2
+        { 3002, 22 },  // miniaturizorMK3
+        { 3020, 23 },  // flashLight
+        { 3030, 24 },  // potionHp
+        { 3040, 25 },  // potionHpBig
+        { 3050, 26 },  // armorMk1
+        { 3060, 27 },  // armorMk2
+        { 4000, 28 },  // gunRifle
+        { 4010, 29 },  // gunShotgun
+        { 4020, 30 },  // gunMachineGun
+        { 4030, 31 },  // gunSnipe
+        { 4040, 32 },  // gunLaser
+        { 5100, 33 },  // platform
+        { 5200, 34 },  // wallWood
+        { 5210, 35 },  // wallConcrete
+        { 5220, 36 },  // wallReinforced
+        { 5600, 37 },  // wallIronSupport
+        { 5800, 38 },  // backwall
+        { 6000, 39 },  // turret360
+        { 6010, 40 },  // turretGatling
+        { 6020, 40 },  // turretGatling (duplicate old ID)
+        { 6030, 41 },  // turretHeavy
+        { 6040, 42 },  // turretReparator
+        { 7000, 43 },  // autoBuilderMK1
+        { 7001, 44 },  // autoBuilderMK2
+        { 7002, 45 },  // autoBuilderMK3
+        { 7020, 0 },   // "Auto-Builder Rocket" (no equivalent)
+        { 7100, 46 },  // light
+        { 7200, 47 },  // teleport
+        { 7900, 48 },  // rocketTop
+        { 7901, 49 },  // rocketTank
+        { 7902, 50 }   // rocketEngine
+    };
+    private static readonly string[] itemsInSaveArray = [
+        "dirt", "rock", "iron", "coal", "aluminium", "rockFlying", "rockGaz", "granit",
+        "metalScrap", "wood", "bush", "flowerBlue", "flowerWhite", "lightGem", "energyGem",
+        "dogHorn", "dogHorn3", "moleShell", "moleShellBlack", "miniaturizorMK1",
+        "miniaturizorMK2", "miniaturizorMK3", "flashLight", "potionHp", "potionHpBig",
+        "armorMk1", "armorMk2", "gunRifle", "gunShotgun", "gunMachineGun", "gunSnipe",
+        "gunLaser", "platform", "wallWood", "wallConcrete", "wallReinforced",
+        "wallIronSupport", "backwall", "turret360", "turretGatling", "turretHeavy",
+        "turretReparator", "autoBuilderMK1", "autoBuilderMK2", "autoBuilderMK3", "light",
+        "teleport", "rocketTop", "rocketTank", "rocketEngine",
+        "tree" // extra: used by world cell data convertion (index: 51)
+    ];
+
+    private readonly static uint Flag_HasBgSolidDirt = 4096;
+    private readonly static uint Flag_HasBgSolidRock = 8192;
+    private readonly static uint Flag_HasBgSolidGranit = 16384;
+    private readonly static uint Flag_HasBgSolidCrystal = 32768;
+    private readonly static uint Flag_WaterFall = 65536;
+    private readonly static uint Flag_StreamLFast = 262144;
+    private readonly static uint Flag_StreamRFast = 1048576;
+
+    private static uint ConvertCellFlags(uint x) {
+        return
+              ((x & (Flag_HasBgSolidDirt | Flag_HasBgSolidRock)) >> 3)
+            | (((x & Flag_HasBgSolidGranit) >> 5) * 3)
+            | ((x & (Flag_HasBgSolidCrystal | Flag_WaterFall)) >> 4)
+            | ((x & Flag_StreamLFast) >> 5)
+            | ((x & Flag_StreamRFast) >> 6);
+    }
+
+    public static Data.GameState Deserialize(BinaryReader reader) {
+        Data.GameState gameState = new();
+
+        _ = reader.ReadString(); // save creation date (`DateTime.Now.ToString()`)
+        gameState.gameParams.m_difficulty = reader.ReadInt32();
+        gameState.gameParams.m_seed = reader.ReadInt32();
+        gameState.gameParams.m_shipPos = new Data.int2(reader.ReadInt32(), reader.ReadInt32());
+        gameState.globalVars.m_simuTimeD = (double)reader.ReadSingle();
+        gameState.globalVars.m_clock = reader.ReadSingle();
+
+        if (reader.ReadString() != "OK") {
+            throw new SaveLoadingException("Invalid magic string (error code: 1)");
+        }
+        // 19922944 = 1024*1024*19 (19 = cell size in bytes)
+        // 4727 = sum of SWorldDll.GetSaveOffset(x), where x in [0, 1023]
+        gameState.worldData = new byte[4727 + 19922944];
+
+        // old cell layout: uint32 flags, uint16 backwallId, uint16 contentId, float contentHP, float water, float light, float forceX, float forceY (28 bytes)
+        // new cell layout: uint32 flags, uint16 contentId, uint16 contentHP, float water, int16 forceX, int16 forceY, byte lightR, byte lightG, byte lightB (19 bytes)
+        using var worldDataWriter = new BinaryWriter(new MemoryStream(gameState.worldData));
+        for (int i = 0; i < 1024; ++i) {
+            worldDataWriter.Seek(V1_11_Converter.GetSaveOffset(i), SeekOrigin.Current);
+            for (int j = 0; j < 1024; ++j) {
+                uint flags = ConvertCellFlags(reader.ReadUInt32());
+                short backWallId = reader.ReadInt16();
+                short contentId = reader.ReadInt16();
+                float contentHP = reader.ReadSingle();
+                float water = reader.ReadSingle() * 1.6f; // not exact formula for water convertion, just an approximation
+                byte light = (byte)(reader.ReadSingle() * 255f);
+                float forceX = reader.ReadSingle();
+                float forceY = reader.ReadSingle();
+
+                if (contentId == 5210 && contentHP == 100f) { contentHP = 150f; }
+                if (contentId == 5600 && contentHP == 100f) { contentHP = 150f; }
+                if (contentId == 5220 && contentHP == 250f) { contentHP = 300f; }
+
+                if (contentId == 1000) { // if grass
+                    flags |= V1_11_Converter.Flag_CustomData0;
+                }
+                ushort newContentId = contentId != 2010 /*wood*/ ? (ushort)mapItemId[contentId] : (ushort)51 /*tree*/;
+
+                worldDataWriter.Write(flags); // flags
+                worldDataWriter.Write(newContentId);
+                worldDataWriter.Write((ushort)contentHP);
+                worldDataWriter.Write(water);
+                worldDataWriter.Write((short)forceX);
+                worldDataWriter.Write((short)forceY);
+                worldDataWriter.Write(light);
+                worldDataWriter.Write(light);
+                worldDataWriter.Write(light);
+            }
+        }
+        if (worldDataWriter.BaseStream.Position != gameState.worldData.Length) {
+            throw new SaveLoadingException("Incomplete world data convertion");
+        }
+        if (reader.ReadString() != "OK") {
+            throw new SaveLoadingException("Invalid magic string (error code: 2)");
+        }
+
+        var mainPlayer = new Data.Player();
+
+        gameState.units = new Data.Unit[reader.ReadInt32()];
+        for (int i = 0; i < gameState.units.Length; ++i) {
+            short unitId = reader.ReadInt16();
+            var unit = new Data.Unit() {
+                codeName = mapUnitIdToCodeName[unitId],
+                x = reader.ReadSingle(),
+                y = reader.ReadSingle(),
+                hp = reader.ReadSingle(),
+                instanceId = (ushort)i,
+                air = 1f
+            };
+            if (unitId == 0) { // if player
+                mainPlayer.unitPlayerId = unit.instanceId;
+            }
+            gameState.units[i] = unit;
+        }
+        gameState.speciesKilled = new Data.SpeciesKillsInfo[reader.ReadInt32()];
+        for (int i = 0; i < gameState.speciesKilled.Length; ++i) {
+            gameState.speciesKilled[i].codeName = mapUnitIdToCodeName[reader.ReadInt16()];
+            gameState.speciesKilled[i].nb = 1;
+        }
+        if (reader.ReadString() != "OK") {
+            throw new SaveLoadingException("Invalid magic string (error code: 3)");
+        }
+
+        mainPlayer.inventory.items = new Data.Inventory.Item[reader.ReadInt32()];
+        for (int i = 0; i < mainPlayer.inventory.items.Length; ++i) {
+            mainPlayer.inventory.items[i] = new() {
+                id = mapItemId[reader.ReadInt16()],
+                nb = reader.ReadInt32(),
+            };
+        }
+        mainPlayer.inventory.barItems = new ushort[reader.ReadInt32()];
+        for (int i = 0; i < mainPlayer.inventory.barItems.Length; ++i) {
+            mainPlayer.inventory.barItems[i] = mapItemId[reader.ReadInt16()];
+        }
+        int itemBarSelected = reader.ReadInt32();
+        mainPlayer.inventory.itemSelected = itemBarSelected < 0 ? (ushort)0 : mainPlayer.inventory.barItems[itemBarSelected];
+
+        gameState.pickups = new Data.Pickup[reader.ReadInt32()];
+        for (int i = 0; i < gameState.pickups.Length; ++i) {
+            gameState.pickups[i] = new() {
+                id = mapItemId[reader.ReadInt16()],
+                x = reader.ReadSingle(),
+                y = reader.ReadSingle(),
+                creationTime = reader.ReadSingle(),
+            };
+        }
+        if (reader.ReadString() != "OK") {
+            throw new SaveLoadingException("Invalid magic string (error code: 4)");
+        }
+
+        _ = reader.ReadInt32(); // shipAiStepId
+        gameState.globalVars.m_nbNightsSurvived = reader.ReadInt32();
+        gameState.globalVars.m_autoBuilderLevelBuilt = reader.ReadInt32();
+        if (reader.ReadString() != "OK") {
+            throw new SaveLoadingException("Invalid magic string (error code: 5)");
+        }
+
+        gameState.itemsInSave = itemsInSaveArray;
+        gameState.players = new Data.Player[1] { mainPlayer };
+
+        return gameState;
+    }
+}
+
 public static class V1_11_Converter {
+    public static readonly uint Flag_CustomData0 = 1U;
+
+    public static int GetSaveOffset(int x) {
+        uint hash = (uint)x * 0x9e3779b1U;
+        hash = ((hash >> 15) ^ hash) * 0x85ebca77U;
+        hash = ((hash >> 13) ^ hash) * 0xc2b2ae3dU;
+        hash = (hash >> 16) ^ hash;
+
+        ulong product = hash * 10UL;
+        return (int)(product / 0xFFFFFFFFUL);
+    }
+
     private static bool IsUnitMonster(string unitCodeName) {
         return unitCodeName is not ("player" or "playerLocal" or "defense" or "drone" or "droneCombat" or "droneWar");
     }
