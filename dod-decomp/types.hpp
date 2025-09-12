@@ -38,7 +38,7 @@ enum CCell_Flag : uint32_t {
     Flag_ElectricAlgoState = 262144,
     Flag_IsPowered = 524288
 };
-DEFINE_ENUM_FLAG_OPERATORS(CCell_Flag);
+DEFINE_ENUM_FLAG_OPERATORS(CCell_Flag); // macro from WinAPI
 
 struct CCell {
     CCell_Flag m_flags;
@@ -98,28 +98,28 @@ static_assert(sizeof(RectInt) == 16);
 struct ThreadData {
     HANDLE handle;                     // 0x00
     int id;                            // 0x04
-    HANDLE secondEvent;                // 0x08
+    HANDLE workEvent;                  // 0x08
                                        
     bool shouldExit;                   // 0x0C
     bool processCellLighting;          // 0x0D
     uint8_t _padding_0E[2];            // 0x0E
                                        
-    int cellParam1;                    // 0x10
-    int cellParam2;                    // 0x14
+    int startColumn;                   // 0x10
+    int endColumn;                     // 0x14
     int cellParam3;                    // 0x18
     int cellParam4;                    // 0x1C
                                        
-    bool processWaterSim;              // 0x20
+    bool processVerticalWater;         // 0x20
     uint8_t padding_21[3];             // 0x21
                                        
     int waterParam1;                   // 0x24
     int waterParam2;                   // 0x1C
                                        
-    bool flag_0x2C;                    // 0x2C
+    bool processHorizontalFlow;        // 0x2C
     uint8_t padding_2D[3];             // 0x2D
-    int processWaterFlowStartOffset;   // 0x30
-    int processWaterFlowNumIterations; // 0x34
+    int flowStartOffset;               // 0x30
+    int flowIterations;                // 0x34
 
-    uint8_t _padding[512]; // large padding is possible used to avoid false sharing
+    uint8_t _padding[512]; // large padding (used to avoid false sharing?)
 };
 static_assert(sizeof(ThreadData) == 568);

@@ -24,7 +24,7 @@ __declspec(dllexport) void DllClose() {
 
     for (int i = 0; i < g_nbThreads; ++i) {
         g_threadData[i].shouldExit = true;
-        ::SetEvent(g_threadData[i].secondEvent);
+        ::SetEvent(g_threadData[i].workEvent);
     }
     ::Sleep(100);
     for (int i = 0; i < g_nbThreads; ++i) {
@@ -33,7 +33,7 @@ __declspec(dllexport) void DllClose() {
             g_callbackDebug("- Error stopping thread.");
         }
         ::CloseHandle(g_threadData[i].handle);
-        ::CloseHandle(g_threadData[i].secondEvent);
+        ::CloseHandle(g_threadData[i].workEvent);
         ::CloseHandle(g_threadEvents[i]);
     }
     g_callbackDebug("- Threads stopped.");
@@ -69,7 +69,7 @@ __declspec(dllexport) void DllInit(int nbThreads) {
         threadData->id = i;
         threadData->shouldExit = 0;
 
-        threadData->secondEvent = ::CreateEventW(nullptr, false, false, nullptr);
+        threadData->workEvent = ::CreateEventW(nullptr, false, false, nullptr);
 
         uintptr_t hThread = ::_beginthreadex(
             nullptr, 0, &WorkerThread, threadData, 0, nullptr
@@ -199,7 +199,7 @@ __declspec(dllexport) int DllProcessLightingSquare(
         threadData.processCellLighting /*-0xB*/ = true;
         // threadData.cellParam3 /*0x0*/ = ...
         // threadData.cellParam4 /*+0x4*/ = ...
-        ::SetEvent(threadData.secondEvent /*-0x10*/);
+        ::SetEvent(threadData.workEvent /*-0x10*/);
     }
 
     const DWORD waitResult = ::WaitForMultipleObjects(g_nbThreads, g_threadEvents, /*bWaitAll*/ true, /*dwMilliseconds*/ 2000);
@@ -218,7 +218,10 @@ __declspec(dllexport) int DllProcessWaterMT(
 ) {
     g_callbackDebug("dll: inside DllProcessWaterMT");
 
-    g_someFlag1 = g_someFlag1 == 0;
+    if (double(::rand()) < (double(RAND_MAX) * 0.05)) { // 5% chance
+        InitGridOrder();
+    }
+    g_simulationToggle = (g_simulationToggle == 0);
     g_cloudCenter = cloudCenter;
     g_grid = grid;
     g_itemsData = itemsData;
@@ -232,25 +235,63 @@ __declspec(dllexport) int DllProcessWaterMT(
     g_lavaMovingTimes = lavaMovingTimes;
     g_simuTime = simuTime;
     g_simuDeltaTime = simuDeltaTime;
-    g_someCellPos1 = -1;
+    g_lastChangedCellPos = -1;
+    g_nbCellsUpdated = nbCellsUpdated;
 
-    // INCOMPLETE
+    const int gridHeightMinusBorder = g_gridSize.y - 2;
+    const int gridWidthMinusBorder = g_gridSize.x - 2;
 
-    for (int i = 0; i < g_nbThreads; ++i) {
-        ThreadData& threadData = g_threadData[i];
-        threadData.flag_0x2C /*-0x8*/ = true;
-        // threadData.processWaterFlowStartOffset /*-0x4*/ = ...
-        // threadData.processWaterFlowNumIterations /*0x0*/ = ...
-        ::SetEvent(threadData.secondEvent /*-0x2C*/);
+    int verticalStartOffset = 0;
+    int verticalIterations = 0;
+    GetIterators(gridHeightMinusBorder, simuTime, simuDeltaTime, 20.f, verticalStartOffset, verticalIterations);
+
+    g_verticalWaterOffset = verticalStartOffset;
+    g_verticalWaterIterations = verticalIterations;
+
+    // first phase: process vertical water simulation across threads
+    for (int threadIndex = g_nbThreads - 1; threadIndex >= 0; --threadIndex) {
+        ThreadData& threadData = g_threadData[threadIndex];
+
+        // for some reason, in the original the double type is used in calculation but casted to int (mistakenly 2.0 literal was used?)
+        threadData.startColumn = ((gridWidthMinusBorder * threadIndex) / g_nbThreads) + 1;
+        threadData.processVerticalWater = true;
+        // again, in the original the double is used in calculation but casted to int
+        threadData.endColumn = ((gridWidthMinusBorder * (threadIndex + 1)) / g_nbThreads) + 1;
+
+        ::SetEvent(threadData.workEvent);
     }
-
-    DWORD waitResult = ::WaitForMultipleObjects(g_nbThreads, g_threadEvents, /*bWaitAll*/ true, /*dwMilliseconds*/ 1000);
-    if (waitResult != WAIT_OBJECT_0) {
-        DebugLogFormat(g_formatBuffer, "- Threads eventWorkFinished timeout: %ld", waitResult);
+    // wait for all threads to complete first phase
+    const DWORD waitResult1 = ::WaitForMultipleObjects(g_nbThreads, g_threadEvents, /*bWaitAll*/ true, /*dwMilliseconds*/ 1000);
+    if (waitResult1 != WAIT_OBJECT_0) {
+        DebugLogFormat(g_formatBuffer, "Threads eventWorkFinished timeout: %ld", waitResult1);
         g_callbackDebug(g_formatBuffer);
     }
-    changeCellPos[0] = g_someCellPos1;
-    // INCOMPLETE: CALL TO FUNCTION 0x54d0
+    // second phase: process horizontal water flow
+    int horizontalStartOffset = 0;
+    int horizontalIterations = 0;
+    GetIterators(gridWidthMinusBorder, g_simuTime, g_simuDeltaTime, 4.0f, horizontalStartOffset, horizontalIterations);
+
+    // distribute horizontal water flow work between threads
+    for (int threadIndex = 0; threadIndex < g_nbThreads; ++threadIndex) {
+        ThreadData& threadData = g_threadData[threadIndex];
+
+        threadData.processHorizontalFlow = true;
+        // again, in the original the double is used in calculation but casted to int
+        threadData.flowStartOffset = horizontalStartOffset + (threadIndex * horizontalIterations) / g_nbThreads;
+        // again, in the original the double is used in calculation but casted to int
+        threadData.flowIterations = ((threadIndex + 1) * horizontalIterations) / g_nbThreads - (threadIndex * horizontalIterations) / g_nbThreads;
+
+        ::SetEvent(threadData.workEvent);
+    }
+    const DWORD waitResult2 = ::WaitForMultipleObjects(g_nbThreads, g_threadEvents, /*bWaitAll*/ true, /*dwMilliseconds*/ 1000);
+    if (waitResult2 != WAIT_OBJECT_0) {
+        DebugLogFormat(g_formatBuffer, "- Threads eventWorkFinished timeout: %ld", waitResult2);
+        g_callbackDebug(g_formatBuffer);
+    }
+    changeCellPos[0] = g_lastChangedCellPos;
+
+    PostProcessWater(changeCellPos);
+
     return 1;
 }
 // FUNCTION: 0x1360

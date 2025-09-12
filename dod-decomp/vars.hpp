@@ -2,6 +2,17 @@
 
 #include "types.hpp"
 
+inline const int g_dirt_spread_offsets_x[5] = {0, 1, 0, -1, 0};
+inline const int g_dirt_spread_offsets_y[5] = {0, 0, 1, 0, -1};
+inline const int g_fire_spread_x_offsets[12] = {1, 0, -1, 0, 2, 0, -2, 0, -1, -1, 1, 1};
+inline const int g_fire_spread_y_offsets[12] = {0, 1, 0, -1, 0, 2, 0, -2, -1, 1, -1, 1};
+
+namespace changeCellType {
+    inline constexpr int basaltFormation = 0;
+    inline constexpr int basaltMelt = 10000000;
+    inline constexpr int damageCell = 20000000;
+}
+
 inline DelegateCallbackDebug* g_callbackDebug; // GLOBAL: 0x26548
 inline DelegateCallbackGetElecProd* g_callbackGetElecProd; // GLOBAL: 0x2654c
 
@@ -15,10 +26,11 @@ inline int g_yRain; // GLOBAL: 0x26574
 inline int g_fastEvaporationYMax; // GLOBAL: 0x26578
 inline float g_cloudCenter; // GLOBAL: 0x2657c
 inline int g_cloudRadius; // GLOBAL: 0x26580
-
+inline int g_verticalWaterOffset; // GLOBAL: 0x26584
+inline int g_verticalWaterIterations; // GLOBAL: 0x26588
 inline float g_lavaPressure; // GLOBAL: 0x2658c
-inline int g_someFlag1; // GLOBAL: 0x26590 (the only first byte is used)
-inline int g_someCellPos1; // GLOBAL: 0x26594
+inline int g_simulationToggle; // GLOBAL: 0x26590 (the only first byte is used)
+inline int g_lastChangedCellPos; // GLOBAL: 0x26594
 inline float g_waterSpeed; // GLOBAL: 0x26598
 inline double* g_infiltrationTimes; // GLOBAL: 0x2659c
 inline double* g_lavaMovingTimes; // GLOBAL: 0x265a0
