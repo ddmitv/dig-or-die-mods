@@ -71,7 +71,7 @@ public static class Utils {
     public static byte[] ReadAllBytes(Stream stream) {
         if (stream.CanSeek && stream.Position <= stream.Length) {
             byte[] buffer = new byte[stream.Length - stream.Position];
-            stream.Read(buffer, offset: 0, count: buffer.Length);
+            _ = stream.Read(buffer, offset: 0, count: buffer.Length);
             return buffer;
         } else {
             byte[] buffer = new byte[4 * 4096];
