@@ -346,7 +346,22 @@ public static class CustomCommands {
                 }
             }
             Utils.AddChatMessageLocal($"Given {itemCount} {selectedItem.Name}");
-            player.m_inventory.AddToInventory(selectedItem, itemCount);
+            CInventory inventory = player.m_inventory;
+            CStack itemStack = inventory.GetStack(selectedItem);
+            if (itemStack != null) {
+                itemStack.m_nb += itemCount;
+            } else {
+                itemStack = new CStack(selectedItem, itemCount);
+                inventory.m_items.Add(itemStack);
+                inventory.m_items.Sort(inventory.InventorySorting);
+                inventory.AddItemToBarIFP(itemStack, select: false, skipMaterialsAndMinerals: true);
+            }
+            if (itemStack.m_item == GItems.autoBuilderMK1) {
+                GVars.m_autoBuilderLevelBuilt = 1;
+                SSteamStats.SetStat("progress", 1);
+            } else if (itemStack.m_item == GItems.autoBuilderUltimate) {
+                GVars.m_autoBuilderLevelBuilt = 6;
+            }
         }, tabCommandFn: (int argIndex) => {
             return GItems.Items.Skip(1).Select(x => x.m_codeName).ToList();
         });
