@@ -2,8 +2,10 @@ using BepInEx;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Text;
 using UnityEngine;
@@ -382,6 +384,33 @@ public static class Utils {
             }
         }
         return true;
+    }
+
+    public static bool TryParseIPEndPoint(string s, out IPEndPoint result) {
+        // https://github.com/dotnet/runtime/blob/9d5a6a9aa463d6d10b0b0ba6d5982cc82f363dc3/src/libraries/System.Net.Primitives/src/System/Net/IPEndPoint.cs#L97C13-L127C26
+        const int MaxPort = 0x0000FFFF;
+
+        int addressLength = s.Length;
+        int lastColonPos = s.LastIndexOf(':');
+
+        if (lastColonPos > 0) {
+            if (s[lastColonPos - 1] == ']') {
+                addressLength = lastColonPos;
+            }
+            else if (s.Substring(0, lastColonPos).LastIndexOf(':') == -1) {
+                addressLength = lastColonPos;
+            }
+        }
+        if (IPAddress.TryParse(s.Substring(0, addressLength), out IPAddress address)) {
+            uint port = 0;
+            if (addressLength == s.Length ||
+                (uint.TryParse(s.Substring(addressLength + 1), NumberStyles.None, CultureInfo.InvariantCulture, out port) && port <= MaxPort)) {
+                result = new IPEndPoint(address, (int)port);
+                return true;
+            }
+        }
+        result = null;
+        return false;
     }
 }
 
