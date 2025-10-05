@@ -335,7 +335,7 @@ internal sealed class CustomMessagePlayerSession : SMessageSingleton<CustomMessa
     }
 }
 
-[BepInPlugin("dedicated-client", "Dedicated Client", "0.0.0")]
+[BepInPlugin("dedicated-client", "Dedicated Client", "1.0.0")]
 public class DedicatedClient : BaseUnityPlugin {
     public static CGuiButton btJoinDedicated = null;
 
