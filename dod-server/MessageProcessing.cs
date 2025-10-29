@@ -4,7 +4,7 @@ using System;
 
 public static class MessageProcessing {
     private delegate void ReceiveFn(CBufferSpan buffer, NetworkClient client);
-    private record struct MessageReceiveInfo(int MessageSize, ReceiveFn? ReceiveFn);
+    private readonly record struct MessageReceiveInfo(int MessageSize, ReceiveFn? ReceiveFn);
 
     private static readonly MessageReceiveInfo?[] _messagesArray = new MessageReceiveInfo?[256];
 
