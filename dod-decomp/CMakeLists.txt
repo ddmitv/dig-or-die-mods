@@ -17,9 +17,14 @@ set_target_properties(dod-dll-decomp PROPERTIES
 	LINK_WARNING_AS_ERROR TRUE)
 
 if (EXISTS "${GAME_DATA_PATH}")
-    cmake_path(APPEND GAME_DATA_PATH "DigOrDie_Data/Plugins/DigOrDie.dll")
+    cmake_path(APPEND GAME_DATA_PATH "DigOrDie_Data/Plugins/DigOrDie.dll" OUTPUT_VARIABLE OUTPUT_DLL_PATH)
+    cmake_path(REPLACE_FILENAME OUTPUT_DLL_PATH "DigOrDie.dll.bak" OUTPUT_VARIABLE OUTPUT_DLL_BAK_PATH)
+    if (NOT EXISTS "${OUTPUT_DLL_BAK_PATH}")
+        message(STATUS "Backing up original DLL: \"${OUTPUT_DLL_PATH}\" -> \"${OUTPUT_DLL_BAK_PATH}\"")
+        file(COPY_FILE "${OUTPUT_DLL_PATH}" "${OUTPUT_DLL_BAK_PATH}")
+    endif()
     add_custom_command(TARGET dod-dll-decomp POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:dod-dll-decomp>" "${GAME_DATA_PATH}"
-        COMMENT "Copying DLL plugin to: ${GAME_DATA_PATH}"
+        COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:dod-dll-decomp>" "${OUTPUT_DLL_PATH}"
+        COMMENT "Copying DLL plugin to: ${OUTPUT_DLL_PATH}"
         VERBATIM)
 endif()
