@@ -259,42 +259,42 @@ __declspec(dllexport) int DllProcessLightingSquare(
                 } else if (itemData.m_isSunLamp != 0) {
                     float offset = 0.f;
                     do {
-                        if (!IlluminateCellIfPassable(grid, itemsData, x - offset * 0.26f, y - offset)) {
+                        if (!SunLampLightStep(grid, itemsData, x - offset * 0.26f, y - offset)) {
                             break;
                         }
                         offset += 1.f;
                     } while (offset < 7.0f);
                     offset = 0.f;
                     do {
-                        if (!IlluminateCellIfPassable(grid, itemsData, x + offset * 0.26f, y - offset)) {
+                        if (!SunLampLightStep(grid, itemsData, x + offset * 0.26f, y - offset)) {
                             break;
                         }
                         offset += 1.f;
                     } while (offset < 7.0f);
                     offset = 0.f;
                     do {
-                        if (!IlluminateCellIfPassable(grid, itemsData, x + offset, y - offset * 0.35f)) {
+                        if (!SunLampLightStep(grid, itemsData, x + offset, y - offset * 0.35f)) {
                             break;
                         }
                         offset += 1.f;
                     } while (offset < 11.0f);
                     offset = 0.f;
                     do {
-                        if (!IlluminateCellIfPassable(grid, itemsData, x + offset, y - offset * 0.65f)) {
+                        if (!SunLampLightStep(grid, itemsData, x + offset, y - offset * 0.65f)) {
                             break;
                         }
                         offset += 1.f;
                     } while (offset < 11.0f);
                     offset = 0.f;
                     do {
-                        if (!IlluminateCellIfPassable(grid, itemsData, x - offset, y - offset * 0.35f)) {
+                        if (!SunLampLightStep(grid, itemsData, x - offset, y - offset * 0.35f)) {
                             break;
                         }
                         offset += 1.f;
                     } while (offset < 11.0f);
                     offset = 0.f;
                     do {
-                        if (!IlluminateCellIfPassable(grid, itemsData, x - offset, y - offset * 0.65f)) {
+                        if (!SunLampLightStep(grid, itemsData, x - offset, y - offset * 0.65f)) {
                             break;
                         }
                         offset += 1.f;
