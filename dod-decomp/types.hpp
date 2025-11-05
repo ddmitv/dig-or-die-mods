@@ -41,43 +41,43 @@ enum CCell_Flag : uint32_t {
 DEFINE_ENUM_FLAG_OPERATORS(CCell_Flag); // macro from WinAPI
 
 struct CCell {
-    CCell_Flag m_flags;
-    uint16_t m_contentId;
-    uint16_t m_contentHP;
-    int16_t m_forceX;
-    int16_t m_forceY;
-    float m_water;
-    Color24 m_light;
-    uint8_t m_elecProd;
-    uint8_t m_elecCons;
-    Color24 m_temp;
+    CCell_Flag m_flags;      // 0x00
+    uint16_t m_contentId;    // 0x04
+    uint16_t m_contentHP;    // 0x06
+    int16_t m_forceX;        // 0x08
+    int16_t m_forceY;        // 0x0A
+    float m_water;           // 0x0C
+    Color24 m_light;         // 0x10
+    uint8_t m_elecProd;      // 0x13
+    uint8_t m_elecCons;      // 0x14
+    Color24 m_temp;          // 0x15
 };
 static_assert(sizeof(CCell) == 24);
 
 struct CItem_PluginData {
-    float m_weight;
-    int m_electricValue;
-    int m_electricOutletFlags;
-    int m_elecSwitchType;
-    int m_elecVariablePower;
-    int m_anchor;
-    Color24 m_light;
-    int m_isBlock;
-    int m_isBlockDoor;
-    int m_isReceivingForces;
-    int m_isMineral;
-    int m_isDirt;
-    int m_isPlant;
-    int m_isFireProof;
-    int m_isWaterGenerator;
-    int m_isWaterPump;
-    int m_isLightGenerator;
-    int m_isBasalt;
-    int m_isLightonium;
-    int m_isOrganicHeart;
-    int m_isSunLamp;
-    int m_isAutobuilder;
-    float m_customValue;
+    float m_weight;            // 0x00
+    int m_electricValue;       // 0x04
+    int m_electricOutletFlags; // 0x08
+    int m_elecSwitchType;      // 0x0C
+    int m_elecVariablePower;   // 0x10
+    int m_anchor;              // 0x14
+    Color24 m_light;           // 0x18
+    int m_isBlock;             // 0x1C
+    int m_isBlockDoor;         // 0x20
+    int m_isReceivingForces;   // 0x24
+    int m_isMineral;           // 0x28
+    int m_isDirt;              // 0x2C
+    int m_isPlant;             // 0x30
+    int m_isFireProof;         // 0x34
+    int m_isWaterGenerator;    // 0x38
+    int m_isWaterPump;         // 0x3C
+    int m_isLightGenerator;    // 0x40
+    int m_isBasalt;            // 0x44
+    int m_isLightonium;        // 0x48
+    int m_isOrganicHeart;      // 0x4C
+    int m_isSunLamp;           // 0x50
+    int m_isAutobuilder;       // 0x54
+    float m_customValue;       // 0x58
 };
 static_assert(sizeof(CItem_PluginData) == 92);
 
@@ -104,10 +104,10 @@ struct ThreadData {
     bool processCellLighting;          // 0x0D
     uint8_t _padding_0E[2];            // 0x0E
                                        
-    int startColumn;                   // 0x10
-    int endColumn;                     // 0x14
-    int cellParam3;                    // 0x18
-    int cellParam4;                    // 0x1C
+    int startX;                        // 0x10
+    int startY;                        // 0x14
+    int endX;                          // 0x18
+    int endY;                          // 0x1C
                                        
     bool processVerticalWater;         // 0x20
     uint8_t padding_21[3];             // 0x21

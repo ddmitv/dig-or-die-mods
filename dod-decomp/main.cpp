@@ -87,7 +87,7 @@ __declspec(dllexport) void DllInit(int nbThreads) {
 __declspec(dllexport) int DllProcessElectricity(
     CCell* grid, CItem_PluginData* itemsData, double simuTime, double simuDeltaTime
 ) {
-    g_callbackDebug("dll: inside DllProcessElectricity");
+    // g_callbackDebug("dll: inside DllProcessElectricity");
     return 1;
 }
 // FUNCTION: 0x2240
@@ -180,25 +180,153 @@ __declspec(dllexport) int DllProcessForces(
 }
 // FUNCTION: 0x27f0
 __declspec(dllexport) int DllProcessLightingSquare(
-    CCell* grid, CItem_PluginData* itemsData, int2 posMin, int2 posMax, float sunlight, RectInt skipYMax,
+    CCell* const grid, CItem_PluginData* const itemsData, int2 posMin, int2 posMax, float sunlight, const RectInt skipYMax,
     int sunLightYMin, int sunLightYMax
 ) {
-    g_callbackDebug("dll: inside DllProcessLightingSquare");
+    // g_callbackDebug("dll: inside DllProcessLightingSquFare");
 
     g_grid = grid;
     g_itemsData = itemsData;
     g_skipYMax = skipYMax;
+    const int startY = std::clamp(posMin.y - 1, 1, g_gridSize.y - 2);
+    const int startX = std::clamp(posMin.x - 1, 1, g_gridSize.x - 2);
+    const int endY = std::clamp(posMax.y + 2, 1, g_gridSize.y - 2);
+    const int endX = std::clamp(posMax.x + 1, 1, g_gridSize.x - 2);
+    const float heightRange = sunLightYMax == sunLightYMin ? 1 : sunLightYMax - sunLightYMin;
 
-    // INCOMPLETE
+    for (int x = startX; x < endX; ++x) {
+        const int baseIndex = x * g_gridSize.y;
+        for (int y = startY; y < endY; ++y) {
+            if (x >= skipYMax.x && x <= skipYMax.x + skipYMax.width &&
+                y >= skipYMax.y && y <= skipYMax.y + skipYMax.height) {
+                continue;
+            }
+            const int cellIdx = baseIndex + y;
+            CCell& cell = grid[cellIdx];
 
+            if (IsCellPassable(cell, itemsData)
+                && (cell.m_flags & (Flag_BgSurface_2 | Flag_BgSurface_1 | Flag_BgSurface_0)) == 0
+                && y > sunLightYMin) {
+                const float heightOffset = y - sunLightYMin;
+
+                const float waterFactor = std::max(0.f, 1.f - cell.m_water);
+                const float heightFactor = std::min(1.0f, heightOffset / heightRange);
+                const uint8_t light = uint8_t(waterFactor * sunlight * heightFactor);
+
+                cell.m_light.r = std::max(cell.m_light.r, light);
+                cell.m_light.g = std::max(cell.m_light.g, light);
+                cell.m_light.b = std::max(cell.m_light.b, light);
+            }
+            if ((cell.m_flags & Flag_IsLava) != 0 && cell.m_water > 0.01) {
+                const float waterBasedRed = cell.m_water * 50.f * 255.f;
+
+                if (cell.m_light.r <= waterBasedRed) {
+                    const double timePhase = std::cos(x) * 6.0 + g_simuTime * 5.0;
+                    const double combinedNoise = std::cos(std::cos(y) * 6.0 + timePhase);
+                    const double noiseRedValue = 255.0 - (combinedNoise * 0.5 + 0.5) * 100.0;
+
+                    cell.m_light.r = uint8_t(std::min<double>(noiseRedValue, waterBasedRed));
+                }
+            }
+            if ((cell.m_flags & Flag_IsBurning) != 0) {
+                cell.m_light.r = 0xff;
+                cell.m_light.g = std::max<uint8_t>(cell.m_light.g, 192);
+                // the code in disassembly seems to do no-op with blue color
+                // possible the correct statement is `grid[iVar5].m_light.b = 0` ?
+            }
+            const CItem_PluginData& itemData = itemsData[cell.m_contentId];
+            if ((itemData.m_light.r != 0 || itemData.m_light.g != 0 || itemData.m_light.b != 0) && (itemData.m_electricValue > -1 || (cell.m_flags & Flag_IsPowered) != 0)) {
+                cell.m_light.r = std::max(itemData.m_light.r, cell.m_light.r);
+                cell.m_light.g = std::max(itemData.m_light.g, cell.m_light.g);
+                cell.m_light.b = std::max(itemData.m_light.b, cell.m_light.b);
+
+                if (itemData.m_isLightonium != 0) {
+                    CCell& prevCell = grid[cellIdx - 1];
+                    prevCell.m_light.r = 255;
+                    prevCell.m_light.g = 255;
+                    prevCell.m_light.b = 255;
+                    prevCell.m_temp.r = 255;
+                    prevCell.m_temp.g = 255;
+                    prevCell.m_temp.b = 255;
+
+                    CCell& prevPrevCell = grid[cellIdx - 2];
+                    prevPrevCell.m_light.r = 255;
+                    prevPrevCell.m_light.g = 255;
+                    prevPrevCell.m_light.b = 255;
+                    prevPrevCell.m_temp.r = 255;
+                    prevPrevCell.m_temp.g = 255;
+                    prevPrevCell.m_temp.b = 255;
+                } else if (itemData.m_isSunLamp != 0) {
+                    const float currentX = x;
+                    const float currentY = y;
+                    float offset = 0.f;
+                    do {
+                        if (!IlluminateCellIfPassable(grid, itemsData, currentX - offset * 0.26f, currentY - offset)) {
+                            break;
+                        }
+                        offset += 1.f;
+                    } while (offset < 7.0f);
+                    offset = 0.f;
+                    do {
+                        if (!IlluminateCellIfPassable(grid, itemsData, currentX + offset * 0.26f, currentY - offset)) {
+                            break;
+                        }
+                        offset += 1.f;
+                    } while (offset < 7.0f);
+                    offset = 0.f;
+                    do {
+                        if (!IlluminateCellIfPassable(grid, itemsData, currentX + offset, currentY - offset * 0.35f)) {
+                            break;
+                        }
+                        offset += 1.f;
+                    } while (offset < 11.0f);
+                    offset = 0.f;
+                    do {
+                        if (!IlluminateCellIfPassable(grid, itemsData, currentX + offset, currentY - offset * 0.65f)) {
+                            break;
+                        }
+                        offset += 1.f;
+                    } while (offset < 11.0f);
+                    offset = 0.f;
+                    do {
+                        if (!IlluminateCellIfPassable(grid, itemsData, currentX - offset, currentY - offset * 0.35f)) {
+                            break;
+                        }
+                        offset += 1.f;
+                    } while (offset < 11.0f);
+                    offset = 0.f;
+                    do {
+                        if (!IlluminateCellIfPassable(grid, itemsData, currentX - offset, currentY - offset * 0.65f)) {
+                            break;
+                        }
+                        offset += 1.f;
+                    } while (offset < 11.0f);
+                } else if (itemData.m_isOrganicHeart != 0) {
+                    const double cosValue = std::cos(::clock() * 0.00628 * 0.3 * 2);
+                    const float pulseMultiplier = float((cosValue * 0.5f + 0.5f) * 1.5f + 1.0f);
+
+                    cell.m_light.r = std::max(cell.m_light.r, uint8_t(itemData.m_light.r * pulseMultiplier));
+                    cell.m_light.g = std::max(cell.m_light.g, uint8_t(itemData.m_light.g * pulseMultiplier));
+                    cell.m_light.b = std::max(cell.m_light.b, uint8_t(itemData.m_light.b * pulseMultiplier));
+                }
+            }
+            cell.m_temp = cell.m_light;
+        }
+    }
+    const int processStartY = std::clamp(posMin.y, 1, g_gridSize.y - 2);
+    const int processStartX = std::clamp(posMin.x, 1, g_gridSize.x - 2);
+    const int processEndY = std::clamp(posMax.y + 1, 1, g_gridSize.y - 2);
+    const int processEndX = std::clamp(posMax.x, 1, g_gridSize.x - 2);
+
+    const double totalColumns = double(processEndX - processStartX);
     for (int i = g_nbThreads - 1; i >= 0; --i) {
         ThreadData& threadData = g_threadData[i];
 
-        // threadData.cellParam2 /*-0x4*/ = ...
-        // threadData.cellParam1 /*-0x8*/ = ...
+        threadData.startX /*-0x8*/ = processStartX + int(double(i) * totalColumns / g_nbThreads);
+        threadData.endX /*0x0*/ = processStartX + int(double(i + 1) * totalColumns / g_nbThreads);
+        threadData.startY /*-0x4*/ = processStartY;
+        threadData.endY /*0x4*/ = processEndY;
         threadData.processCellLighting /*-0xB*/ = true;
-        // threadData.cellParam3 /*0x0*/ = ...
-        // threadData.cellParam4 /*+0x4*/ = ...
         ::SetEvent(threadData.workEvent /*-0x10*/);
     }
 
@@ -216,7 +344,7 @@ __declspec(dllexport) int DllProcessWaterMT(
     int yRain, int fastEvaporationYMax, float cloudCenter, int cloudRadius, float lavaPressure, float waterSpeed,
     int* changeCellPos, double* infiltrationTimes, double* lavaMovingTimes, short* nbCellsUpdated
 ) {
-    g_callbackDebug("dll: inside DllProcessWaterMT");
+    // g_callbackDebug("dll: inside DllProcessWaterMT");
 
     if (double(::rand()) < (double(RAND_MAX) * 0.05)) { // 5% chance
         InitGridOrder();
@@ -253,10 +381,10 @@ __declspec(dllexport) int DllProcessWaterMT(
         ThreadData& threadData = g_threadData[threadIndex];
 
         // for some reason, in the original the double type is used in calculation but casted to int (mistakenly 2.0 literal was used?)
-        threadData.startColumn = ((gridWidthMinusBorder * threadIndex) / g_nbThreads) + 1;
+        threadData.startX = ((gridWidthMinusBorder * threadIndex) / g_nbThreads) + 1;
         threadData.processVerticalWater = true;
         // again, in the original the double is used in calculation but casted to int
-        threadData.endColumn = ((gridWidthMinusBorder * (threadIndex + 1)) / g_nbThreads) + 1;
+        threadData.startY = ((gridWidthMinusBorder * (threadIndex + 1)) / g_nbThreads) + 1;
 
         ::SetEvent(threadData.workEvent);
     }
@@ -296,7 +424,7 @@ __declspec(dllexport) int DllProcessWaterMT(
 }
 // FUNCTION: 0x1360
 __declspec(dllexport) void DllResetSimu(int2 gs, float gridBorderNoCam) {
-    g_callbackDebug("dll: inside DllResetSimu");
+    // g_callbackDebug("dll: inside DllResetSimu");
 
     g_gridSize = gs;
     g_gridBorderNoCam = gridBorderNoCam;
@@ -307,7 +435,7 @@ __declspec(dllexport) void DllResetSimu(int2 gs, float gridBorderNoCam) {
 }
 // FUNCTION: 0x14c0
 __declspec(dllexport) int GetBestSpawnPoint(CCell* grid, const CItem_PluginData* itemsData, int2* pos) {
-    g_callbackDebug("dll: inside GetBestSpawnPoint");
+    // g_callbackDebug("dll: inside GetBestSpawnPoint");
 
     const int2 origPos = *pos;
     float maxScore = -10'000'000.0f;

@@ -78,30 +78,6 @@ inline void UpdateWaterFlow(int startOffset, int numIterations) {
     }
 }
 
-// FUNCTION: 0x1060
-inline unsigned int __stdcall WorkerThread(void* threadDataRaw) {
-    ThreadData& threadData = *static_cast<ThreadData*>(threadDataRaw);
-
-    ::WaitForSingleObject(threadData.workEvent /*0x8*/, 1000);
-
-    while (true) {
-        if (threadData.shouldExit /*0xC*/) {
-            return 0;
-        }
-        if (threadData.processVerticalWater /*0x20*/) {
-            threadData.processVerticalWater /*0x20*/ = false;
-            // ...;
-        } else if (threadData.processHorizontalFlow /*0x2C*/) {
-            threadData.processHorizontalFlow /*0x2C*/ = false;
-            // FUN_10005150(...);
-        } else if (threadData.processCellLighting /*0xD*/) {
-            threadData.processCellLighting /*0xD*/ = false;
-            // ...;
-        }
-        ::SetEvent(g_threadEvents[threadData.id /*0x4*/]);
-        ::WaitForSingleObject(threadData.workEvent /*0x8*/, 1000);
-    }
-}
 // FUNCTION: 0x1120
 inline void InitGridOrder() {
     if (g_gridSize.x + 1 > 0) {
@@ -264,5 +240,189 @@ inline void PostProcessWater(int* changeCellPos) {
                 }
             }
         }
+    }
+}
+
+// FUNCTION: 0x2720
+inline bool IlluminateCellIfPassable(CCell* grid, CItem_PluginData* itemsData, float x, float y) {
+    CCell& cell = grid[(int)::roundf(y) + (int)::roundf(x) * g_gridSize.y];
+    if (!IsCellPassable(cell, itemsData)) {
+        return false;
+    }
+    cell.m_light.r = std::max<uint8_t>(134, cell.m_light.r);
+    cell.m_light.g = std::max<uint8_t>(134, cell.m_light.g);
+    cell.m_light.b = std::max<uint8_t>(134, cell.m_light.b);
+    cell.m_temp = cell.m_light;
+    return true;
+}
+
+// FUNCTION: 0x31a0
+inline void ProcessLightPropagation(int startX, int startY, int endX, int endY) {
+    CCell* const grid = g_grid;
+    const int gridSizeY = g_gridSize.y;
+
+    const auto fourthPower = [](float x) { return x * x * x * x; };
+
+    for (int x = startX; x < endX; ++x) {
+        for (int y = startY; y < endY; ++y) {
+            if (x >= g_skipYMax.x && x <= g_skipYMax.width + g_skipYMax.x &&
+                y >= g_skipYMax.y && y <= g_skipYMax.height + g_skipYMax.y) {
+                continue;
+            }
+            const int gridIdx = x * gridSizeY + y;
+            CCell& centerCell = grid[gridIdx];
+            if (centerCell.m_temp.r == 0 && centerCell.m_temp.g == 0 && centerCell.m_temp.b == 0) {
+                continue;
+            }
+
+            const int rightIdx = (x + 1) * gridSizeY + y;
+            const int leftIdx = (x - 1) * gridSizeY + y;
+
+            CCell& rightCell = grid[rightIdx];                // x+1, y
+            CCell& leftCell = grid[leftIdx];                  // x-1, y
+            CCell& topCell = grid[gridIdx + 1];               // x,   y+1
+            CCell& bottomCell = grid[gridIdx - 1];            // x,   y-1
+            const CCell& topRightCell = grid[rightIdx + 1];   // x+1, y+1
+            const CCell& bottomLeftCell = grid[leftIdx - 1];  // x-1, y-1  
+            const CCell& topLeftCell = grid[leftIdx + 1];     // x-1, y+1
+            const CCell& bottomRightCell = grid[rightIdx - 1];// x+1, y-1
+
+            // normalized colors from [0,256] -> [0,1]
+            // 0.00390625 = 1/256
+
+            // @ @ @
+            // @ X @
+            // @ @ @
+            const float currentRed = centerCell.m_temp.r * 0.00390625f;
+            const float currentGreen = centerCell.m_temp.g * 0.00390625f;
+            const float currentBlue = centerCell.m_temp.b * 0.00390625f;
+
+            // @ @ @
+            // @ @ X
+            // @ @ @
+            const float rightRed = rightCell.m_temp.r * 0.00390625f;
+            const float rightGreen = rightCell.m_temp.g * 0.00390625f;
+            const float rightBlue = rightCell.m_temp.b * 0.00390625f;
+
+            // @ @ @
+            // X @ @
+            // @ @ @
+            const float leftRed = leftCell.m_temp.r * 0.00390625f;
+            const float leftGreen = leftCell.m_temp.g * 0.00390625f;
+            const float leftBlue = leftCell.m_temp.b * 0.00390625f;
+
+            // @ X @
+            // @ @ @
+            // @ @ @
+            const float topRed = topCell.m_temp.r * 0.00390625f;
+            const float topGreen = topCell.m_temp.g * 0.00390625f;
+            const float topBlue = topCell.m_temp.b * 0.00390625f;
+
+            // @ @ @
+            // @ @ @
+            // @ X @
+            const float bottomRed = bottomCell.m_temp.r * 0.00390625f;
+            const float bottomGreen = bottomCell.m_temp.g * 0.00390625f;
+            const float bottomBlue = bottomCell.m_temp.b * 0.00390625f;
+
+            // @ @ X
+            // @ @ @
+            // @ @ @
+            const float topRightRed = topRightCell.m_temp.r * 0.00390625f;
+            const float topRightGreen = topRightCell.m_temp.g * 0.00390625f;
+            const float topRightBlue = topRightCell.m_temp.b * 0.00390625f;
+
+            // @ @ @
+            // @ @ @
+            // X @ @
+            const float bottomLeftRed = bottomLeftCell.m_temp.r * 0.00390625f;
+            const float bottomLeftGreen = bottomLeftCell.m_temp.g * 0.00390625f;
+            const float bottomLeftBlue = bottomLeftCell.m_temp.b * 0.00390625f;
+
+            // X @ @
+            // @ @ @
+            // @ @ @
+            const float topLeftRed = topLeftCell.m_temp.r * 0.00390625f;
+            const float topLeftGreen = topLeftCell.m_temp.g * 0.00390625f;
+            const float topLeftBlue = topLeftCell.m_temp.b * 0.00390625f;
+
+            // @ @ @
+            // @ @ @
+            // @ @ X
+            const float bottomRightRed = bottomRightCell.m_temp.r * 0.00390625f;
+            const float bottomRightGreen = bottomRightCell.m_temp.g * 0.00390625f;
+            const float bottomRightBlue = bottomRightCell.m_temp.b * 0.00390625f;
+
+            // Calculate combined electrical components using weighted averages
+            // Red channel calculation
+            const double redComponent = std::sqrt(std::sqrt(
+                (fourthPower(rightRed) + fourthPower(currentRed) + fourthPower(leftRed) + fourthPower(topRed) + fourthPower(bottomRed) +
+                 0.7f * fourthPower(topRightRed) + 0.7f * fourthPower(bottomLeftRed) + 0.7f * fourthPower(topLeftRed) + 0.7f * fourthPower(bottomRightRed)
+                ) / 7.8f));
+
+            const double greenComponent = std::sqrt(std::sqrt(
+                (fourthPower(rightGreen) + fourthPower(currentGreen) + fourthPower(leftGreen) + fourthPower(topGreen) + fourthPower(bottomGreen) +
+                 0.7f * fourthPower(topRightGreen) + 0.7f * fourthPower(bottomLeftGreen) + 0.7f * fourthPower(topLeftGreen) + 0.7f * fourthPower(bottomRightGreen)
+                ) / 7.8f));
+
+            const double blueComponent = std::sqrt(std::sqrt(
+                (fourthPower(rightBlue) + fourthPower(currentBlue) + fourthPower(leftBlue) + fourthPower(topBlue) + fourthPower(bottomBlue) +
+                 0.7f * fourthPower(topRightBlue) + 0.7f * fourthPower(bottomLeftBlue) + 0.7f * fourthPower(topLeftBlue) + 0.7f * fourthPower(bottomRightBlue)
+                ) / 7.8f));
+
+            // apply passability attenuation
+            const float attenuation = IsCellPassable(centerCell, g_itemsData) ? 0.96f : 0.75f;
+
+            centerCell.m_light.r = uint8_t(float(redComponent) * attenuation * 256.0f);
+            centerCell.m_light.g = uint8_t(float(greenComponent) * attenuation * 256.0f);
+            centerCell.m_light.b = uint8_t(float(blueComponent) * attenuation * 256.0f);
+
+            // propagate minimal light to neighbors if above threshold
+            if (float(redComponent) * attenuation > 0.005f || 
+                float(greenComponent) * attenuation > 0.005f || 
+                float(blueComponent) * attenuation > 0.005f) {
+                
+                rightCell.m_light.r = std::max<uint8_t>(rightCell.m_light.r, 1);
+                rightCell.m_light.g = std::max<uint8_t>(rightCell.m_light.g, 1);
+                rightCell.m_light.b = std::max<uint8_t>(rightCell.m_light.b, 1);
+
+                leftCell.m_light.r = std::max<uint8_t>(leftCell.m_light.r, 1);
+                leftCell.m_light.g = std::max<uint8_t>(leftCell.m_light.g, 1);
+                leftCell.m_light.b = std::max<uint8_t>(leftCell.m_light.b, 1);
+
+                topCell.m_light.r = std::max<uint8_t>(topCell.m_light.r, 1);
+                topCell.m_light.g = std::max<uint8_t>(topCell.m_light.g, 1);
+                topCell.m_light.b = std::max<uint8_t>(topCell.m_light.b, 1);
+
+                bottomCell.m_light.r = std::max<uint8_t>(bottomCell.m_light.r, 1);
+                bottomCell.m_light.g = std::max<uint8_t>(bottomCell.m_light.g, 1);
+                bottomCell.m_light.b = std::max<uint8_t>(bottomCell.m_light.b, 1);
+            }
+        }
+    }
+}
+
+// FUNCTION: 0x1060
+inline unsigned int __stdcall WorkerThread(void* threadDataRaw) {
+    ThreadData& threadData = *static_cast<ThreadData*>(threadDataRaw);
+
+    ::WaitForSingleObject(threadData.workEvent /*0x8*/, 1000);
+
+    while (true) {
+        if (threadData.shouldExit /*0xC*/) {
+            return 0;
+        }
+        if (threadData.processVerticalWater /*0x20*/) {
+            threadData.processVerticalWater /*0x20*/ = false;
+            // ...;
+        } else if (threadData.processHorizontalFlow /*0x2C*/) {
+            threadData.processHorizontalFlow /*0x2C*/ = false;
+            // FUN_10005150(...);
+        } else if (threadData.processCellLighting /*0xD*/) {
+            threadData.processCellLighting /*0xD*/ = false;
+            ProcessLightPropagation(threadData.startX, threadData.startY, threadData.endX, threadData.endY);
+        }
+        ::SetEvent(g_threadEvents[threadData.id /*0x4*/]);
+        ::WaitForSingleObject(threadData.workEvent /*0x8*/, 1000);
     }
 }
