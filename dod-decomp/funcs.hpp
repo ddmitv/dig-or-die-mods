@@ -244,7 +244,7 @@ inline void PostProcessWater(int* changeCellPos) {
 }
 
 // FUNCTION: 0x2720
-inline bool SunLampStep(CCell* grid, CItem_PluginData* itemsData, float x, float y) {
+inline bool SunLampLightStep(CCell* grid, const CItem_PluginData* itemsData, float x, float y) {
     CCell& cell = grid[(int)::roundf(y) + (int)::roundf(x) * g_gridSize.y];
     if (!IsCellPassable(cell, itemsData)) {
         return false;

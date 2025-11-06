@@ -97,14 +97,14 @@ __declspec(dllexport) int DllProcessForces(
     // g_callbackDebug("dll: inside DllProcessForces");
 
     for (int i = 0; i < nbCells; ++i) {
-        int cellIdx = cellsWithForces[i];
+        const int cellIdx = cellsWithForces[i];
         if (cellIdx == INT_MIN) { continue; }
 
-        int topCellIdx = cellIdx + g_gridSize.y;
-        grid[topCellIdx].m_forceX  = (int16_t)::roundf((float)grid[topCellIdx].m_forceX * 0.995f);
-        grid[cellIdx].m_forceX     = (int16_t)::roundf((float)grid[cellIdx].m_forceX * 0.995f);
-        grid[cellIdx + 1].m_forceY = (int16_t)::roundf((float)grid[cellIdx + 1].m_forceY * 0.995f);
-        grid[cellIdx].m_forceY     = (int16_t)::roundf((float)grid[cellIdx].m_forceY * 0.995f);
+        const int topCellIdx = cellIdx + g_gridSize.y;
+        grid[topCellIdx].m_forceX  = int16_t(::roundf((float)grid[topCellIdx].m_forceX * 0.995f));
+        grid[cellIdx].m_forceX     = int16_t(::roundf((float)grid[cellIdx].m_forceX * 0.995f));
+        grid[cellIdx + 1].m_forceY = int16_t(::roundf((float)grid[cellIdx + 1].m_forceY * 0.995f));
+        grid[cellIdx].m_forceY     = int16_t(::roundf((float)grid[cellIdx].m_forceY * 0.995f));
     }
 
     for (int iterationCount = 20; iterationCount != 0; --iterationCount) {
@@ -180,7 +180,8 @@ __declspec(dllexport) int DllProcessForces(
 }
 // FUNCTION: 0x27f0
 __declspec(dllexport) int DllProcessLightingSquare(
-    CCell* const grid, CItem_PluginData* const itemsData, int2 posMin, int2 posMax, float sunlight, const RectInt skipYMax,
+    CCell* const grid, CItem_PluginData* const itemsData,
+    int2 posMin, int2 posMax, float sunlight, const RectInt skipYMax,
     int sunLightYMin, int sunLightYMax
 ) {
     // g_callbackDebug("dll: inside DllProcessLightingSquFare");
@@ -217,7 +218,7 @@ __declspec(dllexport) int DllProcessLightingSquare(
                 cell.m_light.g = std::max(cell.m_light.g, light);
                 cell.m_light.b = std::max(cell.m_light.b, light);
             }
-            if ((cell.m_flags & Flag_IsLava) != 0 && cell.m_water > 0.01) {
+            if ((cell.m_flags & Flag_IsLava) != 0 && cell.m_water > 0.01f) {
                 const float waterBasedRed = cell.m_water * 50.f * 255.f;
 
                 if (cell.m_light.r <= waterBasedRed) {
@@ -242,22 +243,14 @@ __declspec(dllexport) int DllProcessLightingSquare(
 
                 if (itemData.m_isLightonium != 0) {
                     CCell& prevCell = grid[cellIdx - 1];
-                    prevCell.m_light.r = 255;
-                    prevCell.m_light.g = 255;
-                    prevCell.m_light.b = 255;
-                    prevCell.m_temp.r = 255;
-                    prevCell.m_temp.g = 255;
-                    prevCell.m_temp.b = 255;
+                    prevCell.m_light = { .r = 255, .g = 255, .b = 255 };
+                    prevCell.m_temp = { .r = 255, .g = 255, .b = 255 };
 
                     CCell& prevPrevCell = grid[cellIdx - 2];
-                    prevPrevCell.m_light.r = 255;
-                    prevPrevCell.m_light.g = 255;
-                    prevPrevCell.m_light.b = 255;
-                    prevPrevCell.m_temp.r = 255;
-                    prevPrevCell.m_temp.g = 255;
-                    prevPrevCell.m_temp.b = 255;
+                    prevPrevCell.m_light = { .r = 255, .g = 255, .b = 255 };
+                    prevPrevCell.m_temp = { .r = 255, .g = 255, .b = 255 };
                 } else if (itemData.m_isSunLamp != 0) {
-                    float offset = 0.f;
+                    float offset = 0.0f;
                     do {
                         if (!SunLampLightStep(grid, itemsData, x - offset * 0.26f, y - offset)) {
                             break;
@@ -301,7 +294,7 @@ __declspec(dllexport) int DllProcessLightingSquare(
                     } while (offset < 11.0f);
                 } else if (itemData.m_isOrganicHeart != 0) {
                     const double cosValue = std::cos(::clock() * 0.00628 * 0.3 * 2);
-                    const float pulseMultiplier = float((cosValue * 0.5f + 0.5f) * 1.5f + 1.0f);
+                    const float pulseMultiplier = float((cosValue * 0.5 + 0.5) * 1.5 + 1.0);
 
                     cell.m_light.r = std::max(cell.m_light.r, uint8_t(itemData.m_light.r * pulseMultiplier));
                     cell.m_light.g = std::max(cell.m_light.g, uint8_t(itemData.m_light.g * pulseMultiplier));
