@@ -369,13 +369,13 @@ inline void ProcessLightPropagation(int startX, int startY, int endX, int endY) 
 
             const double greenComponent = std::sqrt(std::sqrt(
                 (fourthPower(rightGreen) + fourthPower(currentGreen) + fourthPower(leftGreen) + fourthPower(topGreen) + fourthPower(bottomGreen) +
-                 0.7f * fourthPower(topRightGreen) + 0.7f * fourthPower(bottomLeftGreen) + 0.7f * fourthPower(topLeftGreen) + 0.7f * fourthPower(bottomRightGreen)
-                ) / 7.8f));
+                    0.7f * fourthPower(topRightGreen) + 0.7f * fourthPower(bottomLeftGreen) + 0.7f * fourthPower(topLeftGreen) + 0.7f * fourthPower(bottomRightGreen)
+                    ) / 7.8f));
 
             const double blueComponent = std::sqrt(std::sqrt(
                 (fourthPower(rightBlue) + fourthPower(currentBlue) + fourthPower(leftBlue) + fourthPower(topBlue) + fourthPower(bottomBlue) +
-                 0.7f * fourthPower(topRightBlue) + 0.7f * fourthPower(bottomLeftBlue) + 0.7f * fourthPower(topLeftBlue) + 0.7f * fourthPower(bottomRightBlue)
-                ) / 7.8f));
+                    0.7f * fourthPower(topRightBlue) + 0.7f * fourthPower(bottomLeftBlue) + 0.7f * fourthPower(topLeftBlue) + 0.7f * fourthPower(bottomRightBlue)
+                    ) / 7.8f));
 
             // apply passability attenuation
             const float attenuation = IsCellPassable(centerCell, g_itemsData) ? 0.96f : 0.75f;
@@ -385,10 +385,10 @@ inline void ProcessLightPropagation(int startX, int startY, int endX, int endY) 
             centerCell.m_light.b = uint8_t(float(blueComponent) * attenuation * 256.0f);
 
             // propagate minimal light to neighbors if above threshold
-            if (float(redComponent) * attenuation > 0.005f || 
-                float(greenComponent) * attenuation > 0.005f || 
+            if (float(redComponent) * attenuation > 0.005f ||
+                float(greenComponent) * attenuation > 0.005f ||
                 float(blueComponent) * attenuation > 0.005f) {
-                
+
                 rightCell.m_light.r = std::max<uint8_t>(rightCell.m_light.r, 1);
                 rightCell.m_light.g = std::max<uint8_t>(rightCell.m_light.g, 1);
                 rightCell.m_light.b = std::max<uint8_t>(rightCell.m_light.b, 1);
