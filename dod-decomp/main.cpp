@@ -88,7 +88,43 @@ __declspec(dllexport) int DllProcessElectricity(
     CCell* grid, CItem_PluginData* itemsData, double simuTime, double simuDeltaTime
 ) {
     // g_callbackDebug("dll: inside DllProcessElectricity");
-    return 1;
+
+    const int gridSizeY = g_gridSize.y;
+    const int gridSizeX = g_gridSize.x;
+
+    int startOffset = 0;
+    int numIterations = 0;
+    GetIterators(gridSizeX - 2, simuTime, simuDeltaTime, 1.f/3.f, startOffset, numIterations);
+
+    for (int i = 0; i < numIterations; ++i) {
+        // since (i + startOffset) is always >= 0, the expression can be simplied to just taking a modulo:
+        // const int x = ((i + startOffset) % (gridSizeX - 2) + (gridSizeX - 2)) % (gridSizeX - 2) + 1;
+        const int x = (i + startOffset) % (gridSizeX - 2) + 1;
+        if (x == 1) {
+            g_elecAlgoState = !g_elecAlgoState;
+        }
+        for (int y = 1; y < gridSizeY - 1; ++y) {
+            CCell& currentCell = grid[x * gridSizeY + y];
+            const CCell& topCell = grid[x * gridSizeY + (y + 1)];
+            const CCell& rightCell = grid[(x + 1) * gridSizeY + y];
+            const CCell& topRightCell = grid[(x + 1) * gridSizeY + (y + 1)];
+
+            if (int(CellHasFlag(currentCell, Flag_ElectricAlgoState)) != g_elecAlgoState) {
+                currentCell.m_elecProd = 0;
+                if (CellHasFlag(currentCell, Flag_HasWireTop) || CellHasFlag(currentCell, Flag_HasWireRight)
+                    || CellHasFlag(topCell, Flag_HasWireRight)
+                    || CellHasFlag(rightCell, Flag_HasWireTop)
+                    || (itemsData[topCell.m_contentId].m_electricValue != 0 && (itemsData[topCell.m_contentId].m_electricOutletFlags & 1) != 0)
+                    || (itemsData[currentCell.m_contentId].m_electricValue != 0 && (itemsData[currentCell.m_contentId].m_electricOutletFlags & 2) != 0)
+                    || itemsData[topCell.m_contentId].m_elecSwitchType > ElecSwitchType::None
+                    || itemsData[topRightCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecCross
+                    ) {
+                    PropagateElectricity(grid, itemsData, x, y);
+                }
+            }
+        }
+    }
+    return 0;
 }
 // FUNCTION: 0x2240
 __declspec(dllexport) int DllProcessForces(

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.hpp"
+#include <vector>
 
 inline const int g_dirt_spread_offsets_x[5] = {0, 1, 0, -1, 0};
 inline const int g_dirt_spread_offsets_y[5] = {0, 0, 1, 0, -1};
@@ -12,6 +13,9 @@ namespace changeCellType {
     inline constexpr int basaltMelt = 10000000;
     inline constexpr int damageCell = 20000000;
 }
+
+inline const short g_elecDirOffsetsX[16] = {1, 0, 1, 0, 0, 0, -1, -1, -1, -1, -1, -1, 0, 0, 1, 0};
+inline const short g_elecDirOffsetsY[16] = {0, 0, 1, 0, 1, 0, 1, 0, 0, 0, -1, -1, -1, -1, -1, -1};
 
 inline DelegateCallbackDebug* g_callbackDebug; // GLOBAL: 0x26548
 inline DelegateCallbackGetElecProd* g_callbackGetElecProd; // GLOBAL: 0x2654c
@@ -40,8 +44,11 @@ inline CItem_PluginData* g_itemsData; // GLOBAL: 0x265ac
 inline RectInt g_skipYMax; // GLOBAL: 0x265b0
 
 inline int g_nbThreads; // GLOBAL: 0x2acc0
+inline std::vector<short2> g_elecPropagationQueue; // GLOBAL: 0x2ad48
+inline std::vector<short2> g_elecProcessedCells; // GLOBAL: 0x2ad54
 
 inline char g_formatBuffer[512]; // GLOBAL: 0x26340
+inline int g_elecAlgoState; // GLOBAL: 0x26540
 
 inline ThreadData g_threadData[32]; // GLOBAL: 0x265c0
 inline HANDLE g_threadEvents[32]; // GLOBAL: 0x2acc0

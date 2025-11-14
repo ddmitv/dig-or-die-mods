@@ -433,3 +433,209 @@ inline unsigned int __stdcall WorkerThread(void* threadDataRaw) {
         ::WaitForSingleObject(threadData.workEvent /*0x8*/, 1000);
     }
 }
+
+// FUNCTION: 0x1750
+inline void UpdateCellPowerState(
+    CCell* const grid, const CItem_PluginData* const itemsData, int x, int y, uint32_t direction, const int& totalProduction, int& remainingPowerBudget
+) {
+    CCell& currentCell = grid[x * g_gridSize.y + y];
+    const CCell& rightCell = grid[(x + 1) * g_gridSize.y + y];
+    const CCell& topCell = grid[x * g_gridSize.y + (y + 1)];
+    const CCell& topRightCell = grid[(x + 1) * g_gridSize.y + (y + 1)];
+
+    // in orig code the CItem_PluginData struct is copied
+    const CItem_PluginData& itemData = itemsData[currentCell.m_contentId];
+
+    if (itemData.m_electricValue > -1) {
+        return;
+    }
+    if ((direction & itemData.m_electricOutletFlags) == 0) {
+        return;
+    }
+    bool shouldPowerCell = false;
+    // true for items: elecLight, elecAlarm, wallDoor and wallCompositeDoor
+    if (itemData.m_electricValue == -255) {
+        if (totalProduction != 0 || remainingPowerBudget != 0) {
+            shouldPowerCell = true;
+        }
+    } else {
+        if (remainingPowerBudget + itemData.m_electricValue >= 0 && remainingPowerBudget != 255) {
+            remainingPowerBudget += itemData.m_electricValue;
+            shouldPowerCell = true;
+        }
+    }
+    if (itemData.m_isBlockDoor != 0) {
+        bool hasConnectedWire =
+            (currentCell.m_flags & (Flag_HasWireTop | Flag_HasWireRight)) != 0 ||
+            (topCell.m_flags & Flag_HasWireRight) != 0 ||
+            (rightCell.m_flags & Flag_HasWireTop) != 0;
+        bool hasConnectedWireCrossing =
+            itemsData[topCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecCross ||
+            itemsData[rightCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecCross ||
+            itemsData[topRightCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecCross;
+
+        if (hasConnectedWire || hasConnectedWireCrossing) {
+            CellSetFlag(currentCell, Flag_CustomData0, currentCell.m_elecProd != 0);
+        }
+    }
+    CellSetFlag(currentCell, Flag_IsPowered, shouldPowerCell);
+}
+
+// FUNCTION: 0x1670
+inline void UpdateCellElectricity(CCell* const grid, const CItem_PluginData* const itemsData, int x, int y, uint32_t direction, int& totalConsumption, int& totalProduction) {
+    CCell& currentCell = grid[x * g_gridSize.y + y];
+
+    // in orig code the CItem_PluginData struct is copied
+    const CItem_PluginData& itemData = itemsData[currentCell.m_contentId];
+
+    if ((direction & itemData.m_electricOutletFlags) == 0) {
+        return;
+    }
+    if (itemData.m_electricValue < 0) {
+        if (itemData.m_electricValue == -255) {
+            if (totalConsumption == 0) {
+                totalConsumption = 255;
+            }
+        } else {
+            if (totalConsumption != 255) {
+                totalConsumption += -itemData.m_electricValue;
+            }
+        }
+    } else if (itemData.m_electricValue > 0) {
+        const int electricityProd = (*g_callbackGetElecProd)(x, y);
+        CellSetFlag(currentCell, Flag_IsPowered, electricityProd != 0);
+
+        if (electricityProd == 255) {
+            if (totalProduction == 0) {
+                totalProduction = 255;
+            }
+        } else if (electricityProd != 0) {
+            totalProduction = std::min(250, (totalProduction == 255 ? 0 : totalProduction) + electricityProd);
+        }
+    }
+}
+
+// FUNCTION: 0x1860
+inline void PropagateElectricity(CCell* const grid, const CItem_PluginData* const itemsData, int startX, int startY) {
+    const int gridSizeY = g_gridSize.y;
+
+    g_elecProcessedCells.clear();
+
+    g_elecPropagationQueue.clear();
+    g_elecPropagationQueue.emplace_back(startX, startY);
+
+    CCell& startCell = grid[startX * gridSizeY + startY];
+    CellSetFlag(startCell, Flag_ElectricAlgoState, g_elecAlgoState != 0);
+
+    int totalConsumption = 0;
+    int totalProduction = 0;
+    int iterationCount = 0;
+
+    while (!g_elecPropagationQueue.empty() && iterationCount < 10'000) {
+        iterationCount += 1;
+
+        const short2 currentCoord = g_elecPropagationQueue.back();
+        g_elecPropagationQueue.pop_back();
+
+        const int x = currentCoord.x;
+        const int y = currentCoord.y;
+
+        g_elecProcessedCells.push_back(currentCoord);
+
+        CCell& currentCell = grid[x * gridSizeY + y];
+        CCell& topCell = grid[x * gridSizeY + (y + 1)];
+        const CCell& rightCell = grid[(x + 1) * gridSizeY + y];
+        const CCell& leftCell = grid[(x - 1) * gridSizeY + y];
+        const CCell& topRightCell = grid[(x + 1) * gridSizeY + (y + 1)];
+        const CCell& bottomLeftCell = grid[(x - 1) * gridSizeY + (y - 1)];
+
+        UpdateCellElectricity(grid, itemsData, x, y, 2, totalConsumption, totalProduction);
+        UpdateCellElectricity(grid, itemsData, x, y + 1, 1, totalConsumption, totalProduction);
+
+        for (int dir = 0; dir < 8; ++dir) {
+            const short neighborX = x + g_elecDirOffsetsX[dir * 2];
+            const short neighborY = y + g_elecDirOffsetsY[dir * 2];
+
+            CCell& neighborCell = grid[neighborX * gridSizeY + neighborY];
+
+            if (int(CellHasFlag(neighborCell, Flag_ElectricAlgoState)) == g_elecAlgoState) {
+                continue;
+            }
+            if (dir == 0) {
+                if (!CellHasFlag(rightCell, Flag_HasWireTop)) {
+                    continue;
+                }
+            } else if (dir == 1) {
+                if (itemsData[topRightCell.m_contentId].m_elecSwitchType != ElecSwitchType::ElecCross) {
+                    continue;
+                }
+            } else if (dir == 2) {
+                if (!CellHasFlag(topCell, Flag_HasWireRight)) {
+                    if (itemsData[topCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecSwitchRelay) {
+                        if (leftCell.m_elecProd == 0) { continue; }
+                    } else if (itemsData[topCell.m_contentId].m_elecSwitchType >= ElecSwitchType::ElecSwitch) {
+                        if (!CellHasFlag(topCell, Flag_HasWireTop)) { continue; }
+                    } else {
+                        continue;
+                    }
+                }
+            } else if (dir == 3) {
+                if (itemsData[topCell.m_contentId].m_elecSwitchType != ElecSwitchType::ElecCross) {
+                    continue;
+                }
+            } else if (dir == 4) {
+                if (!CellHasFlag(currentCell, Flag_HasWireTop)) {
+                    continue;
+                }
+            } else if (dir == 5) {
+                if (itemsData[currentCell.m_contentId].m_elecSwitchType != ElecSwitchType::ElecCross) {
+                    continue;
+                }
+            } else if (dir == 6) {
+                if (!CellHasFlag(currentCell, Flag_HasWireRight)) {
+                    if (itemsData[currentCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecSwitchRelay) {
+                        if (bottomLeftCell.m_elecProd == 0) {
+                            continue;
+                        }
+                    } else if (itemsData[currentCell.m_contentId].m_elecSwitchType >= ElecSwitchType::ElecSwitch) {
+                        if (!CellHasFlag(currentCell, Flag_HasWireTop)) {
+                            continue;
+                        }
+                    } else {
+                        continue;
+                    }
+                }
+            } else if (dir == 7) {
+                if (itemsData[rightCell.m_contentId].m_elecSwitchType != ElecSwitchType::ElecCross) {
+                    continue;
+                }
+            } else {
+                continue;
+            }
+            g_elecPropagationQueue.emplace_back(neighborX, neighborY);
+            CellSetFlag(neighborCell, Flag_ElectricAlgoState, g_elecAlgoState != 0);
+
+            if (dir == 2 && itemsData[topCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecSwitchPush) {
+                if (CellHasFlag(topCell, Flag_CustomData0)) {
+                    CellSetFlag(topCell, Flag_CustomData0, false);
+                }
+            } else if (dir == 6 && itemsData[currentCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecSwitchPush) {
+                if (CellHasFlag(currentCell, Flag_CustomData0)) {
+                    CellSetFlag(currentCell, Flag_CustomData0, false);
+                }
+            }
+        }
+    }
+    const int processedStart = (::rand() * g_elecProcessedCells.size()) / RAND_MAX;
+    int remainingPowerBudget = totalProduction;
+    for (int i = 0; i < g_elecProcessedCells.size(); ++i) {
+        const short2 pos = g_elecProcessedCells[(processedStart + i) % g_elecProcessedCells.size()];
+            
+        CCell& cell = grid[pos.x * gridSizeY + pos.y];
+        cell.m_elecCons = uint8_t(totalConsumption);
+        cell.m_elecProd = uint8_t(totalProduction);
+            
+        UpdateCellPowerState(grid, itemsData, pos.x, pos.y, 2, totalProduction, remainingPowerBudget);
+        UpdateCellPowerState(grid, itemsData, pos.x, pos.y + 1, 1, totalProduction, remainingPowerBudget);
+    }
+}
