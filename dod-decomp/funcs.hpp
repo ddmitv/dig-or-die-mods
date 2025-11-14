@@ -35,6 +35,13 @@ inline bool AlmostEqual(const float x, const float y, const float tolerance = 0.
 inline bool IsCellPassableWithLava(const CCell& cell, const CItem_PluginData* itemsData) {
     return IsCellPassable(cell, itemsData) && (cell.m_flags & Flag_IsLava) != 0;
 }
+inline bool CellHasFlag(const CCell& cell, CCell_Flag flag) {
+    return (cell.m_flags & flag) != 0;
+}
+inline void CellSetFlag(CCell& cell, CCell_Flag flag, bool value) {
+    cell.m_flags = value ? cell.m_flags | flag : cell.m_flags & ~flag;
+}
+
 inline void GetIterators(int n, double t, double dt, float period, int& outStartOffset, int& outNumIterations) {
     int64_t time1 = int64_t((t - dt) * n);
     int64_t time2 = int64_t(t * n);
