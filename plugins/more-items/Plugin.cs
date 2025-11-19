@@ -37,7 +37,7 @@ public class FlashEffect : MonoBehaviour {
     }
 }
 
-[BepInPlugin("more-items", "More Items", "1.2.0")]
+[BepInPlugin("more-items", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 [BepInDependency(ReplacementorPluginGUID, BepInDependency.DependencyFlags.SoftDependency)]
 public class MoreItemsPlugin : BaseUnityPlugin {
     private const string ReplacementorPluginGUID = "replacementor";

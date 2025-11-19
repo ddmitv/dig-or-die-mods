@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection.Emit;
 
-[BepInPlugin("player-name-changer", "Player Name Changer", "1.0.0")]
+[BepInPlugin("player-name-changer", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 public class PlayerNameChanger : BaseUnityPlugin {
     private static ConfigEntry<string> configPlayerName = null;
     private static ConfigEntry<bool> configEnable = null;

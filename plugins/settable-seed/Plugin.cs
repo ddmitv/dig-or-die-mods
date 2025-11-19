@@ -117,7 +117,7 @@ internal static class InputSeedPatch {
     }
 }
 
-[BepInPlugin("settable-seed", "Settable Seed", "1.0.0")]
+[BepInPlugin("settable-seed", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 public class SettableSeed : BaseUnityPlugin {
     private static ConfigEntry<int> configMaxSeed = null;
 

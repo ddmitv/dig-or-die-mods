@@ -72,7 +72,7 @@ internal static class Patches {
     }
 }
 
-[BepInPlugin("focused-flashlight", "Focused Flashlight", "1.0.0")]
+[BepInPlugin("focused-flashlight", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 public class FocusedFlashlight : BaseUnityPlugin {
     public static ConfigEntry<float> configLightDistanceMultipler = null;
     public static ConfigEntry<Color> configLightColor = null;

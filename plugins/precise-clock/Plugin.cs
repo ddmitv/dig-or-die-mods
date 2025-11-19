@@ -102,7 +102,7 @@ public enum TimeFormat {
     UnitPoint,
 }
 
-[BepInPlugin("precise-clock", "Precise Clock", "1.0.0")]
+[BepInPlugin("precise-clock", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 public class PreciseClock : BaseUnityPlugin {
     public static ConfigEntry<UnityEngine.Color> configColor = null;
     public static ConfigEntry<ClockPosition> configClockPosition = null;

@@ -37,7 +37,7 @@ internal static class InCustomModePatch {
     }
 }
 
-[BepInPlugin("achievement-enabler", "Achievement Enabler", "1.0.0")]
+[BepInPlugin("achievement-enabler", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 public class AchievementEnabler : BaseUnityPlugin
 {
     private static ConfigEntry<bool> configInMultiplayer = null;

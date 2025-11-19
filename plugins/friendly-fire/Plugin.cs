@@ -312,7 +312,7 @@ internal static class DeathMessageKilledByPlayerPatch {
     }
 }
 
-[BepInPlugin("friendly-fire", "Friendly Fire", "1.0.0")]
+[BepInPlugin("friendly-fire", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 public class FriendlyFire : BaseUnityPlugin {
     private void Start() {
         var configEnabled = Config.Bind<bool>(

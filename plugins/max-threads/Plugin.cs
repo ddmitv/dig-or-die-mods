@@ -5,7 +5,7 @@ using ModUtils.Extensions;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 
-[BepInPlugin("max-threads", "Max Threads", "0.0.0")]
+[BepInPlugin("max-threads", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 public class CellPicker : BaseUnityPlugin {
     private static ConfigEntry<uint> configOverrideThreadsNumber = null;
 

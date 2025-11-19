@@ -1,0 +1,14 @@
+<Project>
+  <Target Name="GenerateThisPluginInfoClass" BeforeTargets="CoreCompile">
+    <WriteLinesToFile 
+      File="$(BaseIntermediateOutputPath)ThisPluginInfo.g.cs"
+      Lines="internal static class ThisPluginInfo {
+    public const string Version = &quot;$(Version)&quot;%3B
+    public const string Name = &quot;$(Product)&quot;%3B
+}"
+      Overwrite="true" />
+    <ItemGroup>
+      <Compile Include="$(BaseIntermediateOutputPath)ThisPluginInfo.g.cs" />
+    </ItemGroup>
+  </Target>
+</Project>

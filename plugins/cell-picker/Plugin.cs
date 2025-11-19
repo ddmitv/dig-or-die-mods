@@ -45,7 +45,7 @@ internal static class PickCellPatch {
     }
 }
 
-[BepInPlugin("cell-picker", "Cell Picker", "1.1.0")]
+[BepInPlugin("cell-picker", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 public class CellPicker : BaseUnityPlugin {
     public static SInputs.KeyBinding pickCell = null;
     public static ConfigEntry<bool> configIgnoreEmptyItem = null;

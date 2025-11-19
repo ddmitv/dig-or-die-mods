@@ -2,6 +2,7 @@
 
 !.gitignore
 !Directory.Build.props
+!Directory.Build.targets
 !create-plugin.ps1
 
 !debug-mode/

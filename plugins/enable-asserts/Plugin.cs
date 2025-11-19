@@ -21,7 +21,7 @@ internal static class AssertPatch {
     }
 }
 
-[BepInPlugin("enable-asserts", "Enable Asserts", "1.0.0")]
+[BepInPlugin("enable-asserts", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 public class EnableAsserts : BaseUnityPlugin {
     public static ManualLogSource Log = null;
     public static ConfigEntry<bool> configIsFatal = null;

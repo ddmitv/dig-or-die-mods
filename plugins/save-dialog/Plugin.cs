@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System;
 
-[BepInPlugin("save-dialog", "Save Dialog", "1.0.0")]
+[BepInPlugin("save-dialog", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 public class SaveDialog : BaseUnityPlugin {
     private static CGuiButton btSaveLoadDialog;
     private static string getSaveFolderReturnValue = null;
