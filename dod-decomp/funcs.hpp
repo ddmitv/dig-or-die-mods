@@ -553,6 +553,11 @@ inline void PropagateElectricity(CCell* const grid, const CItem_PluginData* cons
         UpdateCellElectricity(grid, itemsData, x, y + 1, 1, totalConsumption, totalProduction);
 
         for (int dir = 0; dir < 8; ++dir) {
+            // neighbor pos based on dir:
+            // 3 2 1
+            // 4 # 0
+            // 5 6 7
+
             const short neighborX = x + g_elecDirOffsetsX[dir * 2];
             const short neighborY = y + g_elecDirOffsetsY[dir * 2];
 
@@ -561,6 +566,9 @@ inline void PropagateElectricity(CCell* const grid, const CItem_PluginData* cons
             if (int(CellHasFlag(neighborCell, Flag_ElectricAlgoState)) == g_elecAlgoState) {
                 continue;
             }
+            // 0, 4 - general electricity propagation
+            // 2, 6 - handles relays and switches (toggle and push)
+            // 1, 3, 5, 7 - handles wire crossings
             if (dir == 0) {
                 if (!CellHasFlag(rightCell, Flag_HasWireTop)) {
                     continue;
@@ -574,7 +582,7 @@ inline void PropagateElectricity(CCell* const grid, const CItem_PluginData* cons
                     if (itemsData[topCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecSwitchRelay) {
                         if (leftCell.m_elecProd == 0) { continue; }
                     } else if (itemsData[topCell.m_contentId].m_elecSwitchType >= ElecSwitchType::ElecSwitch) {
-                        if (!CellHasFlag(topCell, Flag_HasWireTop)) { continue; }
+                        if (!CellHasFlag(topCell, Flag_CustomData0)) { continue; }
                     } else {
                         continue;
                     }
@@ -594,13 +602,9 @@ inline void PropagateElectricity(CCell* const grid, const CItem_PluginData* cons
             } else if (dir == 6) {
                 if (!CellHasFlag(currentCell, Flag_HasWireRight)) {
                     if (itemsData[currentCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecSwitchRelay) {
-                        if (bottomLeftCell.m_elecProd == 0) {
-                            continue;
-                        }
+                        if (bottomLeftCell.m_elecProd == 0) { continue; }
                     } else if (itemsData[currentCell.m_contentId].m_elecSwitchType >= ElecSwitchType::ElecSwitch) {
-                        if (!CellHasFlag(currentCell, Flag_HasWireTop)) {
-                            continue;
-                        }
+                        if (!CellHasFlag(currentCell, Flag_CustomData0)) { continue; }
                     } else {
                         continue;
                     }
@@ -615,12 +619,12 @@ inline void PropagateElectricity(CCell* const grid, const CItem_PluginData* cons
             g_elecPropagationQueue.emplace_back(neighborX, neighborY);
             CellSetFlag(neighborCell, Flag_ElectricAlgoState, g_elecAlgoState != 0);
 
-            if (dir == 2 && itemsData[topCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecSwitchPush) {
-                if (CellHasFlag(topCell, Flag_CustomData0)) {
+            if (dir == 2) {
+                if (itemsData[topCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecSwitchPush && CellHasFlag(topCell, Flag_CustomData0)) {
                     CellSetFlag(topCell, Flag_CustomData0, false);
                 }
-            } else if (dir == 6 && itemsData[currentCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecSwitchPush) {
-                if (CellHasFlag(currentCell, Flag_CustomData0)) {
+            } else if (dir == 6) {
+                if (itemsData[currentCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecSwitchPush && CellHasFlag(currentCell, Flag_CustomData0)) {
                     CellSetFlag(currentCell, Flag_CustomData0, false);
                 }
             }
@@ -634,7 +638,7 @@ inline void PropagateElectricity(CCell* const grid, const CItem_PluginData* cons
         CCell& cell = grid[pos.x * gridSizeY + pos.y];
         cell.m_elecCons = uint8_t(totalConsumption);
         cell.m_elecProd = uint8_t(totalProduction);
-            
+
         UpdateCellPowerState(grid, itemsData, pos.x, pos.y, 2, totalProduction, remainingPowerBudget);
         UpdateCellPowerState(grid, itemsData, pos.x, pos.y + 1, 1, totalProduction, remainingPowerBudget);
     }
