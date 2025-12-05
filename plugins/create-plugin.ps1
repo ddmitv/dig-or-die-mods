@@ -29,7 +29,7 @@ Set-Content -Path "$pluginPath/$name.csproj" -Value @"
 Set-Content -Path "$pluginPath/Plugin.cs" -Value @"
 using BepInEx;
 
-[BepInPlugin("$name", "$productName", "0.0.0")]
+[BepInPlugin("$name", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 public class $pluginName : BaseUnityPlugin {
 
 }
