@@ -44,8 +44,8 @@ inline CItem_PluginData* g_itemsData; // GLOBAL: 0x265ac
 inline RectInt g_skipYMax; // GLOBAL: 0x265b0
 
 inline int g_nbThreads; // GLOBAL: 0x2acc0
-inline std::vector<short2> g_elecPropagationQueue; // GLOBAL: 0x2ad48
-inline std::vector<short2> g_elecProcessedCells; // GLOBAL: 0x2ad54
+inline std::vector<short2> g_elecProcessedCells; // GLOBAL: 0x2ad48
+inline std::vector<short2> g_elecPropagationQueue; // GLOBAL: 0x2ad54
 
 inline char g_formatBuffer[512]; // GLOBAL: 0x26340
 inline int g_elecAlgoState; // GLOBAL: 0x26540
