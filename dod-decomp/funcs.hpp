@@ -13,6 +13,7 @@ inline void WaitForDebugger() {
     ::DebugBreak();
 }
 
+// these functions are basically equivalents of methods in CCell type in Assembly-CSharp
 inline bool IsCellPassable(const CCell& cell, const CItem_PluginData* itemsData) {
     return itemsData[cell.m_contentId].m_isBlock == 0
         || (itemsData[cell.m_contentId].m_isBlockDoor != 0 && (cell.m_flags & Flag_CustomData0) != 0);
@@ -42,6 +43,7 @@ inline void CellSetFlag(CCell& cell, CCell_Flag flag, bool value) {
     cell.m_flags = value ? cell.m_flags | flag : cell.m_flags & ~flag;
 }
 
+// same as SMisc.GetIterators in Assembly-CSharp
 inline void GetIterators(int n, double t, double dt, float period, int& outStartOffset, int& outNumIterations) {
     int64_t time1 = int64_t((t - dt) * n);
     int64_t time2 = int64_t(t * n);

@@ -124,13 +124,13 @@ struct ThreadData {
     int endY;                   // 0x1C
                                 
     bool processVerticalWater;  // 0x20
-    uint8_t padding_21[3];      // 0x21
+    uint8_t _padding_21[3];     // 0x21
                                 
     int waterParam1;            // 0x24
-    int waterParam2;            // 0x1C
+    int waterParam2;            // 0x28
                                 
     bool processHorizontalFlow; // 0x2C
-    uint8_t padding_2D[3];      // 0x2D
+    uint8_t _padding_2D[3];     // 0x2D
     int flowStartOffset;        // 0x30
     int flowIterations;         // 0x34
 
