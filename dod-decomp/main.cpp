@@ -55,6 +55,7 @@ __declspec(dllexport) uint32_t DllGetSaveOffset(int32_t build, int32_t x) {
 // FUNCTION: 0x1270
 __declspec(dllexport) void DllInit(int nbThreads) {
     // WaitForDebugger();
+    // nbThreads = 1;
 
     DebugLogFormat(g_formatBuffer, "- Dll initialisation. Creating %d threads...", nbThreads);
     g_callbackDebug(g_formatBuffer);
@@ -393,12 +394,9 @@ __declspec(dllexport) int DllProcessWaterMT(
     g_lastChangedCellPos = -1;
     g_nbCellsUpdated = nbCellsUpdated;
 
-    const int gridHeightMinusBorder = g_gridSize.y - 2;
-    const int gridWidthMinusBorder = g_gridSize.x - 2;
-
     int verticalStartOffset = 0;
     int verticalIterations = 0;
-    GetIterators(gridHeightMinusBorder, simuTime, simuDeltaTime, 20.f, verticalStartOffset, verticalIterations);
+    GetIterators(g_gridSize.y - 2, simuTime, simuDeltaTime, 1.f/20.f, verticalStartOffset, verticalIterations);
 
     g_verticalWaterOffset = verticalStartOffset;
     g_verticalWaterIterations = verticalIterations;
@@ -408,10 +406,10 @@ __declspec(dllexport) int DllProcessWaterMT(
         ThreadData& threadData = g_threadData[threadIndex];
 
         // for some reason, in the original the double type is used in calculation but casted to int (mistakenly 2.0 literal was used?)
-        threadData.startX = ((gridWidthMinusBorder * threadIndex) / g_nbThreads) + 1;
+        threadData.verticalFlowStart = ((g_gridSize.x - 2) * threadIndex) / g_nbThreads + 1;
         threadData.processVerticalWater = true;
         // again, in the original the double is used in calculation but casted to int
-        threadData.startY = ((gridWidthMinusBorder * (threadIndex + 1)) / g_nbThreads) + 1;
+        threadData.verticalFlowEnd = ((g_gridSize.x - 2) * (threadIndex + 1)) / g_nbThreads + 1;
 
         ::SetEvent(threadData.workEvent);
     }
@@ -424,7 +422,7 @@ __declspec(dllexport) int DllProcessWaterMT(
     // second phase: process horizontal water flow
     int horizontalStartOffset = 0;
     int horizontalIterations = 0;
-    GetIterators(gridWidthMinusBorder, g_simuTime, g_simuDeltaTime, 4.0f, horizontalStartOffset, horizontalIterations);
+    GetIterators(g_gridSize.x - 2, g_simuTime, g_simuDeltaTime, 4.0f, horizontalStartOffset, horizontalIterations);
 
     // distribute horizontal water flow work between threads
     for (int threadIndex = 0; threadIndex < g_nbThreads; ++threadIndex) {

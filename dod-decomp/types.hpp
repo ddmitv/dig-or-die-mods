@@ -18,25 +18,26 @@ struct Color24 {
 static_assert(sizeof(Color24) == 3);
 
 enum CCell_Flag : uint32_t {
-    Flag_CustomData0 = 1,
-    Flag_CustomData1 = 2,
-    Flag_CustomData2 = 4,
-    Flag_IsXReversed = 16,
-    Flag_IsBurning = 32,
-    Flag_IsMapped = 64,
-    Flag_UNUSED1 = 128,
-    Flag_BackWall_0 = 256,
-    Flag_BgSurface_0 = 512,
-    Flag_BgSurface_1 = 1024,
-    Flag_BgSurface_2 = 2048,
-    Flag_WaterFall = 4096,
-    Flag_StreamLFast = 8192,
-    Flag_StreamRFast = 16384,
-    Flag_IsLava = 32768,
-    Flag_HasWireRight = 65536,
-    Flag_HasWireTop = 131072,
-    Flag_ElectricAlgoState = 262144,
-    Flag_IsPowered = 524288
+    Flag_CustomData0 = 1 << 0,        // 1
+    Flag_CustomData1 = 1 << 1,        // 2
+    Flag_CustomData2 = 1 << 2,        // 4
+    Flag_UNUSED1 = 1 << 3,            // 8
+    Flag_IsXReversed = 1 << 4,        // 16
+    Flag_IsBurning = 1 << 5,          // 32
+    Flag_IsMapped = 1 << 6,           // 64
+    Flag_UNUSED2 = 1 << 7,            // 128
+    Flag_BackWall_0 = 1 << 8,         // 256
+    Flag_BgSurface_0 = 1 << 9,        // 512
+    Flag_BgSurface_1 = 1 << 10,       // 1024
+    Flag_BgSurface_2 = 1 << 11,       // 2048
+    Flag_WaterFall = 1 << 12,         // 4096
+    Flag_StreamLFast = 1 << 13,       // 8192
+    Flag_StreamRFast = 1 << 14,       // 16384
+    Flag_IsLava = 1 << 15,            // 32768
+    Flag_HasWireRight = 1 << 16,      // 65536
+    Flag_HasWireTop = 1 << 17,        // 131072
+    Flag_ElectricAlgoState = 1 << 18, // 262144
+    Flag_IsPowered = 1 << 19,         // 524288
 };
 DEFINE_ENUM_FLAG_OPERATORS(CCell_Flag); // macro from WinAPI
 
@@ -126,8 +127,8 @@ struct ThreadData {
     bool processVerticalWater;  // 0x20
     uint8_t _padding_21[3];     // 0x21
                                 
-    int waterParam1;            // 0x24
-    int waterParam2;            // 0x28
+    int verticalFlowStart;      // 0x24
+    int verticalFlowEnd;        // 0x28
                                 
     bool processHorizontalFlow; // 0x2C
     uint8_t _padding_2D[3];     // 0x2D
