@@ -377,7 +377,7 @@ __declspec(dllexport) int DllProcessWaterMT(
     if (double(::rand()) < (double(RAND_MAX) * 0.05)) { // 5% chance
         InitGridOrder();
     }
-    g_simulationToggle = (g_simulationToggle == 0);
+    g_waterSimulationDir = (g_waterSimulationDir == 0);
     g_cloudCenter = cloudCenter;
     g_grid = grid;
     g_itemsData = itemsData;

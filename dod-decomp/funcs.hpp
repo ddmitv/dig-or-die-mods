@@ -458,7 +458,7 @@ inline void ProcessVerticalWaterFlow(int startX, int endX, int offset, int itera
                 }
             }
         }
-        const auto [xStart, xEnd, xStep] = g_simulationToggle != 0 ? std::tuple(startX, endX, 1) : std::tuple(endX - 1, startX - 1, -1);
+        const auto [xStart, xEnd, xStep] = g_waterSimulationDir != 0 ? std::tuple(startX, endX, 1) : std::tuple(endX - 1, startX - 1, -1);
 
         for (int currentX = xStart; currentX != xEnd; currentX += xStep) {
             const int cellIdx = currentX * gridHeight + currentY;

@@ -33,7 +33,7 @@ inline int g_cloudRadius; // GLOBAL: 0x26580
 inline int g_verticalWaterOffset; // GLOBAL: 0x26584
 inline int g_verticalWaterIterations; // GLOBAL: 0x26588
 inline float g_lavaPressure; // GLOBAL: 0x2658c
-inline int g_simulationToggle; // GLOBAL: 0x26590 (the only first byte is used)
+inline int g_waterSimulationDir; // GLOBAL: 0x26590 (the only first byte is used)
 inline int g_lastChangedCellPos; // GLOBAL: 0x26594
 inline float g_waterSpeed; // GLOBAL: 0x26598
 inline double* g_infiltrationTimes; // GLOBAL: 0x2659c
