@@ -66,28 +66,6 @@ inline int DebugLogFormat(char* buffer, const char* format, ...) {
     return res < 0 ? -1 : res;
 }
 
-// FUNCTION: 0x5150
-inline void UpdateWaterFlow(int startOffset, int numIterations) {
-    CItem_PluginData* itemsData = g_itemsData;
-    CCell* grid = g_grid;
-    int gridHeight = g_gridSize.y;
-    int gridWidthMinus2 = g_gridSize.x - 2;
-    int gridHeightMinus2 = g_gridSize.y - 2;
-
-    for (int iter = 0; iter < numIterations; iter++) {
-        int gridOrderIndex = (gridWidthMinus2 + (iter + startOffset) % gridWidthMinus2) % gridWidthMinus2;
-
-        // assuming gridOrderIndex is never negative
-        uint32_t orderOffset = gridOrderIndex + 4 * (gridOrderIndex & 1);
-        int x = g_gridOrder[(orderOffset % gridWidthMinus2) + 1];
-
-        CCell* currentCell = &grid[x * gridHeight + 1];
-        for (int y = 2; y < gridHeightMinus2; ++y, ++currentCell) {
-            
-        }
-    }
-}
-
 // FUNCTION: 0x1120
 inline void InitGridOrder() {
     if (g_gridSize.x + 1 > 0) {
@@ -117,6 +95,7 @@ inline void InitGridOrder() {
             g_gridOrder[i] = i;
         }
     }
+    // Fisher-Yates shuffle algorithm
     for (int i = 10; i < g_gridSize.x - 9; ++i) {
         int idx = (::rand() * (g_gridSize.x - 19)) / RAND_MAX;
         int temp = g_gridOrder[idx];
@@ -413,7 +392,7 @@ inline void ProcessLightPropagation(int startX, int startY, int endX, int endY) 
 }
 
 // FUNCTION: 0x3e00
-inline void ProcessVerticalWaterFlow(int startX, int endX, int offset, int iterations) {
+inline void ProcessFluidSimulation(int startX, int endX, int offset, int iterations) {
     const int gridHeight = g_gridSize.y;
 
     for (int iteration = 0; iteration < iterations; ++iteration) {
@@ -735,6 +714,94 @@ inline void ProcessVerticalWaterFlow(int startX, int endX, int offset, int itera
     }
 }
 
+// FUNCTION: 0x5150
+inline void ProcessWaterSeepage(int offset, int iterations) {
+    const int gridSizeX = g_gridSize.x;
+    const int gridSizeY = g_gridSize.y;
+
+    for (int iteration = 0; iteration < iterations; ++iteration) {
+        const int gridOrderIndex = (iteration + offset) % (gridSizeX - 2);
+        const int x = g_gridOrder[(gridOrderIndex + (gridOrderIndex & 1 ? 4 : 0)) % (gridSizeX - 2) + 1];
+
+        for (int y = 2; y < gridSizeY - 2; ++y) {
+            const int cellIdx = x * gridSizeY + y;
+            CCell& centerCell = g_grid[cellIdx];
+
+            float waterAmount = centerCell.m_water;
+            if (waterAmount >= 0.0005f || waterAmount == 0.f) {
+                if (waterAmount < 0.001f) {
+                    CellSetFlag(centerCell, Flag_IsLava, false);
+                }
+            } else {
+                waterAmount = 0.f;
+                centerCell.m_water = 0.f;
+                CellSetFlag(centerCell, Flag_IsLava, false);
+            }
+            if (waterAmount <= 0.001f || CellHasFlag(centerCell, Flag_IsLava)) {
+                continue;
+            }
+            const int leftCellIdx = (x - 1) * gridSizeY + y;
+            const int rightCellIdx = (x + 1) * gridSizeY + y;
+
+            CCell& leftCell = g_grid[leftCellIdx];
+            CCell& rightCell = g_grid[rightCellIdx];
+            CCell& topCell = g_grid[cellIdx + 1];
+            CCell& bottomCell = g_grid[cellIdx - 1];
+
+            if (waterAmount <= 0.2f
+                && g_itemsData[centerCell.m_contentId].m_isDirt != 0
+                && IsCellPassable(topCell, g_itemsData)) {
+                continue;
+            }
+            float waterDiffBottom = -1.f;
+            if (g_itemsData[bottomCell.m_contentId].m_isDirt != 0 && bottomCell.m_water < 0.3f) {
+                waterDiffBottom = waterAmount - bottomCell.m_water;
+            }
+            if (!IsCellPassable(centerCell, g_itemsData) && IsCellPassable(bottomCell, g_itemsData)) {
+                waterDiffBottom = waterAmount;
+            }
+
+            float waterDiffTop = -1.f;
+            if (g_itemsData[topCell.m_contentId].m_isDirt != 0 && topCell.m_water < 0.3f) {
+                waterDiffTop = waterAmount - topCell.m_water;
+            }
+            float waterDiffLeft = -1.f;
+            if (g_itemsData[leftCell.m_contentId].m_isDirt != 0 && leftCell.m_water < 0.3f) {
+                waterDiffLeft = waterAmount - leftCell.m_water;
+            }
+            float waterDiffRight = -1.f;
+            if (g_itemsData[rightCell.m_contentId].m_isDirt != 0 && rightCell.m_water < 0.3f) {
+                waterDiffRight = waterAmount - rightCell.m_water;
+            }
+
+            float bottomFlow = std::min(waterDiffBottom * 0.1f, 0.65f);
+            if (IsCellPassable(bottomCell, g_itemsData)) {
+                bottomFlow = std::max(std::min(waterDiffBottom, 0.01f), waterDiffBottom * 0.1f);
+            }
+            if (waterDiffBottom > 0.f && bottomFlow <= waterDiffBottom && bottomCell.m_water + bottomFlow < 1.f) {
+                bottomCell.m_water += bottomFlow;
+                waterAmount -= bottomFlow;
+            }
+            const float leftFlow = waterDiffLeft * 0.04f;
+            if (waterDiffLeft > 0.f && leftFlow <= waterDiffLeft && leftCell.m_water + leftFlow < 1.f) {
+                leftCell.m_water += leftFlow;
+                waterAmount -= leftFlow;
+            }
+            const float rightFlow = waterDiffRight * 0.04f;
+            if (waterDiffRight > 0.f && rightFlow <= waterDiffRight && rightCell.m_water + rightFlow < 1.f) {
+                rightCell.m_water += rightFlow;
+                waterAmount -= rightFlow;
+            }
+            const float topFlow = waterDiffTop * 0.02f;
+            if (waterDiffTop > 0.f && topFlow <= waterDiffTop && topCell.m_water + topFlow < 1.f) {
+                topCell.m_water += topFlow;
+                waterAmount -= topFlow;
+            }
+            centerCell.m_water = waterAmount;
+        }
+    }
+}
+
 // FUNCTION: 0x1060
 inline unsigned int __stdcall WorkerThread(void* threadDataRaw) {
     ThreadData& threadData = *static_cast<ThreadData*>(threadDataRaw);
@@ -745,12 +812,12 @@ inline unsigned int __stdcall WorkerThread(void* threadDataRaw) {
         if (threadData.shouldExit /*0xC*/) {
             return 0;
         }
-        if (threadData.processVerticalWater /*0x20*/) {
-            threadData.processVerticalWater /*0x20*/ = false;
-            ProcessVerticalWaterFlow(threadData.verticalFlowStart, threadData.verticalFlowEnd, g_verticalWaterOffset, g_verticalWaterIterations);
-        } else if (threadData.processHorizontalFlow /*0x2C*/) {
-            threadData.processHorizontalFlow /*0x2C*/ = false;
-            // FUN_10005150(...);
+        if (threadData.processFluidSimulation /*0x20*/) {
+            threadData.processFluidSimulation /*0x20*/ = false;
+            ProcessFluidSimulation(threadData.fluidSimulationStartX, threadData.fluidSimulationEndX, g_fluidSimulationOffset, g_fluidSimulationIterations);
+        } else if (threadData.processWaterSeepage /*0x2C*/) {
+            threadData.processWaterSeepage /*0x2C*/ = false;
+            ProcessWaterSeepage(threadData.waterSeepageOffset, threadData.waterSeepageIterations);
         } else if (threadData.processCellLighting /*0xD*/) {
             threadData.processCellLighting /*0xD*/ = false;
             ProcessLightPropagation(threadData.startX, threadData.startY, threadData.endX, threadData.endY);

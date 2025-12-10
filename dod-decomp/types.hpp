@@ -124,16 +124,16 @@ struct ThreadData {
     int endX;                   // 0x18
     int endY;                   // 0x1C
                                 
-    bool processVerticalWater;  // 0x20
+    bool processFluidSimulation;  // 0x20
     uint8_t _padding_21[3];     // 0x21
                                 
-    int verticalFlowStart;      // 0x24
-    int verticalFlowEnd;        // 0x28
+    int fluidSimulationStartX;      // 0x24
+    int fluidSimulationEndX;        // 0x28
                                 
-    bool processHorizontalFlow; // 0x2C
+    bool processWaterSeepage; // 0x2C
     uint8_t _padding_2D[3];     // 0x2D
-    int flowStartOffset;        // 0x30
-    int flowIterations;         // 0x34
+    int waterSeepageOffset;        // 0x30
+    int waterSeepageIterations;         // 0x34
 
     uint8_t _padding[512]; // large padding (used to avoid false sharing?)
 };

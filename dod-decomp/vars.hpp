@@ -30,8 +30,8 @@ inline int g_yRain; // GLOBAL: 0x26574
 inline int g_fastEvaporationYMax; // GLOBAL: 0x26578
 inline float g_cloudCenter; // GLOBAL: 0x2657c
 inline int g_cloudRadius; // GLOBAL: 0x26580
-inline int g_verticalWaterOffset; // GLOBAL: 0x26584
-inline int g_verticalWaterIterations; // GLOBAL: 0x26588
+inline int g_fluidSimulationOffset; // GLOBAL: 0x26584
+inline int g_fluidSimulationIterations; // GLOBAL: 0x26588
 inline float g_lavaPressure; // GLOBAL: 0x2658c
 inline int g_waterSimulationDir; // GLOBAL: 0x26590 (the only first byte is used)
 inline int g_lastChangedCellPos; // GLOBAL: 0x26594

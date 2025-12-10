@@ -394,53 +394,50 @@ __declspec(dllexport) int DllProcessWaterMT(
     g_lastChangedCellPos = -1;
     g_nbCellsUpdated = nbCellsUpdated;
 
-    int verticalStartOffset = 0;
-    int verticalIterations = 0;
-    GetIterators(g_gridSize.y - 2, simuTime, simuDeltaTime, 1.f/20.f, verticalStartOffset, verticalIterations);
+    GetIterators(g_gridSize.y - 2, simuTime, simuDeltaTime, 1.f/20.f, g_fluidSimulationOffset, g_fluidSimulationIterations);
 
-    g_verticalWaterOffset = verticalStartOffset;
-    g_verticalWaterIterations = verticalIterations;
-
-    // first phase: process vertical water simulation across threads
+    // process fluid simulation across threads
     for (int threadIndex = g_nbThreads - 1; threadIndex >= 0; --threadIndex) {
         ThreadData& threadData = g_threadData[threadIndex];
 
         // for some reason, in the original the double type is used in calculation but casted to int (mistakenly 2.0 literal was used?)
-        threadData.verticalFlowStart = ((g_gridSize.x - 2) * threadIndex) / g_nbThreads + 1;
-        threadData.processVerticalWater = true;
+        threadData.fluidSimulationStartX = ((g_gridSize.x - 2) * threadIndex) / g_nbThreads + 1;
+        threadData.processFluidSimulation = true;
         // again, in the original the double is used in calculation but casted to int
-        threadData.verticalFlowEnd = ((g_gridSize.x - 2) * (threadIndex + 1)) / g_nbThreads + 1;
+        threadData.fluidSimulationEndX = ((g_gridSize.x - 2) * (threadIndex + 1)) / g_nbThreads + 1;
 
         ::SetEvent(threadData.workEvent);
     }
-    // wait for all threads to complete first phase
+    // wait for all threads to complete
     const DWORD waitResult1 = ::WaitForMultipleObjects(g_nbThreads, g_threadEvents, /*bWaitAll*/ true, /*dwMilliseconds*/ 1000);
     if (waitResult1 != WAIT_OBJECT_0) {
         DebugLogFormat(g_formatBuffer, "Threads eventWorkFinished timeout: %ld", waitResult1);
         g_callbackDebug(g_formatBuffer);
     }
-    // second phase: process horizontal water flow
-    int horizontalStartOffset = 0;
-    int horizontalIterations = 0;
-    GetIterators(g_gridSize.x - 2, g_simuTime, g_simuDeltaTime, 4.0f, horizontalStartOffset, horizontalIterations);
+    // calculate water seepage simulation offset and number of iterations
+    int waterSeepageOffset = 0;
+    int waterSeepageIterations = 0;
+    GetIterators(g_gridSize.x - 2, g_simuTime, g_simuDeltaTime, 4.0f, waterSeepageOffset, waterSeepageIterations);
 
-    // distribute horizontal water flow work between threads
+    // process water seepage simulation across threads
     for (int threadIndex = 0; threadIndex < g_nbThreads; ++threadIndex) {
         ThreadData& threadData = g_threadData[threadIndex];
 
-        threadData.processHorizontalFlow = true;
+        threadData.processWaterSeepage = true;
         // again, in the original the double is used in calculation but casted to int
-        threadData.flowStartOffset = horizontalStartOffset + (threadIndex * horizontalIterations) / g_nbThreads;
+        threadData.waterSeepageOffset = waterSeepageOffset + (threadIndex * waterSeepageIterations) / g_nbThreads;
         // again, in the original the double is used in calculation but casted to int
-        threadData.flowIterations = ((threadIndex + 1) * horizontalIterations) / g_nbThreads - (threadIndex * horizontalIterations) / g_nbThreads;
+        threadData.waterSeepageIterations = ((threadIndex + 1) * waterSeepageIterations) / g_nbThreads - (threadIndex * waterSeepageIterations) / g_nbThreads;
 
         ::SetEvent(threadData.workEvent);
     }
+    // wait for all threads to complete
     const DWORD waitResult2 = ::WaitForMultipleObjects(g_nbThreads, g_threadEvents, /*bWaitAll*/ true, /*dwMilliseconds*/ 1000);
     if (waitResult2 != WAIT_OBJECT_0) {
         DebugLogFormat(g_formatBuffer, "- Threads eventWorkFinished timeout: %ld", waitResult2);
         g_callbackDebug(g_formatBuffer);
     }
+    // add last changed cell pos from fluid simulation to array
     changeCellPos[0] = g_lastChangedCellPos;
 
     PostProcessWater(changeCellPos);
