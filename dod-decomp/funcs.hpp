@@ -2,6 +2,7 @@
 
 #include <iterator> // std::size
 #include <algorithm> // std::max
+#include <tuple> // std::tuple
 
 #include "types.hpp"
 #include "vars.hpp"
@@ -435,11 +436,12 @@ inline void ProcessVerticalWaterFlow(int startX, int endX, int offset, int itera
                 }
                 if (rainIntensity > 0.f) {
                     cell.m_water = std::min(1.f, cell.m_water + rainIntensity);
-                    cell.m_flags &= ~Flag_IsLava;
+                    CellSetFlag(cell, Flag_IsLava, false);
                 }
             }
         }
 
+        // fast water evaporation at underground ocean level
         if (currentY == 420) {
             for (int i = startX; i < endX; ++i) {
                 CCell& cell = g_grid[i * gridHeight + 420];
@@ -447,24 +449,18 @@ inline void ProcessVerticalWaterFlow(int startX, int endX, int offset, int itera
                     cell.m_water -= 0.01f;
                 }
             }
-        } else if (currentY == 3 || currentY == 4 || currentY == 5) {
+        } else if (currentY == 3 || currentY == 4 || currentY == 5) { // lava creation (for volcano)
             for (int i = startX; i < endX; ++i) {
                 CCell& cell = g_grid[i * gridHeight + currentY];
                 if (IsCellPassable(cell, g_itemsData)) {
                     cell.m_water = g_lavaPressure;
-                    cell.m_flags |= Flag_IsLava;
+                    CellSetFlag(cell, Flag_IsLava, true);
                 }
             }
         }
-        int currentX = g_simulationToggle == 0 ? endX : startX - 1;
-        while (true) {
-            if (g_simulationToggle == 0) {
-                currentX -= 1;
-                if (currentX < startX) { break; }
-            } else {
-                currentX += 1;
-                if (currentX >= endX) { break; }
-            }
+        const auto [xStart, xEnd, xStep] = g_simulationToggle != 0 ? std::tuple(startX, endX, 1) : std::tuple(endX - 1, startX - 1, -1);
+
+        for (int currentX = xStart; currentX != xEnd; currentX += xStep) {
             const int cellIdx = currentX * gridHeight + currentY;
             CCell& centerCell = g_grid[cellIdx];
 
@@ -480,8 +476,9 @@ inline void ProcessVerticalWaterFlow(int startX, int endX, int offset, int itera
             CCell& bottomCell = g_grid[cellIdx - 1];
             CCell& topCell = g_grid[cellIdx + 1];
 
-            const bool centerCellHasLava = (centerCell.m_flags & Flag_IsLava) != 0;
+            const bool centerCellHasLava = CellHasFlag(centerCell, Flag_IsLava);
 
+            // spread lava flag to neighbors
             if (leftCell.m_water < 0.001 && IsCellPassable(leftCell, g_itemsData)) {
                 CellSetFlag(leftCell, Flag_IsLava, centerCellHasLava);
             }
@@ -494,6 +491,7 @@ inline void ProcessVerticalWaterFlow(int startX, int endX, int offset, int itera
             if (topCell.m_water < 0.001 && IsCellPassable(topCell, g_itemsData)) {
                 CellSetFlag(topCell, Flag_IsLava, centerCellHasLava);
             }
+            // lava interaction with water
             if (centerCellHasLava) {
                 if (!CellHasFlag(leftCell, Flag_IsLava)
                     && leftCell.m_water > 0.001f
@@ -548,12 +546,13 @@ inline void ProcessVerticalWaterFlow(int startX, int endX, int offset, int itera
                 CCell& left2Cell = g_grid[(currentX - 2) * gridHeight + currentY];
                 CCell& right2Cell = g_grid[(currentX + 2) * gridHeight + currentY];
 
+                // water generator logic
                 if (g_itemsData[leftCell.m_contentId].m_isWaterGenerator != 0
                     && IsCellPassable(left2Cell, g_itemsData)
                     && waterAmount > 1.2f) {
 
-                    const float leftLeftWater = std::max(1.f, left2Cell.m_water);
-                    if (waterAmount > leftLeftWater + 0.3f || (waterAmount > leftLeftWater + 0.2f && int(g_simuTime) % 6 < 3)) {
+                    const float left2Water = std::max(1.f, left2Cell.m_water);
+                    if (waterAmount > left2Water + 0.3f || (waterAmount > left2Water + 0.2f && int(g_simuTime) % 6 < 3)) {
                         left2Cell.m_water += 0.05f;
                         waterAmount -= 0.05f;
                         CellSetFlag(left2Cell, Flag_IsLava, centerCellHasLava);
@@ -563,13 +562,14 @@ inline void ProcessVerticalWaterFlow(int startX, int endX, int offset, int itera
                     && IsCellPassable(right2Cell, g_itemsData)
                     && waterAmount > 1.2f) {
 
-                    const float rightRightWater = std::max(1.f, right2Cell.m_water);
-                    if (waterAmount > rightRightWater + 0.3f || (waterAmount > rightRightWater + 0.2f && int(g_simuTime) % 6 < 3)) {
+                    const float right2Water = std::max(1.f, right2Cell.m_water);
+                    if (waterAmount > right2Water + 0.3f || (waterAmount > right2Water + 0.2f && int(g_simuTime) % 6 < 3)) {
                         right2Cell.m_water += 0.05f;
                         waterAmount -= 0.05f;
                         CellSetFlag(right2Cell, Flag_IsLava, centerCellHasLava);
                     }
                 }
+                // water pump logic
                 if (g_itemsData[leftCell.m_contentId].m_isWaterPump != 0
                     && CellHasFlag(leftCell, Flag_IsPowered)
                     && CellHasFlag(leftCell, Flag_IsXReversed)
@@ -594,6 +594,7 @@ inline void ProcessVerticalWaterFlow(int startX, int endX, int offset, int itera
 
                     CellSetFlag(right2Cell, Flag_IsLava, centerCellHasLava);
                 }
+                // horizontal flow
                 const bool leftCompatible = IsCellPassable(leftCell, g_itemsData) && CellHasFlag(leftCell, Flag_IsLava) == centerCellHasLava;
                 const bool rightCompatible = IsCellPassable(rightCell, g_itemsData) && CellHasFlag(rightCell, Flag_IsLava) == centerCellHasLava;
 
@@ -614,7 +615,7 @@ inline void ProcessVerticalWaterFlow(int startX, int endX, int offset, int itera
                         rightCell.m_water = rightCell.m_water * (1.f - flowFactor) + baseFlow;
                     }
                 }
-
+                // vertical flow
                 const bool bottomCompatible = IsCellPassable(bottomCell, g_itemsData) && CellHasFlag(bottomCell, Flag_IsLava) == centerCellHasLava;
                 const bool topCompatible = IsCellPassable(topCell, g_itemsData) && CellHasFlag(topCell, Flag_IsLava) == centerCellHasLava;
 
@@ -698,7 +699,7 @@ inline void ProcessVerticalWaterFlow(int startX, int endX, int offset, int itera
                         }
                     }
                 }
-
+                // waterfall flag marking
                 bool hasWaterfall = false;
                 if (bottomCompatible) {
                     const float maxTransfer = std::min(1.f - bottomCell.m_water, std::min(waterAmount * 0.7f + 0.005f, waterAmount));
@@ -713,7 +714,7 @@ inline void ProcessVerticalWaterFlow(int startX, int endX, int offset, int itera
                         hasWaterfall = true;
                     }
                 }
-
+                // general water evaporation
                 if (waterAmount > 0.0002f && waterAmount < 1.01f) {
                     const float lightFactor = (centerCell.m_light.r + centerCell.m_light.g + centerCell.m_light.b) / 768.f;
                     waterAmount -= lightFactor * 0.0002f;
