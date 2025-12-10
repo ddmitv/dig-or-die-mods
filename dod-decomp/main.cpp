@@ -382,7 +382,7 @@ __declspec(dllexport) int DllProcessWaterMT(
     g_grid = grid;
     g_itemsData = itemsData;
     g_lavaPressure = lavaPressure;
-    g_isRaining = isRaining;
+    g_rainMode = isRaining;
     g_waterSpeed = waterSpeed;
     g_yRain = yRain;
     g_fastEvaporationYMax = fastEvaporationYMax;
