@@ -138,3 +138,9 @@ struct ThreadData {
     uint8_t _padding[512]; // large padding (used to avoid false sharing?)
 };
 static_assert(sizeof(ThreadData) == 568);
+
+enum class RainMode : int {
+    NoRain = 0,
+    Rain = 1,
+    HeavyRain = 2,
+};

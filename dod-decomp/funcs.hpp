@@ -422,7 +422,7 @@ inline void ProcessVerticalWaterFlow(int startX, int endX, int offset, int itera
         g_lavaMovingTimes[currentY] = std::max(g_lavaMovingTimes[currentY], 1.);
 
         // rain logic
-        if (currentY == g_yRain - 100 && g_isRaining != 0) {
+        if (currentY == g_yRain - 100 && g_rainMode != RainMode::NoRain) {
             for (int x = startX; x < endX; ++x) {
                 CCell& cell = g_grid[x * gridHeight + g_yRain - 2];
                 const float cloudFactor = std::max(0.f, 1.f - std::abs(float(x) - g_cloudCenter) / float(g_cloudRadius));
@@ -431,7 +431,7 @@ inline void ProcessVerticalWaterFlow(int startX, int endX, int offset, int itera
                 if (rainIntensity < 0.0025f) {
                     rainIntensity = 0.f;
                 }
-                if (g_isRaining == 2) {
+                if (g_rainMode == RainMode::HeavyRain) {
                     rainIntensity = 0.015f;
                 }
                 if (rainIntensity > 0.f) {

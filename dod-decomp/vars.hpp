@@ -25,8 +25,7 @@ inline float g_gridBorderNoCam; // GLOBAL: 0x26558
 inline int* g_gridOrder; // GLOBAL: 0x2655c
 inline double g_simuTime; // GLOBAL: 0x26560
 inline double g_simuDeltaTime; // GLOBAL: 0x26568
-// 0 = no rain, 1 = standard rain, 2 = heavy rain
-inline int g_rainMode; // GLOBAL: 0x26570
+inline RainMode g_rainMode; // GLOBAL: 0x26570
 inline int g_yRain; // GLOBAL: 0x26574
 inline int g_fastEvaporationYMax; // GLOBAL: 0x26578
 inline float g_cloudCenter; // GLOBAL: 0x2657c
