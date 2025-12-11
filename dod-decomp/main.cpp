@@ -440,7 +440,7 @@ __declspec(dllexport) int DllProcessWaterMT(
     // add last changed cell pos from fluid simulation to array
     changeCellPos[0] = g_lastChangedCellPos;
 
-    PostProcessWater(changeCellPos);
+    PostProcessSimulation(changeCellPos);
 
     return 1;
 }

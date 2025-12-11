@@ -3,10 +3,21 @@
 #include "types.hpp"
 #include <vector>
 
-inline const int g_dirt_spread_offsets_x[5] = {0, 1, 0, -1, 0};
-inline const int g_dirt_spread_offsets_y[5] = {0, 0, 1, 0, -1};
-inline const int g_fire_spread_x_offsets[12] = {1, 0, -1, 0, 2, 0, -2, 0, -1, -1, 1, 1};
-inline const int g_fire_spread_y_offsets[12] = {0, 1, 0, -1, 0, 2, 0, -2, -1, 1, -1, 1};
+// relative pos based on array index (0 = center):
+//   2
+// 3 0 1
+//   4
+inline const int g_lavaInteractionDx[5] = {0, 1, 0, -1, 0};
+inline const int g_lavaInteractionDy[5] = {0, 0, 1, 0, -1};
+
+// relative pos based on array index (# = center):
+//     5
+//   9 1 11
+// 6 2 # 0 4
+//   8 3 10
+//     7
+inline const int g_fireSpreadDx[12] = {1, 0, -1, 0, 2, 0, -2, 0, -1, -1, 1, 1};
+inline const int g_fireSpreadDy[12] = {0, 1, 0, -1, 0, 2, 0, -2, -1, 1, -1, 1};
 
 namespace changeCellType {
     inline constexpr int basaltFormation = 0;
