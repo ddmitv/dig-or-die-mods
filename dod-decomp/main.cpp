@@ -95,7 +95,7 @@ __declspec(dllexport) int DllProcessElectricity(
 
     int startOffset = 0;
     int numIterations = 0;
-    GetIterators(gridSizeX - 2, simuTime, simuDeltaTime, 1.f/3.f, startOffset, numIterations);
+    GetIteratorsFreq(gridSizeX - 2, simuTime, simuDeltaTime, 3.f, startOffset, numIterations);
 
     for (int i = 0; i < numIterations; ++i) {
         // since (i + startOffset) is always >= 0, the expression can be simplied to just taking a modulo:
@@ -395,7 +395,7 @@ __declspec(dllexport) int DllProcessWaterMT(
     g_lastChangedCellPos = -1;
     g_nbCellsUpdated = nbCellsUpdated;
 
-    GetIterators(g_gridSize.y - 2, simuTime, simuDeltaTime, 1.f/20.f, g_fluidSimulationOffset, g_fluidSimulationIterations);
+    GetIteratorsFreq(g_gridSize.y - 2, simuTime, simuDeltaTime, 20.f, g_fluidSimulationOffset, g_fluidSimulationIterations);
 
     // process fluid simulation across threads
     for (int threadIndex = g_nbThreads - 1; threadIndex >= 0; --threadIndex) {
@@ -418,7 +418,7 @@ __declspec(dllexport) int DllProcessWaterMT(
     // calculate water seepage simulation offset and number of iterations
     int waterSeepageOffset = 0;
     int waterSeepageIterations = 0;
-    GetIterators(g_gridSize.x - 2, g_simuTime, g_simuDeltaTime, 4.0f, waterSeepageOffset, waterSeepageIterations);
+    GetIteratorsFreq(g_gridSize.x - 2, g_simuTime, g_simuDeltaTime, 4.f, waterSeepageOffset, waterSeepageIterations);
 
     // process water seepage simulation across threads
     for (int threadIndex = 0; threadIndex < g_nbThreads; ++threadIndex) {

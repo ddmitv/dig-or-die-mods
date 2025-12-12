@@ -48,13 +48,13 @@ inline void CellSetFlag(CCell& cell, CCell_Flag flag, bool value) {
     cell.m_flags = value ? cell.m_flags | flag : cell.m_flags & ~flag;
 }
 
-// same as SMisc.GetIterators in Assembly-CSharp
-inline void GetIterators(int n, double t, double dt, float period, int& outStartOffset, int& outNumIterations) {
+// modified SMisc.GetIterators in Assembly-CSharp (uses frequency instead of period in calculations)
+inline void GetIteratorsFreq(int n, double t, double dt, float frequency, int& outStartOffset, int& outNumIterations) {
     int64_t time1 = int64_t((t - dt) * n);
     int64_t time2 = int64_t(t * n);
     
-    outStartOffset = std::max(0, int(float(time1) / period) % n);
-    outNumIterations = std::max(0, int(float(time2) / period - float(time1) / period));
+    outStartOffset = std::max(0, int(float(time1) * frequency) % n);
+    outNumIterations = std::max(0, int(float(time2) * frequency - float(time1) * frequency));
 }
 
 
@@ -118,7 +118,7 @@ inline void PostProcessSimulation(int* const changeCellPos) {
 
     int startOffset = 0;
     int numIterations = 0;
-    GetIterators(g_gridSize.y - 4, g_simuTime, g_simuDeltaTime, 0.5f, startOffset, numIterations);
+    GetIteratorsFreq(g_gridSize.y - 4, g_simuTime, g_simuDeltaTime, 2.f, startOffset, numIterations);
 
     for (int iteration = 0; iteration < numIterations; ++iteration) {
         const int y = (iteration + startOffset) % (g_gridSize.y - 4) + 2; // simplified from 2 mod operations -> 1 mod operation
