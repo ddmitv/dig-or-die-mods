@@ -405,7 +405,7 @@ inline void ProcessFluidSimulation(int startX, int endX, int offset, int iterati
     const int gridHeight = g_gridSize.y;
 
     for (int iteration = 0; iteration < iterations; ++iteration) {
-        const int currentY = (g_gridSize.y - 2 + (offset + iteration) % (g_gridSize.y - 2)) % (g_gridSize.y - 2) + 1;
+        const int currentY = (offset + iteration) % (g_gridSize.y - 2) + 1;
         g_infiltrationTimes[currentY] = g_simuTime;
         g_lavaMovingTimes[currentY] = std::max(g_lavaMovingTimes[currentY], 1.);
 
