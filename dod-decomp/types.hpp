@@ -5,7 +5,7 @@
 
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#include <Windows.h> // ::HANDLE
 
 using DelegateCallbackDebug = void __cdecl(const char* str);
 using DelegateCallbackGetElecProd = int __cdecl(int i, int j);
@@ -39,7 +39,11 @@ enum CCell_Flag : uint32_t {
     Flag_ElectricAlgoState = 1 << 18, // 262144
     Flag_IsPowered = 1 << 19,         // 524288
 };
-DEFINE_ENUM_FLAG_OPERATORS(CCell_Flag); // macro from WinAPI
+inline constexpr CCell_Flag operator|(CCell_Flag a, CCell_Flag b) noexcept { return CCell_Flag(uint32_t(a) | uint32_t(b)); }
+inline constexpr CCell_Flag& operator|=(CCell_Flag& a, CCell_Flag b) noexcept { return a = CCell_Flag(uint32_t(a) | uint32_t(b)); }
+inline constexpr CCell_Flag operator&(CCell_Flag a, CCell_Flag b) noexcept { return CCell_Flag(uint32_t(a) & uint32_t(b)); }
+inline constexpr CCell_Flag& operator&=(CCell_Flag& a, CCell_Flag b) noexcept { return a = CCell_Flag(uint32_t(a) & uint32_t(b)); }
+inline constexpr CCell_Flag operator~(CCell_Flag a) noexcept { return CCell_Flag(~uint32_t(a)); }
 
 enum class ElecSwitchType : int {
     None = 0,
@@ -111,9 +115,9 @@ struct RectInt {
 static_assert(sizeof(RectInt) == 16);
 
 struct ThreadData {
-    HANDLE handle;              // 0x00
+    ::HANDLE handle;            // 0x00
     int id;                     // 0x04
-    HANDLE workEvent;           // 0x08
+    ::HANDLE workEvent;         // 0x08
                                 
     bool shouldExit;            // 0x0C
     bool processCellLighting;   // 0x0D
