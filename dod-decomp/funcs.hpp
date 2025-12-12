@@ -458,11 +458,13 @@ inline void ProcessFluidSimulation(int startX, int endX, int offset, int iterati
             }
             const int leftCellIdx = (currentX - 1) * gridHeight + currentY;
             const int rightCellIdx = (currentX + 1) * gridHeight + currentY;
+            const int bottomCellIdx = cellIdx - 1;
+            const int topCellIdx = cellIdx + 1;
 
             CCell& leftCell = g_grid[leftCellIdx];
             CCell& rightCell = g_grid[rightCellIdx];
-            CCell& bottomCell = g_grid[cellIdx - 1];
-            CCell& topCell = g_grid[cellIdx + 1];
+            CCell& bottomCell = g_grid[bottomCellIdx];
+            CCell& topCell = g_grid[topCellIdx];
 
             const bool centerCellHasLava = CellHasFlag(centerCell, Flag_IsLava);
 
@@ -512,7 +514,7 @@ inline void ProcessFluidSimulation(int startX, int endX, int offset, int iterati
                         if (waterAmount <= 0.3f) {
                             waterAmount = std::max(0.f, waterAmount - 0.01f);
                         } else {
-                            g_lastChangedCellPos = cellIdx - 1;
+                            g_lastChangedCellPos = bottomCellIdx;
                         }
                     }
                     bottomCell.m_water = std::max(0.f, bottomCell.m_water - (waterAmount + 1.f) * 0.01f);
@@ -524,7 +526,7 @@ inline void ProcessFluidSimulation(int startX, int endX, int offset, int iterati
                         if (waterAmount <= 0.3f) {
                             waterAmount = std::max(0.f, waterAmount - 0.01f);
                         } else {
-                            g_lastChangedCellPos = cellIdx + 1;
+                            g_lastChangedCellPos = topCellIdx;
                         }
                     }
                     topCell.m_water = std::max(0.f, topCell.m_water - (waterAmount + 1.f) * 0.01f);
@@ -589,7 +591,7 @@ inline void ProcessFluidSimulation(int startX, int endX, int offset, int iterati
 
             const int compatibleCount = (leftCompatible ? 1 : 0) + (rightCompatible ? 1 : 0) + 1;
             if (compatibleCount > 1 && (!CellHasFlag(centerCell, Flag_WaterFall) || waterAmount > 0.05f)) {
-                const float flowFactor = !CellHasFlag(centerCell, Flag_WaterFall) ? (centerCellHasLava ? 1.f : 0.5f) : 0.01f;
+                const float flowFactor = CellHasFlag(centerCell, Flag_WaterFall) ? 0.01f : (centerCellHasLava ? 0.5f : 1.f);
                 const float baseFlow = flowFactor * ((
                     (leftCompatible ? leftCell.m_water : 0.f)
                     + waterAmount
@@ -612,17 +614,15 @@ inline void ProcessFluidSimulation(int startX, int endX, int offset, int iterati
                 float totalWater = bottomCell.m_water + waterAmount + topCell.m_water;
 
                 if (totalWater <= 3.3f) {
-                    if (totalWater <= 2.1f) {
-                        if (totalWater > 1.f) {
-                            topCell.m_water = 0.f;
-                            waterAmount = (totalWater - 1.f) * 10.f / 11.f;
-                            bottomCell.m_water = (totalWater - 1.f) / 11.f + 1.f;
-                        }
-                    } else {
+                    if (totalWater > 2.1f) {
                         const float baseWater = (totalWater - 2.1f) / 12.f;
                         topCell.m_water = (totalWater - 2.1f) * 10.f / 12.f;
                         waterAmount = baseWater + 1.f;
                         bottomCell.m_water = baseWater + 1.1f;
+                    } else if (totalWater > 1.f) {
+                        topCell.m_water = 0.f;
+                        waterAmount = (totalWater - 1.f) * 10.f / 11.f;
+                        bottomCell.m_water = (totalWater - 1.f) / 11.f + 1.f;
                     }
                 } else {
                     waterAmount = totalWater / 3.f;
@@ -668,25 +668,21 @@ inline void ProcessFluidSimulation(int startX, int endX, int offset, int iterati
                 }
             } else if (topCompatible) {
                 const float totalWater = topCell.m_water + waterAmount;
-                if (totalWater > 1.f) {
-                    if (totalWater <= 2.1f) {
-                        topCell.m_water = (totalWater - 1.f) * 10.f / 11.f;
-                        waterAmount = (totalWater - 1.f) / 11.f + 1.f;
-                    } else {
-                        waterAmount = totalWater * 0.5f + 0.05f;
-                        topCell.m_water = totalWater * 0.5f - 0.05f;
-                    }
+                if (totalWater > 2.1f) {
+                    waterAmount = totalWater * 0.5f + 0.05f;
+                    topCell.m_water = totalWater * 0.5f - 0.05f;
+                } else if (totalWater > 1.f) {
+                    topCell.m_water = (totalWater - 1.f) * 10.f / 11.f;
+                    waterAmount = (totalWater - 1.f) / 11.f + 1.f;
                 }
             } else if (bottomCompatible) {
                 const float totalWater = bottomCell.m_water + waterAmount;
-                if (totalWater > 1.f) {
-                    if (totalWater <= 2.1f) {
-                        waterAmount = (totalWater - 1.f) * 10.f / 11.f;
-                        bottomCell.m_water = (totalWater - 1.f) / 11.f + 1.f;
-                    } else {
-                        bottomCell.m_water = totalWater * 0.5f + 0.05f;
-                        waterAmount = totalWater * 0.5f - 0.05f;
-                    }
+                if (totalWater > 2.1f) {
+                    bottomCell.m_water = totalWater * 0.5f + 0.05f;
+                    waterAmount = totalWater * 0.5f - 0.05f;
+                } else if (totalWater > 1.f) {
+                    waterAmount = (totalWater - 1.f) * 10.f / 11.f;
+                    bottomCell.m_water = (totalWater - 1.f) / 11.f + 1.f;
                 }
             }
             // waterfall flag marking
@@ -738,23 +734,18 @@ inline void ProcessWaterSeepage(int offset, int iterations) {
             CCell& centerCell = g_grid[cellIdx];
 
             float waterAmount = centerCell.m_water;
-            if (waterAmount >= 0.0005f || waterAmount == 0.f) {
-                if (waterAmount < 0.001f) {
-                    CellSetFlag(centerCell, Flag_IsLava, false);
+            if (waterAmount < 0.001f) {
+                if (waterAmount != 0.f && waterAmount < 0.0005f) {
+                    waterAmount = 0.f;
+                    centerCell.m_water = 0.f;
                 }
-            } else {
-                waterAmount = 0.f;
-                centerCell.m_water = 0.f;
                 CellSetFlag(centerCell, Flag_IsLava, false);
             }
             if (waterAmount <= 0.001f || CellHasFlag(centerCell, Flag_IsLava)) {
                 continue;
             }
-            const int leftCellIdx = (x - 1) * gridSizeY + y;
-            const int rightCellIdx = (x + 1) * gridSizeY + y;
-
-            CCell& leftCell = g_grid[leftCellIdx];
-            CCell& rightCell = g_grid[rightCellIdx];
+            CCell& leftCell = g_grid[(x - 1) * gridSizeY + y];
+            CCell& rightCell = g_grid[(x + 1) * gridSizeY + y];
             CCell& topCell = g_grid[cellIdx + 1];
             CCell& bottomCell = g_grid[cellIdx - 1];
 
@@ -894,15 +885,13 @@ inline void UpdateCellElectricity(CCell* const grid, const CItem_PluginData* con
     if ((direction & itemData.m_electricOutletFlags) == 0) {
         return;
     }
-    if (itemData.m_electricValue < 0) {
-        if (itemData.m_electricValue == -255) {
-            if (totalConsumption == 0) {
-                totalConsumption = 255;
-            }
-        } else {
-            if (totalConsumption != 255) {
-                totalConsumption += -itemData.m_electricValue;
-            }
+    if (itemData.m_electricValue == -255) {
+        if (totalConsumption == 0) {
+            totalConsumption = 255;
+        }
+    } else if (itemData.m_electricValue < 0) {
+        if (totalConsumption != 255) {
+            totalConsumption += -itemData.m_electricValue;
         }
     } else if (itemData.m_electricValue > 0) {
         const int electricityProd = (*g_callbackGetElecProd)(x, y);

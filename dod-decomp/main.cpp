@@ -112,7 +112,8 @@ __declspec(dllexport) int DllProcessElectricity(
 
             if (int(CellHasFlag(currentCell, Flag_ElectricAlgoState)) != g_elecAlgoState) {
                 currentCell.m_elecProd = 0;
-                if (CellHasFlag(currentCell, Flag_HasWireTop) || CellHasFlag(currentCell, Flag_HasWireRight)
+                if (CellHasFlag(currentCell, Flag_HasWireTop)
+                    || CellHasFlag(currentCell, Flag_HasWireRight)
                     || CellHasFlag(topCell, Flag_HasWireRight)
                     || CellHasFlag(rightCell, Flag_HasWireTop)
                     || (itemsData[topCell.m_contentId].m_electricValue != 0 && (itemsData[topCell.m_contentId].m_electricOutletFlags & 1) != 0)
@@ -131,84 +132,84 @@ __declspec(dllexport) int DllProcessElectricity(
 __declspec(dllexport) int DllProcessForces(
     CCell* grid, CItem_PluginData* itemsData, int* cellsWithForces, int nbCells, float weightMult
 ) {
-    // g_callbackDebug("dll: inside DllProcessForces");
-
     for (int i = 0; i < nbCells; ++i) {
         const int cellIdx = cellsWithForces[i];
         if (cellIdx == INT_MIN) { continue; }
 
-        const int topCellIdx = cellIdx + g_gridSize.y;
-        grid[topCellIdx].m_forceX  = int16_t(::roundf((float)grid[topCellIdx].m_forceX * 0.995f));
-        grid[cellIdx].m_forceX     = int16_t(::roundf((float)grid[cellIdx].m_forceX * 0.995f));
-        grid[cellIdx + 1].m_forceY = int16_t(::roundf((float)grid[cellIdx + 1].m_forceY * 0.995f));
-        grid[cellIdx].m_forceY     = int16_t(::roundf((float)grid[cellIdx].m_forceY * 0.995f));
+        CCell& centerCell = g_grid[cellIdx];
+        CCell& rightCell = g_grid[cellIdx + g_gridSize.y];
+        CCell& topCell = g_grid[cellIdx + 1];
+
+        rightCell.m_forceX  = int16_t(::roundf(rightCell.m_forceX * 0.995f));
+        centerCell.m_forceX = int16_t(::roundf(centerCell.m_forceX * 0.995f));
+        topCell.m_forceY    = int16_t(::roundf(topCell.m_forceY * 0.995f));
+        centerCell.m_forceY = int16_t(::roundf(centerCell.m_forceY * 0.995f));
     }
 
-    for (int iterationCount = 20; iterationCount != 0; --iterationCount) {
+    for (int iteration = 0; iteration < 20; ++iteration) {
         for (int i = 0; i < nbCells; ++i) {
             const int cellIdx = cellsWithForces[i];
             if (cellIdx == INT_MIN) { continue; }
 
             CCell& centerCell = grid[cellIdx];
-            CCell& bottomCell = grid[cellIdx - g_gridSize.y];
-            CCell& topCell = grid[cellIdx + g_gridSize.y];
-            CCell& leftCell = grid[cellIdx - 1];
-            CCell& rightCell = grid[cellIdx + 1];
+            CCell& rightCell = grid[cellIdx + g_gridSize.y];
+            CCell& topCell = grid[cellIdx + 1];
+            const CCell& leftCell = grid[cellIdx - g_gridSize.y];
+            const CCell& bottomCell = grid[cellIdx - 1];
 
-            float excessWaterTop = 0;
-            float excessWaterBottom = 0;
             float excessWaterLeft = 0;
             float excessWaterRight = 0;
+            float excessWaterBottom = 0;
+            float excessWaterTop = 0;
 
             if (!IsCellPassable(centerCell, itemsData)) {
-                if (IsCellPassable(topCell, itemsData) && topCell.m_water > 1.f) {
-                    excessWaterTop = topCell.m_water - 1.f;
-                }
-                if (IsCellPassable(bottomCell, itemsData) && bottomCell.m_water > 1.f) {
-                    excessWaterBottom = bottomCell.m_water - 1.f;
-                }
                 if (IsCellPassable(leftCell, itemsData) && leftCell.m_water > 1.f) {
                     excessWaterLeft = leftCell.m_water - 1.f;
                 }
                 if (IsCellPassable(rightCell, itemsData) && rightCell.m_water > 1.f) {
                     excessWaterRight = rightCell.m_water - 1.f;
                 }
+                if (IsCellPassable(bottomCell, itemsData) && bottomCell.m_water > 1.f) {
+                    excessWaterBottom = bottomCell.m_water - 1.f;
+                }
+                if (IsCellPassable(topCell, itemsData) && topCell.m_water > 1.f) {
+                    excessWaterTop = topCell.m_water - 1.f;
+                }
             }
-            const bool isReceivingForcesTop = itemsData[topCell.m_contentId].m_isReceivingForces != 0;
-            const bool isReceivingForcesBottom = itemsData[bottomCell.m_contentId].m_isReceivingForces != 0;
             const bool isReceivingForcesLeft = itemsData[leftCell.m_contentId].m_isReceivingForces != 0;
             const bool isReceivingForcesRight = itemsData[rightCell.m_contentId].m_isReceivingForces != 0;
+            const bool isReceivingForcesBottom = itemsData[bottomCell.m_contentId].m_isReceivingForces != 0;
+            const bool isReceivingForcesTop = itemsData[topCell.m_contentId].m_isReceivingForces != 0;
 
-            const float forceTop = isReceivingForcesTop ? topCell.m_forceX : 0.f;
-            const float forceBottom = isReceivingForcesBottom ? -centerCell.m_forceX : 0.f;
-            const float forceLeft = isReceivingForcesLeft ? -centerCell.m_forceY : 0.f;
-            const float forceRight = isReceivingForcesRight ? rightCell.m_forceY : 0.f;
+            const float forceRight = isReceivingForcesRight ? rightCell.m_forceX : 0.f;
+            const float forceLeft = isReceivingForcesLeft ? -centerCell.m_forceX : 0.f;
+            const float forceTop = isReceivingForcesTop ? topCell.m_forceY : 0.f;
+            const float forceBottom = isReceivingForcesBottom ? -centerCell.m_forceY : 0.f;
 
-            const float maxExcessDiff = std::max(
-                ::fabsf(excessWaterTop - excessWaterBottom),
-                ::fabsf(excessWaterLeft - excessWaterRight)
+            const float maxWaterExcessDiff = std::max(
+                std::abs(excessWaterLeft - excessWaterRight),
+                std::abs(excessWaterBottom - excessWaterTop)
             );
-            const int receivingForceNumDirections = int(isReceivingForcesTop) + int(isReceivingForcesBottom) +
-                                                    int(isReceivingForcesLeft) + int(isReceivingForcesRight);
+            const int forcesDirectionsNum = int(isReceivingForcesTop) + int(isReceivingForcesBottom) +
+                                            int(isReceivingForcesRight) + int(isReceivingForcesLeft);
+            const float forcesSum = forceLeft + forceRight + forceTop + forceBottom;
+            const float baseWeightTerm = (isReceivingForcesBottom ? 1 : 2) * itemsData[centerCell.m_contentId].m_weight;
+            const float waterInfluence = maxWaterExcessDiff * 512.f;
 
-            const int16_t forceAdjustment = (
-                (
-                    ( (2 - (isReceivingForcesLeft ? 1 : 0)) * itemsData[centerCell.m_contentId].m_weight
-                    + maxExcessDiff * 512.f ) * weightMult
-                    - (forceTop + forceBottom + forceRight + forceLeft)
-                ) / float(receivingForceNumDirections)
+            const int16_t forceAdjustment = int16_t(
+                ((baseWeightTerm + waterInfluence) * weightMult - forcesSum) / float(forcesDirectionsNum)
             );
 
-            if (isReceivingForcesTop) {
-                topCell.m_forceX += forceAdjustment;
-            }
-            if (isReceivingForcesBottom) {
-                centerCell.m_forceX -= forceAdjustment;
-            }
             if (isReceivingForcesRight) {
-                rightCell.m_forceY += forceAdjustment;
+                rightCell.m_forceX += forceAdjustment;
             }
             if (isReceivingForcesLeft) {
+                centerCell.m_forceX -= forceAdjustment;
+            }
+            if (isReceivingForcesTop) {
+                topCell.m_forceY += forceAdjustment;
+            }
+            if (isReceivingForcesBottom) {
                 centerCell.m_forceY -= forceAdjustment;
             }
         }
