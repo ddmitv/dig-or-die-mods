@@ -44,7 +44,7 @@ inline int g_cloudRadius; // GLOBAL: 0x26580
 inline int g_fluidSimulationOffset; // GLOBAL: 0x26584
 inline int g_fluidSimulationIterations; // GLOBAL: 0x26588
 inline float g_lavaPressure; // GLOBAL: 0x2658c
-inline int g_waterSimulationDir; // GLOBAL: 0x26590 (the only first byte is used)
+inline bool g_waterSimulationDir; // GLOBAL: 0x26590
 inline int g_lastChangedCellPos; // GLOBAL: 0x26594
 inline float g_waterSpeed; // GLOBAL: 0x26598
 inline double* g_infiltrationTimes; // GLOBAL: 0x2659c
@@ -59,7 +59,7 @@ inline std::vector<short2> g_elecProcessedCells; // GLOBAL: 0x2ad48
 inline std::vector<short2> g_elecPropagationQueue; // GLOBAL: 0x2ad54
 
 inline char g_formatBuffer[512]; // GLOBAL: 0x26340
-inline int g_elecAlgoState; // GLOBAL: 0x26540
+inline bool g_elecAlgoState; // GLOBAL: 0x26540
 
 inline ThreadData g_threadData[32]; // GLOBAL: 0x265c0
 inline HANDLE g_threadEvents[32]; // GLOBAL: 0x2acc0

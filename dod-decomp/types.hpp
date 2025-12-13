@@ -39,11 +39,11 @@ enum CCell_Flag : uint32_t {
     Flag_ElectricAlgoState = 1 << 18, // 262144
     Flag_IsPowered = 1 << 19,         // 524288
 };
-inline constexpr CCell_Flag operator|(CCell_Flag a, CCell_Flag b) noexcept { return CCell_Flag(uint32_t(a) | uint32_t(b)); }
-inline constexpr CCell_Flag& operator|=(CCell_Flag& a, CCell_Flag b) noexcept { return a = CCell_Flag(uint32_t(a) | uint32_t(b)); }
-inline constexpr CCell_Flag operator&(CCell_Flag a, CCell_Flag b) noexcept { return CCell_Flag(uint32_t(a) & uint32_t(b)); }
-inline constexpr CCell_Flag& operator&=(CCell_Flag& a, CCell_Flag b) noexcept { return a = CCell_Flag(uint32_t(a) & uint32_t(b)); }
-inline constexpr CCell_Flag operator~(CCell_Flag a) noexcept { return CCell_Flag(~uint32_t(a)); }
+constexpr CCell_Flag operator|(CCell_Flag a, CCell_Flag b) noexcept { return CCell_Flag(uint32_t(a) | uint32_t(b)); }
+constexpr CCell_Flag& operator|=(CCell_Flag& a, CCell_Flag b) noexcept { return a = CCell_Flag(uint32_t(a) | uint32_t(b)); }
+constexpr CCell_Flag operator&(CCell_Flag a, CCell_Flag b) noexcept { return CCell_Flag(uint32_t(a) & uint32_t(b)); }
+constexpr CCell_Flag& operator&=(CCell_Flag& a, CCell_Flag b) noexcept { return a = CCell_Flag(uint32_t(a) & uint32_t(b)); }
+constexpr CCell_Flag operator~(CCell_Flag a) noexcept { return CCell_Flag(~uint32_t(a)); }
 
 enum class ElecSwitchType : int {
     None = 0,

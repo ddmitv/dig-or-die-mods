@@ -8,13 +8,6 @@
 #include "types.hpp"
 #include "vars.hpp"
 
-inline void WaitForDebugger() {
-    while (!::IsDebuggerPresent()) {
-        ::Sleep(200);
-    }
-    ::DebugBreak();
-}
-
 // these functions are basically equivalents of methods in CCell type in Assembly-CSharp
 inline bool IsCellPassable(const CCell& cell, const CItem_PluginData* itemsData) {
     return itemsData[cell.m_contentId].m_isBlock == 0
@@ -51,8 +44,8 @@ inline void CellSetFlag(CCell& cell, CCell_Flag flag, bool value) {
 // modified SMisc.GetIterators in Assembly-CSharp (uses frequency instead of period in calculations)
 // note: this function is inlined in the original code, so it's doesn't have a specific address
 inline void GetIteratorsFreq(int n, double t, double dt, double frequency, int& outStartOffset, int& outNumIterations) {
-    int64_t time1 = int64_t((t - dt) * n);
-    int64_t time2 = int64_t(t * n);
+    const int64_t time1 = int64_t((t - dt) * n);
+    const int64_t time2 = int64_t(t * n);
 
     outStartOffset = int(int64_t(double(time1) * frequency) % n);
     outNumIterations = int(double(time2) * frequency) - int(double(time1) * frequency);
@@ -62,9 +55,9 @@ inline void GetIteratorsFreq(int n, double t, double dt, double frequency, int& 
 // https://github.com/wine-mirror/wine/blob/master/include/msvcrt/stdio.h
 // FUNCTION: 0x1630
 inline int DebugLogFormat(char* buffer, const char* format, ...) {
-    va_list args;
+    va_list args{};
     va_start(args, format);
-    int res = ::__stdio_common_vsprintf_s(
+    const int res = ::__stdio_common_vsprintf_s(
         _CRT_INTERNAL_LOCAL_PRINTF_OPTIONS, buffer, std::size(g_formatBuffer), format, nullptr, args
     );
     va_end(args);
@@ -447,7 +440,7 @@ inline void ProcessFluidSimulation(int startX, int endX, int offset, int iterati
                 }
             }
         }
-        const auto [xStart, xEnd, xStep] = g_waterSimulationDir != 0 ? std::tuple(startX, endX, 1) : std::tuple(endX - 1, startX - 1, -1);
+        const auto [xStart, xEnd, xStep] = g_waterSimulationDir ? std::tuple(startX, endX, 1) : std::tuple(endX - 1, startX - 1, -1);
 
         for (int currentX = xStart; currentX != xEnd; currentX += xStep) {
             const int cellIdx = currentX * gridHeight + currentY;
@@ -689,7 +682,7 @@ inline void ProcessFluidSimulation(int startX, int endX, int offset, int iterati
             // waterfall flag marking
             bool hasWaterfall = false;
             if (bottomCompatible) {
-                const float maxTransfer = std::min(1.f - bottomCell.m_water, std::min(waterAmount * 0.7f + 0.005f, waterAmount));
+                const float maxTransfer = std::min({1.f - bottomCell.m_water, waterAmount * 0.7f + 0.005f, waterAmount});
                 if (maxTransfer > 0.001f) {
                     if (maxTransfer >= waterAmount * 0.4f && bottomCell.m_water < 0.9f && centerCell.m_water < 0.9f) {
                         hasWaterfall = true;
@@ -728,7 +721,7 @@ inline void ProcessWaterSeepage(int offset, int iterations) {
 
     for (int iteration = 0; iteration < iterations; ++iteration) {
         const int gridOrderIndex = (iteration + offset) % (gridSizeX - 2);
-        const int x = g_gridOrder[(gridOrderIndex + (gridOrderIndex & 1 ? 4 : 0)) % (gridSizeX - 2) + 1];
+        const int x = g_gridOrder[(gridOrderIndex + ((uint32_t(gridOrderIndex) & 1) != 0 ? 4 : 0)) % (gridSizeX - 2) + 1];
 
         for (int y = 2; y < gridSizeY - 2; ++y) {
             const int cellIdx = x * gridSizeY + y;
@@ -844,7 +837,7 @@ inline void UpdateCellPowerState(
     if (itemData.m_electricValue > -1) {
         return;
     }
-    if ((direction & itemData.m_electricOutletFlags) == 0) {
+    if ((uint32_t(itemData.m_electricOutletFlags) & direction) == 0) {
         return;
     }
     bool shouldPowerCell = false;
@@ -860,11 +853,11 @@ inline void UpdateCellPowerState(
         }
     }
     if (itemData.m_isBlockDoor != 0) {
-        bool hasConnectedWire =
+        const bool hasConnectedWire =
             (currentCell.m_flags & (Flag_HasWireTop | Flag_HasWireRight)) != 0 ||
             (topCell.m_flags & Flag_HasWireRight) != 0 ||
             (rightCell.m_flags & Flag_HasWireTop) != 0;
-        bool hasConnectedWireCrossing =
+        const bool hasConnectedWireCrossing =
             itemsData[topCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecCross ||
             itemsData[rightCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecCross ||
             itemsData[topRightCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecCross;
@@ -883,7 +876,7 @@ inline void UpdateCellElectricity(CCell* const grid, const CItem_PluginData* con
     // in orig code the CItem_PluginData struct is copied
     const CItem_PluginData& itemData = itemsData[currentCell.m_contentId];
 
-    if ((direction & itemData.m_electricOutletFlags) == 0) {
+    if ((uint32_t(itemData.m_electricOutletFlags) & direction) == 0) {
         return;
     }
     if (itemData.m_electricValue == -255) {
@@ -918,7 +911,7 @@ inline void PropagateElectricity(CCell* const grid, const CItem_PluginData* cons
     g_elecPropagationQueue.push_back(short2{short(startX), short(startY)});
 
     CCell& startCell = grid[startX * gridSizeY + startY];
-    CellSetFlag(startCell, Flag_ElectricAlgoState, g_elecAlgoState != 0);
+    CellSetFlag(startCell, Flag_ElectricAlgoState, g_elecAlgoState);
 
     int totalConsumption = 0;
     int totalProduction = 0;
@@ -956,7 +949,7 @@ inline void PropagateElectricity(CCell* const grid, const CItem_PluginData* cons
 
             CCell& neighborCell = grid[neighborX * gridSizeY + neighborY];
 
-            if (int(CellHasFlag(neighborCell, Flag_ElectricAlgoState)) == g_elecAlgoState) {
+            if (CellHasFlag(neighborCell, Flag_ElectricAlgoState) == g_elecAlgoState) {
                 continue;
             }
             // 0, 4 - general electricity propagation
@@ -1010,7 +1003,7 @@ inline void PropagateElectricity(CCell* const grid, const CItem_PluginData* cons
                 continue;
             }
             g_elecPropagationQueue.push_back(short2{neighborX, neighborY});
-            CellSetFlag(neighborCell, Flag_ElectricAlgoState, g_elecAlgoState != 0);
+            CellSetFlag(neighborCell, Flag_ElectricAlgoState, g_elecAlgoState);
 
             if (dir == 2) {
                 if (itemsData[topCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecSwitchPush && CellHasFlag(topCell, Flag_CustomData0)) {

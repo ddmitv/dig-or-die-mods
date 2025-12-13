@@ -1,9 +1,5 @@
-#include <stdio.h>
-#include <cstdarg>
 #include <process.h>
-#include <stdlib.h>
-#include <time.h>
-#include <iterator>
+#include <ctime>
 #include <cmath>
 #include <algorithm>
 
@@ -28,7 +24,7 @@ __declspec(dllexport) void DllClose() {
     }
     ::Sleep(100);
     for (int i = 0; i < g_nbThreads; ++i) {
-        DWORD res = ::WaitForSingleObject(g_threadData[i].handle, 1000);
+        const DWORD res = ::WaitForSingleObject(g_threadData[i].handle, 1000);
         if (res != WAIT_OBJECT_0) {
             g_callbackDebug("- Error stopping thread.");
         }
@@ -49,7 +45,7 @@ __declspec(dllexport) uint32_t DllGetSaveOffset(int32_t build, int32_t x) {
     hash = (hash >> 16) ^ hash;
 
     // ensures that return value is between [0, 10]
-    uint64_t product = (uint64_t)hash * 10ULL;
+    const uint64_t product = (uint64_t)hash * 10ULL;
     return (uint32_t)(product / 0xFFFFFFFFULL);
 }
 // FUNCTION: 0x1270
@@ -60,22 +56,22 @@ __declspec(dllexport) void DllInit(int nbThreads) {
     DebugLogFormat(g_formatBuffer, "- Dll initialisation. Creating %d threads...", nbThreads);
     g_callbackDebug(g_formatBuffer);
 
-    if (nbThreads > 32) { nbThreads = 32; }
+    nbThreads = std::min(nbThreads, 32);
     g_nbThreads = nbThreads;
 
-    ThreadData* threadData = g_threadData;
-    for (int i = 0; i < nbThreads; ++i, ++threadData) {
-        g_threadEvents[i] = ::CreateEventW(nullptr, false, false, nullptr);
+    for (int i = 0; i < nbThreads; ++i) {
+        ThreadData& threadData = g_threadData[i];
+        g_threadEvents[i] = ::CreateEventW(nullptr, FALSE, FALSE, nullptr);
 
-        threadData->id = i;
-        threadData->shouldExit = 0;
+        threadData.id = i;
+        threadData.shouldExit = false;
 
-        threadData->workEvent = ::CreateEventW(nullptr, false, false, nullptr);
+        threadData.workEvent = ::CreateEventW(nullptr, FALSE, FALSE, nullptr);
 
-        uintptr_t hThread = ::_beginthreadex(
-            nullptr, 0, &WorkerThread, threadData, 0, nullptr
+        const uintptr_t hThread = ::_beginthreadex(
+            nullptr, 0, &WorkerThread, &threadData, 0, nullptr
         );
-        threadData->handle = reinterpret_cast<HANDLE>(hThread);
+        threadData.handle = reinterpret_cast<HANDLE>(hThread);
         if (hThread == 0) {
             DebugLogFormat(g_formatBuffer, "- Error creating thread %d.", i);
             g_callbackDebug(g_formatBuffer);
@@ -110,14 +106,14 @@ __declspec(dllexport) int DllProcessElectricity(
             const CCell& rightCell = grid[(x + 1) * gridSizeY + y];
             const CCell& topRightCell = grid[(x + 1) * gridSizeY + (y + 1)];
 
-            if (int(CellHasFlag(currentCell, Flag_ElectricAlgoState)) != g_elecAlgoState) {
+            if (CellHasFlag(currentCell, Flag_ElectricAlgoState) != g_elecAlgoState) {
                 currentCell.m_elecProd = 0;
                 if (CellHasFlag(currentCell, Flag_HasWireTop)
                     || CellHasFlag(currentCell, Flag_HasWireRight)
                     || CellHasFlag(topCell, Flag_HasWireRight)
                     || CellHasFlag(rightCell, Flag_HasWireTop)
-                    || (itemsData[topCell.m_contentId].m_electricValue != 0 && (itemsData[topCell.m_contentId].m_electricOutletFlags & 1) != 0)
-                    || (itemsData[currentCell.m_contentId].m_electricValue != 0 && (itemsData[currentCell.m_contentId].m_electricOutletFlags & 2) != 0)
+                    || (itemsData[topCell.m_contentId].m_electricValue != 0 && (uint32_t(itemsData[topCell.m_contentId].m_electricOutletFlags) & 1) != 0)
+                    || (itemsData[currentCell.m_contentId].m_electricValue != 0 && (uint32_t(itemsData[currentCell.m_contentId].m_electricOutletFlags) & 2) != 0)
                     || itemsData[topCell.m_contentId].m_elecSwitchType > ElecSwitchType::None
                     || itemsData[topRightCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecCross
                     ) {
@@ -140,10 +136,10 @@ __declspec(dllexport) int DllProcessForces(
         CCell& rightCell = g_grid[cellIdx + g_gridSize.y];
         CCell& topCell = g_grid[cellIdx + 1];
 
-        rightCell.m_forceX  = int16_t(::roundf(rightCell.m_forceX * 0.995f));
-        centerCell.m_forceX = int16_t(::roundf(centerCell.m_forceX * 0.995f));
-        topCell.m_forceY    = int16_t(::roundf(topCell.m_forceY * 0.995f));
-        centerCell.m_forceY = int16_t(::roundf(centerCell.m_forceY * 0.995f));
+        rightCell.m_forceX  = int16_t(::roundf(float(rightCell.m_forceX) * 0.995f));
+        centerCell.m_forceX = int16_t(::roundf(float(centerCell.m_forceX) * 0.995f));
+        topCell.m_forceY    = int16_t(::roundf(float(topCell.m_forceY) * 0.995f));
+        centerCell.m_forceY = int16_t(::roundf(float(centerCell.m_forceY) * 0.995f));
     }
 
     for (int iteration = 0; iteration < 20; ++iteration) {
@@ -359,7 +355,7 @@ __declspec(dllexport) int DllProcessLightingSquare(
         ::SetEvent(threadData.workEvent /*-0x10*/);
     }
 
-    const DWORD waitResult = ::WaitForMultipleObjects(g_nbThreads, g_threadEvents, /*bWaitAll*/ true, /*dwMilliseconds*/ 2000);
+    const DWORD waitResult = ::WaitForMultipleObjects(g_nbThreads, g_threadEvents, /*bWaitAll*/ TRUE, /*dwMilliseconds*/ 2000);
     if (waitResult != WAIT_OBJECT_0) {
         DebugLogFormat(g_formatBuffer, "- Threads eventWorkFinished timeout: %ld", waitResult);
         g_callbackDebug(g_formatBuffer);
@@ -378,7 +374,7 @@ __declspec(dllexport) int DllProcessWaterMT(
     if (double(::rand()) < (double(RAND_MAX) * 0.05)) { // 5% chance
         InitGridOrder();
     }
-    g_waterSimulationDir = (g_waterSimulationDir == 0);
+    g_waterSimulationDir = !g_waterSimulationDir;
     g_cloudCenter = cloudCenter;
     g_grid = grid;
     g_itemsData = itemsData;
@@ -410,7 +406,7 @@ __declspec(dllexport) int DllProcessWaterMT(
         ::SetEvent(threadData.workEvent);
     }
     // wait for all threads to complete
-    const DWORD waitResult1 = ::WaitForMultipleObjects(g_nbThreads, g_threadEvents, /*bWaitAll*/ true, /*dwMilliseconds*/ 1000);
+    const DWORD waitResult1 = ::WaitForMultipleObjects(g_nbThreads, g_threadEvents, /*bWaitAll*/ TRUE, /*dwMilliseconds*/ 1000);
     if (waitResult1 != WAIT_OBJECT_0) {
         DebugLogFormat(g_formatBuffer, "Threads eventWorkFinished timeout: %ld", waitResult1);
         g_callbackDebug(g_formatBuffer);
@@ -431,7 +427,7 @@ __declspec(dllexport) int DllProcessWaterMT(
         ::SetEvent(threadData.workEvent);
     }
     // wait for all threads to complete
-    const DWORD waitResult2 = ::WaitForMultipleObjects(g_nbThreads, g_threadEvents, /*bWaitAll*/ true, /*dwMilliseconds*/ 1000);
+    const DWORD waitResult2 = ::WaitForMultipleObjects(g_nbThreads, g_threadEvents, /*bWaitAll*/ TRUE, /*dwMilliseconds*/ 1000);
     if (waitResult2 != WAIT_OBJECT_0) {
         DebugLogFormat(g_formatBuffer, "- Threads eventWorkFinished timeout: %ld", waitResult2);
         g_callbackDebug(g_formatBuffer);
@@ -467,7 +463,7 @@ __declspec(dllexport) int GetBestSpawnPoint(CCell* grid, const CItem_PluginData*
     for (int i = 0; i < g_gridSize.x; ++i) {
         for (int j = 0; j < g_gridSize.y; ++j) {
             const CItem_PluginData& itemData = itemsData[grid[j + i * g_gridSize.y].m_contentId];
-            if (!itemData.m_isAutobuilder) { continue; }
+            if (itemData.m_isAutobuilder == 0) { continue; }
 
             spawnPointsFound += 1;
 
