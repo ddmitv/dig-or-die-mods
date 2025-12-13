@@ -115,29 +115,29 @@ struct RectInt {
 static_assert(sizeof(RectInt) == 16);
 
 struct ThreadData {
-    ::HANDLE handle;            // 0x00
-    int id;                     // 0x04
-    ::HANDLE workEvent;         // 0x08
-                                
-    bool shouldExit;            // 0x0C
-    bool processCellLighting;   // 0x0D
-    uint8_t _padding_0E[2];     // 0x0E
-                                
-    int startX;                 // 0x10
-    int startY;                 // 0x14
-    int endX;                   // 0x18
-    int endY;                   // 0x1C
+    ::HANDLE handle;              // 0x00
+    int id;                       // 0x04
+    ::HANDLE workEvent;           // 0x08
+                                  
+    bool shouldExit;              // 0x0C
+    bool processCellLighting;     // 0x0D
+    uint8_t _padding_0E[2];       // 0x0E
+                                  
+    int startX;                   // 0x10
+    int startY;                   // 0x14
+    int endX;                     // 0x18
+    int endY;                     // 0x1C
                                 
     bool processFluidSimulation;  // 0x20
-    uint8_t _padding_21[3];     // 0x21
+    uint8_t _padding_21[3];       // 0x21
                                 
-    int fluidSimulationStartX;      // 0x24
-    int fluidSimulationEndX;        // 0x28
+    int fluidSimulationStartX;    // 0x24
+    int fluidSimulationEndX;      // 0x28
                                 
-    bool processWaterSeepage; // 0x2C
-    uint8_t _padding_2D[3];     // 0x2D
-    int waterSeepageOffset;        // 0x30
-    int waterSeepageIterations;         // 0x34
+    bool processWaterSeepage;     // 0x2C
+    uint8_t _padding_2D[3];       // 0x2D
+    int waterSeepageOffset;       // 0x30
+    int waterSeepageIterations;   // 0x34
 
     uint8_t _padding[512]; // large padding (used to avoid false sharing?)
 };
