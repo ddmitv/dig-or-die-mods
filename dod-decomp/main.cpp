@@ -239,9 +239,7 @@ __declspec(dllexport) int DllProcessLightingSquare(
             const int cellIdx = baseIndex + y;
             CCell& cell = grid[cellIdx];
 
-            if (IsCellPassable(cell, itemsData)
-                && (cell.m_flags & (Flag_BgSurface_2 | Flag_BgSurface_1 | Flag_BgSurface_0)) == 0
-                && y > sunLightYMin) {
+            if (IsCellPassable(cell, itemsData) && !CellHasBgSurface(cell) && y > sunLightYMin) {
                 const float heightOffset = y - sunLightYMin;
 
                 const float waterFactor = std::max(0.f, 1.f - cell.m_water);
@@ -252,7 +250,7 @@ __declspec(dllexport) int DllProcessLightingSquare(
                 cell.m_light.g = std::max(cell.m_light.g, light);
                 cell.m_light.b = std::max(cell.m_light.b, light);
             }
-            if ((cell.m_flags & Flag_IsLava) != 0 && cell.m_water > 0.01f) {
+            if (CellHasFlag(cell, Flag_IsLava) && cell.m_water > 0.01f) {
                 const float waterBasedRed = cell.m_water * 50.f * 255.f;
 
                 if (cell.m_light.r <= waterBasedRed) {
@@ -263,26 +261,27 @@ __declspec(dllexport) int DllProcessLightingSquare(
                     cell.m_light.r = uint8_t(std::min<double>(noiseRedValue, waterBasedRed));
                 }
             }
-            if ((cell.m_flags & Flag_IsBurning) != 0) {
-                cell.m_light.r = 0xff;
+            if (CellHasFlag(cell, Flag_IsBurning)) {
+                cell.m_light.r = 255;
                 cell.m_light.g = std::max<uint8_t>(cell.m_light.g, 192);
                 // the code in disassembly seems to do no-op with blue color
                 // possible the correct statement is `grid[iVar5].m_light.b = 0` ?
             }
             const CItem_PluginData& itemData = itemsData[cell.m_contentId];
-            if ((itemData.m_light.r != 0 || itemData.m_light.g != 0 || itemData.m_light.b != 0) && (itemData.m_electricValue > -1 || (cell.m_flags & Flag_IsPowered) != 0)) {
+            if ((itemData.m_light.r != 0 || itemData.m_light.g != 0 || itemData.m_light.b != 0)
+                && (itemData.m_electricValue > -1 || CellHasFlag(cell, Flag_IsPowered))) {
                 cell.m_light.r = std::max(itemData.m_light.r, cell.m_light.r);
                 cell.m_light.g = std::max(itemData.m_light.g, cell.m_light.g);
                 cell.m_light.b = std::max(itemData.m_light.b, cell.m_light.b);
 
                 if (itemData.m_isLightonium != 0) {
-                    CCell& prevCell = grid[cellIdx - 1];
-                    prevCell.m_light = { 255, 255, 255 };
-                    prevCell.m_temp = { 255, 255, 255 };
+                    CCell& bottomCell = grid[cellIdx - 1];
+                    bottomCell.m_light = { 255, 255, 255 };
+                    bottomCell.m_temp = { 255, 255, 255 };
 
-                    CCell& prevPrevCell = grid[cellIdx - 2];
-                    prevPrevCell.m_light = { 255, 255, 255 };
-                    prevPrevCell.m_temp = { 255, 255, 255 };
+                    CCell& bottom2Cell = grid[cellIdx - 2];
+                    bottom2Cell.m_light = { 255, 255, 255 };
+                    bottom2Cell.m_temp = { 255, 255, 255 };
                 } else if (itemData.m_isSunLamp != 0) {
                     const auto castSunLampRay = [&](float dx, float dy, float end) {
                         float offset = 0.0f;
