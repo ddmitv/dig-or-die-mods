@@ -11,7 +11,7 @@ add_library(dod-dll-decomp SHARED
     funcs.hpp
 )
 
-target_compile_features(dod-dll-decomp PUBLIC cxx_std_20)
+target_compile_features(dod-dll-decomp PUBLIC cxx_std_17)
 set_target_properties(dod-dll-decomp PROPERTIES
 	# COMPILE_WARNING_AS_ERROR TRUE
 	LINK_WARNING_AS_ERROR TRUE)

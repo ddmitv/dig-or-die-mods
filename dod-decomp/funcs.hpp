@@ -915,7 +915,7 @@ inline void PropagateElectricity(CCell* const grid, const CItem_PluginData* cons
     g_elecProcessedCells.clear();
 
     g_elecPropagationQueue.clear();
-    g_elecPropagationQueue.emplace_back(startX, startY);
+    g_elecPropagationQueue.push_back(short2{short(startX), short(startY)});
 
     CCell& startCell = grid[startX * gridSizeY + startY];
     CellSetFlag(startCell, Flag_ElectricAlgoState, g_elecAlgoState != 0);
@@ -1009,7 +1009,7 @@ inline void PropagateElectricity(CCell* const grid, const CItem_PluginData* cons
             } else {
                 continue;
             }
-            g_elecPropagationQueue.emplace_back(neighborX, neighborY);
+            g_elecPropagationQueue.push_back(short2{neighborX, neighborY});
             CellSetFlag(neighborCell, Flag_ElectricAlgoState, g_elecAlgoState != 0);
 
             if (dir == 2) {

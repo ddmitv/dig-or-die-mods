@@ -281,12 +281,12 @@ __declspec(dllexport) int DllProcessLightingSquare(
 
                 if (itemData.m_isLightonium != 0) {
                     CCell& prevCell = grid[cellIdx - 1];
-                    prevCell.m_light = { .r = 255, .g = 255, .b = 255 };
-                    prevCell.m_temp = { .r = 255, .g = 255, .b = 255 };
+                    prevCell.m_light = { 255, 255, 255 };
+                    prevCell.m_temp = { 255, 255, 255 };
 
                     CCell& prevPrevCell = grid[cellIdx - 2];
-                    prevPrevCell.m_light = { .r = 255, .g = 255, .b = 255 };
-                    prevPrevCell.m_temp = { .r = 255, .g = 255, .b = 255 };
+                    prevPrevCell.m_light = { 255, 255, 255 };
+                    prevPrevCell.m_temp = { 255, 255, 255 };
                 } else if (itemData.m_isSunLamp != 0) {
                     float offset = 0.0f;
                     do {
