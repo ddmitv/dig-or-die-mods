@@ -284,48 +284,21 @@ __declspec(dllexport) int DllProcessLightingSquare(
                     prevPrevCell.m_light = { 255, 255, 255 };
                     prevPrevCell.m_temp = { 255, 255, 255 };
                 } else if (itemData.m_isSunLamp != 0) {
-                    float offset = 0.0f;
-                    do {
-                        if (!SunLampLightStep(grid, itemsData, x - offset * 0.26f, y - offset)) {
-                            break;
-                        }
-                        offset += 1.f;
-                    } while (offset < 7.0f);
-                    offset = 0.f;
-                    do {
-                        if (!SunLampLightStep(grid, itemsData, x + offset * 0.26f, y - offset)) {
-                            break;
-                        }
-                        offset += 1.f;
-                    } while (offset < 7.0f);
-                    offset = 0.f;
-                    do {
-                        if (!SunLampLightStep(grid, itemsData, x + offset, y - offset * 0.35f)) {
-                            break;
-                        }
-                        offset += 1.f;
-                    } while (offset < 11.0f);
-                    offset = 0.f;
-                    do {
-                        if (!SunLampLightStep(grid, itemsData, x + offset, y - offset * 0.65f)) {
-                            break;
-                        }
-                        offset += 1.f;
-                    } while (offset < 11.0f);
-                    offset = 0.f;
-                    do {
-                        if (!SunLampLightStep(grid, itemsData, x - offset, y - offset * 0.35f)) {
-                            break;
-                        }
-                        offset += 1.f;
-                    } while (offset < 11.0f);
-                    offset = 0.f;
-                    do {
-                        if (!SunLampLightStep(grid, itemsData, x - offset, y - offset * 0.65f)) {
-                            break;
-                        }
-                        offset += 1.f;
-                    } while (offset < 11.0f);
+                    const auto castSunLampRay = [&](float dx, float dy, float end) {
+                        float offset = 0.0f;
+                        do {
+                            if (!SunLampLightStep(grid, itemsData, x + offset * dx, y + offset * dy)) {
+                                break;
+                            }
+                            offset += 1.f;
+                        } while (offset < end);
+                    };
+                    castSunLampRay(-0.26f, -1.f,   7.f);
+                    castSunLampRay(0.26f,  -1.f,   7.f);
+                    castSunLampRay(1.f,    -0.35f, 11.f);
+                    castSunLampRay(1.f,    -0.65f, 11.f);
+                    castSunLampRay(-1.f,   -0.35f, 11.f);
+                    castSunLampRay(-1.f,   -0.65f, 11.f);
                 } else if (itemData.m_isOrganicHeart != 0) {
                     const double cosValue = std::cos(::clock() * 0.00628 * 0.3 * 2);
                     const float pulseMultiplier = float((cosValue * 0.5 + 0.5) * 1.5 + 1.0);
