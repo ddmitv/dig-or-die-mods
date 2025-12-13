@@ -95,7 +95,7 @@ __declspec(dllexport) int DllProcessElectricity(
 
     int startOffset = 0;
     int numIterations = 0;
-    GetIteratorsFreq(gridSizeX - 2, simuTime, simuDeltaTime, 3.f, startOffset, numIterations);
+    GetIteratorsFreq(gridSizeX - 2, simuTime, simuDeltaTime, 3., startOffset, numIterations);
 
     for (int i = 0; i < numIterations; ++i) {
         // since (i + startOffset) is always >= 0, the expression can be simplied to just taking a modulo:
@@ -395,7 +395,7 @@ __declspec(dllexport) int DllProcessWaterMT(
     g_lastChangedCellPos = -1;
     g_nbCellsUpdated = nbCellsUpdated;
 
-    GetIteratorsFreq(g_gridSize.y - 2, simuTime, simuDeltaTime, 20.f, g_fluidSimulationOffset, g_fluidSimulationIterations);
+    GetIteratorsFreq(g_gridSize.y - 2, simuTime, simuDeltaTime, 20., g_fluidSimulationOffset, g_fluidSimulationIterations);
 
     // process fluid simulation across threads
     for (int threadIndex = g_nbThreads - 1; threadIndex >= 0; --threadIndex) {
@@ -418,17 +418,15 @@ __declspec(dllexport) int DllProcessWaterMT(
     // calculate water seepage simulation offset and number of iterations
     int waterSeepageOffset = 0;
     int waterSeepageIterations = 0;
-    GetIteratorsFreq(g_gridSize.x - 2, g_simuTime, g_simuDeltaTime, 4.f, waterSeepageOffset, waterSeepageIterations);
+    GetIteratorsFreq(g_gridSize.x - 2, g_simuTime, g_simuDeltaTime, 4., waterSeepageOffset, waterSeepageIterations);
 
     // process water seepage simulation across threads
     for (int threadIndex = 0; threadIndex < g_nbThreads; ++threadIndex) {
         ThreadData& threadData = g_threadData[threadIndex];
 
         threadData.processWaterSeepage = true;
-        // again, in the original the double is used in calculation but casted to int
-        threadData.waterSeepageOffset = waterSeepageOffset + (threadIndex * waterSeepageIterations) / g_nbThreads;
-        // again, in the original the double is used in calculation but casted to int
-        threadData.waterSeepageIterations = ((threadIndex + 1) * waterSeepageIterations) / g_nbThreads - (threadIndex * waterSeepageIterations) / g_nbThreads;
+        threadData.waterSeepageOffset = (threadIndex * waterSeepageIterations) / g_nbThreads + waterSeepageOffset;
+        threadData.waterSeepageIterations = ((threadIndex + 1) * waterSeepageIterations) / g_nbThreads + waterSeepageOffset - threadData.waterSeepageOffset;
 
         ::SetEvent(threadData.workEvent);
     }
