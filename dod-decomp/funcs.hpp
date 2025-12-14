@@ -16,9 +16,6 @@ inline bool IsCellPassable(const CCell& cell, const CItem_PluginData* itemsData)
 inline bool CellHasLava(const CCell& cell) {
     return (cell.m_flags & Flag_IsLava) != 0;
 }
-inline bool CellHasLavaAtLeast(const CCell& cell) {
-    return (cell.m_flags & Flag_IsLava) != 0;
-}
 inline bool CellHasBgSurface(const CCell& cell) {
     return (cell.m_flags & (Flag_BgSurface_2 | Flag_BgSurface_1 | Flag_BgSurface_0)) != 0;
 }
