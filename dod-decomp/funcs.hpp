@@ -424,7 +424,7 @@ inline void ProcessFluidSimulation(int startX, int endX, int offset, int iterati
         if (currentY == 420) {
             for (int i = startX; i < endX; ++i) {
                 CCell& cell = g_grid[i * gridHeight + 420];
-                if (cell.m_water > 0.2f && (cell.m_flags & Flag_BackWall_0) == 0) {
+                if (cell.m_water > 0.2f && !CellHasFlag(cell, Flag_BackWall_0)) {
                     cell.m_water -= 0.01f;
                 }
             }
@@ -851,9 +851,10 @@ inline void UpdateCellPowerState(
     }
     if (itemData.m_isBlockDoor != 0) {
         const bool hasConnectedWire =
-            (currentCell.m_flags & (Flag_HasWireTop | Flag_HasWireRight)) != 0 ||
-            (topCell.m_flags & Flag_HasWireRight) != 0 ||
-            (rightCell.m_flags & Flag_HasWireTop) != 0;
+            CellHasFlag(currentCell, Flag_HasWireTop)
+            || CellHasFlag(currentCell, Flag_HasWireRight)
+            || CellHasFlag(topCell, Flag_HasWireRight)
+            || CellHasFlag(rightCell, Flag_HasWireTop);
         const bool hasConnectedWireCrossing =
             itemsData[topCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecCross ||
             itemsData[rightCell.m_contentId].m_elecSwitchType == ElecSwitchType::ElecCross ||
