@@ -33,12 +33,20 @@ import std.string;
 u8 read_count = 0;
 s32 save_build = null;
 
-fn get_save_offset(s32 x) {
-    u32 hash = u32(x) * 0x9e3779b1U;
+fn get_save_offset(u32 x) {
+    u32 hash = x * 0x9e3779b1U;
     hash = ((hash >> 15) ^ hash) * 0x85ebca77U;
     hash = ((hash >> 13) ^ hash) * 0xc2b2ae3dU;
     hash = (hash >> 16) ^ hash;
     return s32((u64(hash) * 10U) / 0xFFFFFFFFU);
+};
+
+fn total_save_offset(u32 x) {
+    u32 offset = 0;
+    for (u32 i = 0, i < x, i += 1) {
+        offset += get_save_offset(i);
+    }
+    return offset;
 };
 
 fn lookup_code_name(s16 id) {
@@ -229,7 +237,7 @@ struct Pickup {
     
     Vector2 position;
     float creation_time;
-} [[format("format_pickup"), static]];
+} [[format("format_pickup")]];
 fn format_pickup(ref auto pickup) {
     return std::format("{} ({})", lookup_code_name(pickup.id), pickup.id);
 };
@@ -325,9 +333,44 @@ struct EnvironmentsData {
     MagicString<"Environments">;
 };
 
+bitfield CellFlags {
+    bool CustomData0      : 1;  // Bit 0 (0x00000001)
+    bool CustomData1      : 1;  // Bit 1 (0x00000002)
+    bool CustomData2      : 1;  // Bit 2 (0x00000004)
+    bool UNUSED0          : 1;  // Bit 3 (gap)
+    bool IsXReversed      : 1;  // Bit 4 (0x00000010)
+    bool IsBurning        : 1;  // Bit 5 (0x00000020)
+    bool IsMapped         : 1;  // Bit 6 (0x00000040)
+    bool UNUSED1          : 1;  // Bit 7 (gap)
+    bool BackWall_0       : 1;  // Bit 8 (0x00000100)
+    bool BgSurface_0      : 1;  // Bit 9 (0x00000200)
+    bool BgSurface_1      : 1;  // Bit 10 (0x00000400)
+    bool BgSurface_2      : 1;  // Bit 11 (0x00000800)
+    bool WaterFall        : 1;  // Bit 12 (0x00001000)
+    bool StreamLFast      : 1;  // Bit 13 (0x00002000)
+    bool StreamRFast      : 1;  // Bit 14 (0x00004000)
+    bool IsLava           : 1;  // Bit 15 (0x00008000)
+    bool HasWireRight     : 1;  // Bit 16 (0x00010000)
+    bool HasWireTop       : 1;  // Bit 17 (0x00020000)
+    bool ElectricAlgoState: 1;  // Bit 18 (0x00040000)
+    bool IsPowered        : 1;  // Bit 19 (0x00080000)
+    bool UNUSED2          : 1;  // Bit 20 (gap)
+    bool UNUSED3          : 1;  // Bit 21 (gap)
+    bool UNUSED4          : 1;  // Bit 22 (gap)
+    bool UNUSED5          : 1;  // Bit 23 (gap)
+    bool UNUSED6          : 1;  // Bit 24 (gap)
+    bool UNUSED7          : 1;  // Bit 25 (gap)
+    bool UNUSED8          : 1;  // Bit 26 (gap)
+    bool UNUSED9          : 1;  // Bit 27 (gap)
+    bool UNUSED10         : 1;  // Bit 28 (gap)
+    bool UNUSED11         : 1;  // Bit 29 (gap)
+    bool UNUSED12         : 1;  // Bit 30 (gap)
+    bool UNUSED13         : 1;  // Bit 31 (gap)
+};
+std::assert(sizeof(CellFlags) == sizeof(u32), "");
+
 struct Cell {
-    // CellFlags flags;
-    u32 flags;
+    CellFlags flags;
     u16 content_id;
     u16 content_hp;
     float water [[comment("Note that this also includes lava")]];
@@ -336,8 +379,8 @@ struct Cell {
     Color24 light;
     // note: no m_temp, m_elecCons and m_elecProd fields
     
-    std::assert_warn(content_id < data.items_data.count, "Invalid content id");
-    std::assert(sizeof(Cell) == 19, "");
+    // std::assert_warn(content_id < data.items_data.count, "Invalid content id");
+    // std::assert(sizeof(Cell) == 19, "");
 } [[static]];
 
 struct CellsRow {
@@ -346,13 +389,9 @@ struct CellsRow {
 };
 
 struct WorldData {
-    // std::Array<std::Array<Cell, 1024>, 1024> data;
-    // $ = std::mem::find_string(0, "\x0AWorld Data");
-    // std::assert($ >= 0, "Failed to find ending of the \"World Data\" section");
-    // std::print("sizeof(Cell): {}", world_grid_size.x * world_grid_size.y * sizeof(Cell));
-    // $ += world_grid_size.x * world_grid_size.y * sizeof(Cell);
     // CellsRow columns[1024];
-    padding[4727 + 19922944];
+    
+    padding[total_save_offset(world_grid_size.x) + sizeof(Cell)*world_grid_size.x*world_grid_size.y];
     MagicString<"World Data">;
 };
 

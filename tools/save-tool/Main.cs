@@ -149,9 +149,9 @@ Usage: save-tool <source> [options]
         Process.Start(imHexPath, $"\"{path}\"");
     }
     static string GetOutputPath(ParsedArgs args) {
-        string resultPath = args.output ?? Path.ChangeExtension(args.path, GetOutputPathExtensions(args.action!.Value));
+        string resultPath = args.output ?? Path.ChangeExtension(args.path, GetOutputPathExtensions(args.action!.Value))!;
         if (Directory.Exists(resultPath)) {
-            string resultPathFileName = Path.GetFileName(args.path);
+            string resultPathFileName = Path.GetFileName(args.path)!;
             resultPath = Path.Combine(resultPath, Path.ChangeExtension(resultPathFileName, GetOutputPathExtensions(args.action!.Value)));
         }
         string backupPath = resultPath + ".backup";
@@ -220,7 +220,7 @@ Usage: save-tool <source> [options]
                 Console.Error.WriteLine($"File writing error: {ex.Message.ToLowerFirstChar()}");
                 return 1;
             }
-            Console.WriteLine($"Successfully converter save at '{Path.GetFullPath(args.path)}' to '{Path.GetFullPath(resultPath)}'");
+            Console.WriteLine($"Successfully converter save at '{Path.GetFullPath(args.path!)}' to '{Path.GetFullPath(resultPath)}'");
             break;
         }
         default:
@@ -230,10 +230,6 @@ Usage: save-tool <source> [options]
     }
 
     static int Main(string[] args) {
-        // Display exception messages in English
-        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
-
         ParsedArgs parsedArgs;
         if (args.Length == 0) {
             PrintHelp();
@@ -252,7 +248,7 @@ Usage: save-tool <source> [options]
 
         byte[] rawData;
         try {
-            rawData = File.ReadAllBytes(parsedArgs.path);
+            rawData = File.ReadAllBytes(parsedArgs.path!);
         } catch (Exception ex) {
             Console.Error.WriteLine($"File reading error: {ex.Message.ToLowerFirstChar()}");
             return 1;

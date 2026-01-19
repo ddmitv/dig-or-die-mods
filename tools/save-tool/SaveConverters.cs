@@ -3,9 +3,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Runtime.Remoting.Messaging;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.CompilerServices;
+using System.Buffers.Binary;
+
+#pragma warning disable SYSLIB0050
+#pragma warning disable SYSLIB0011 // Type or member is obsolete
+
 
 namespace SaveTool;
 
@@ -22,7 +27,7 @@ public static class BinaryFormatterHelpers {
             info.AddValue("x", ((Data.Vector2)obj).x);
             info.AddValue("y", ((Data.Vector2)obj).y);
         }
-        public object SetObjectData(object obj, SerializationInfo info, StreamingContext context, ISurrogateSelector selector) {
+        public object SetObjectData(object obj, SerializationInfo info, StreamingContext context, ISurrogateSelector? selector) {
             return new Data.Vector2(info.GetSingle("x"), info.GetSingle("y"));
         }
     }
@@ -212,15 +217,15 @@ public static class V0_25_Converter {
                 continue;
             }
             if (varName is "m_difficulty" or "m_seed" or "m_shipPos") {
-                FieldInfo field = typeof(Data.Params).GetField(varName);
+                FieldInfo? field = typeof(Data.Params).GetField(varName);
+                if (field is null) { continue; }
                 if (varType != field.FieldType.Name) {
                     throw new SaveLoadingException("Variables corrupted");
                 }
-                if (field is null) { continue; }
                 field.SetValue(gameState.gameParams, varValue);
             } else {
                 string fixedVarName = (varName == "monsterT2AlreadyHit" ? "m_monsterT2AlreadyHit" : varName);
-                FieldInfo field = typeof(Data.GlobalVars).GetField(fixedVarName);
+                FieldInfo? field = typeof(Data.GlobalVars).GetField(fixedVarName);
                 if (field is null) { continue; }
 
                 if (varType != field.FieldType.Name) {
@@ -467,11 +472,11 @@ public static class V0_13_Converter {
             for (int j = 0; j < 1024; ++j) {
                 // convert bit flags in old to new format that are doing same function
                 uint newFlags = ConvertCellFlags(reader.ReadUInt32());
-                Utils.ByteHelpers.WriteAt(gameState.worldData, worldDataIdx, newFlags);
+                BinaryPrimitives.WriteUInt32LittleEndian(gameState.worldData.AsSpan(worldDataIdx), newFlags);
 
                 // convert old item id to new ids
                 ushort contentId = ConvertItemId((short)reader.ReadUInt16());
-                Utils.ByteHelpers.WriteAt(gameState.worldData, worldDataIdx + 4, contentId);
+                BinaryPrimitives.WriteUInt32LittleEndian(gameState.worldData.AsSpan(worldDataIdx + 4), contentId);
 
                 // copy hp, water, forceX, forceY, lightR
                 _ = reader.Read(gameState.worldData, worldDataIdx + 6, 11);
@@ -836,7 +841,8 @@ public static class V1_11_Converter {
 
         BinaryFormatter formatter = BinaryFormatterHelpers.GetBinaryFormatter();
         foreach (FieldInfo field in typeof(Data.Params).GetFields()) {
-            object value = field.GetValue(gameState.gameParams);
+            object? value = field.GetValue(gameState.gameParams);
+            if (value is null) { throw new InvalidOperationException("Game parameter is null"); }
 
             writer.Write(field.Name);
             formatter.Serialize(writer.BaseStream, value);
@@ -934,7 +940,8 @@ public static class V1_11_Converter {
         writer.Write("Units Data"); // magic string
 
         foreach (FieldInfo field in typeof(Data.GlobalVars).GetFields()) {
-            object value = field.GetValue(gameState.globalVars);
+            object? value = field.GetValue(gameState.globalVars);
+            if (value is null) { throw new InvalidOperationException("Game global var is null"); }
 
             writer.Write(field.Name);
             formatter.Serialize(writer.BaseStream, value);
