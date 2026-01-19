@@ -9,29 +9,23 @@
 // - SDataSave.Save
 // - SDataSave.LoadData
 //
-// The original save files are stored in compressed form using the LZF compression algorithm, so you need to decompress them to use this pattern.
+// The original save files are stored in compressed form using the LZF compression algorithm, so firstly, you need to decompress them to use this pattern.
+// You can find a tool named "save-tool" in dig-or-die-mods Github repository that can help with that.
 //
-// Note that this pattern does not support viewing some sections in save file:
-// - Game Params Data (the data is serialized with C#'s BinaryFormatter, so it is hard/impossible to recreate)
-// - World Data (Includes large amount of data, so it is very hard to view and edit them + there are some problems with reverse engineering World Data format)
-// - Vars Data (the data is serialized with C#'s BinaryFormatter, so it is hard/impossible to recreate)
+// By default, World Data cells pattern is disabled.
+// You can enable it via setting menu in Pattern Editor (WARNING: It will take ~10 seconds to load pattern data).
 //
-// This pattern also supports different versions of the game and includes some corruption checking functionality.
+// This pattern also supports game version down to build 481 and includes some corruption checking functionality.
 //
 // General information about this binary format:
-// The file is split info 8 sections: Header, Game Params Data, Players, Environments, World Data, Units Data, Vars Data.
+// The file is split info 8 sections: Header, Params Data, Players, Environments, World Data, Units Data, Vars Data.
 // Each section has it's own magic string on the section end (and also every save file starts with magic string).
-// The game has backwards compatibility with older versions of the save files, so the pattern will dynamically parse some data depending on defined build id.
+// Uses C#'s BinaryFormatter serialized data to store save file "CParams" and "GVars" classes.
+// Contains padding between World Data columns that is computed dynamically (see "get_save_offset" function).
 
 import type.magic;
-import type.byte;
-import std.sys;
-import std.array;
-import std.mem;
-import std.string;
 
-u8 read_count = 0;
-s32 save_build = null;
+bool show_world_data_pattern in;
 
 fn get_save_offset(u32 x) {
     u32 hash = x * 0x9e3779b1U;
@@ -74,14 +68,10 @@ fn read_7_bit_encoded_int(u128 address) {
 struct EncodedInt7Bit {
     s32 number = read_7_bit_encoded_int($);
     std::assert(read_count < 5, "Too many bytes in what should have been a 7 bit encoded Int32");
-    u8 chunks[read_count] [[inline]];
+    u8 chunks[read_count];
 } [[format("format_encoded_int_7_bit"), transform("transform_encoded_int_7_bit"), sealed]];
-fn format_encoded_int_7_bit(ref auto value) {
-    return value.number;
-};
-fn transform_encoded_int_7_bit(ref auto value) {
-    return value.number;  
-};
+fn format_encoded_int_7_bit(ref auto value) { return value.number; };
+fn transform_encoded_int_7_bit(ref auto value) { return value.number; };
 
 struct String {
     EncodedInt7Bit length [[comment("C#'s strings length is encoded with 7-bit signed integer")]];
@@ -129,8 +119,6 @@ struct int2 {
 } [[format("format_int2")]];
 fn format_int2(ref int2 x) { return std::format("({}, {})", x.x, x.y); };
 
-int2 world_grid_size;
-
 fn format_item_id(auto id) {
     if (id == 0) {
         return "[empty]";
@@ -153,6 +141,10 @@ struct SaveDataHeader {
 struct ParamsField {
     String fieldName [[hidden]];
     
+    // 0 length denotes an end of list of fields
+    if (fieldName.length == 0) {
+        break;
+    }
     match (fieldName) {
         ("m_difficulty"): { padding[49]; s32 m_difficulty; }
         ("m_startCheated"): { padding[51]; bool m_startCheated; }
@@ -224,9 +216,7 @@ struct ParamsField {
 } [[inline]];
 
 struct GameParamsData {
-    // String with 0 length denotes an end of list of fields
-    ParamsField fields[while(std::mem::read_unsigned($, 1) != 0)] [[inline]];
-    padding[1]; // skip CParams field name sentinel
+    ParamsField fields[while(true)] [[inline]];
 
     MagicString<"Game Params Data">;
 };
@@ -304,6 +294,7 @@ struct PlayerSkin {
     Color24 color_hair [[single_color]];
     Color24 color_eyes [[single_color]];
 } [[static]];
+
 struct Player {
     u64 steam_id;
     String name;
@@ -383,15 +374,20 @@ struct Cell {
     // std::assert(sizeof(Cell) == 19, "");
 } [[static]];
 
-struct CellsRow {
+struct CellsColumn {
     padding[get_save_offset(std::core::array_index())];
-    Cell row[1024];
+    Cell row[world_grid_size.y];
 };
 
 struct WorldData {
-    // CellsRow columns[1024];
+    std::assert(world_grid_size.x >= 0, "Invalid world width");
+    std::assert(world_grid_size.y >= 0, "Invalid world height");
     
-    padding[total_save_offset(world_grid_size.x) + sizeof(Cell)*world_grid_size.x*world_grid_size.y];
+    if (show_world_data_pattern) {
+        CellsColumn columns[world_grid_size.x];
+    } else {
+        padding[total_save_offset(world_grid_size.x) + sizeof(Cell) * world_grid_size.x * world_grid_size.y];
+    }
     MagicString<"World Data">;
 };
 
@@ -476,8 +472,11 @@ fn format_ListOfStrings(ref auto list) {
 
 struct VarsField {
     String fieldName [[hidden]];
-    // std::print("{}", fieldName);
     
+    // 0 length denotes an end of list of fields
+    if (fieldName.length == 0) {
+        break;
+    }
     match (fieldName) {
         ("m_lastSaveDate"): { padding[22]; String m_lastSaveDate; }
         ("m_simuTimeD"): { padding[50]; double m_simuTimeD; }
@@ -523,12 +522,8 @@ struct VarsField {
 } [[inline]];
 
 struct VarsData {
-    // String with 0 length denotes an end of list of fields
-    VarsField fields[while(std::mem::read_unsigned($, 1) != 0)] [[inline]];
-    padding[1]; // skip CParams field name sentinel
+    VarsField fields[while(true)] [[inline]];
 
-    // $ = std::mem::find_string(0, "\x09Vars Data");
-    // std::assert($ >= 0, "Failed to find ending of the \"Vars Data\" section");
     MagicString<"Vars Data">;
 };
 
@@ -547,5 +542,12 @@ struct SaveData {
     UnitsData units_data [[name("Units Data")]];
     VarsData vars_data [[name("Vars Data"), comment("Contains C#'s BinaryFormatter serialized data")]];
 };
+
+u8 read_count = 0;
+s32 save_build = null;
+
+int2 world_grid_size = null; // default values in case "m_gridSize" does not exists in Params
+world_grid_size.x = 1024;
+world_grid_size.y = 1024;
 
 SaveData data @ 0x00 [[inline]];
