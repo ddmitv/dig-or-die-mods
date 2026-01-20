@@ -127,6 +127,63 @@ fn format_item_id(auto id) {
     }
 };
 
+enum BinFmtElement : u8 {
+    Header,
+    RefTypeObject,
+    UntypedRuntimeObject,
+    UntypedExternalObject,
+    RuntimeObject,
+    ExternalObject,
+    String,
+    GenericArray,
+    BoxedPrimitiveTypeValue,
+    ObjectReference,
+    NullValue,
+    End,
+    Assembly,
+    ArrayFiller8b,
+    ArrayFiller32b,
+    ArrayOfPrimitiveType,
+    ArrayOfObject,
+    ArrayOfString,
+    Method,
+    _Unknown4,
+    _Unknown5,
+    MethodCall,
+    MethodResponse
+};
+
+struct BinFmtString {
+    BinFmtElement object_type [[hidden]];
+    std::assert(object_type == BinFmtElement::String, "Invalid BinaryFormatter object type for System.String");
+    s32 object_id [[hidden]];
+    std::assert(object_id > 0, "Invalid BinaryFormatter object id");
+    String value [[inline]];
+} [[format("format_BFString")]];
+fn format_BFString(ref auto string) {
+    return std::format("\"{}\"", string.value);
+};
+
+// note: only works if there is no null gaps in array
+struct ListOfStrings {
+    s32 length; // list length
+    padding[9];
+    s32 capacity; // array length
+    BinFmtString strings[length];
+    
+    // skip null filler
+    match (capacity - length) {
+        (0): padding[0];
+        (1): padding[1];
+        (2 ... 255): padding[2];
+        (_): padding[5];
+    }
+    // std::print("len: {}, cap: {}, arr: {}", length, capacity, strings);
+} [[format("format_ListOfStrings")]];
+fn format_ListOfStrings(ref auto list) {
+    return list.length == 0 ? "[ empty ]" : std::format("[ ... ] (length: {})", list.length);
+};
+
 struct SaveDataHeader {
     float version;
     
@@ -153,11 +210,11 @@ struct ParamsField {
         ("m_shipPos"): { padding[64]; int2 m_shipPos; }
         ("m_gridSize"): { padding[64]; int2 m_gridSize; world_grid_size = m_gridSize; }
         ("m_seed"): { padding[49]; s32 m_seed; }
-        ("m_gameName"): { padding[22]; String m_gameName; }
+        ("m_gameName"): { padding[17]; BinFmtString m_gameName; }
         ("m_visibility"): { padding[49]; s32 m_visibility; }
-        ("m_passwordMD5"): { padding[22]; String m_passwordMD5; }
+        ("m_passwordMD5"): { padding[17]; BinFmtString m_passwordMD5; }
         ("m_hostId"): { padding[50]; u64 m_hostId; }
-        ("m_hostName"): { padding[22]; String m_hostName; }
+        ("m_hostName"): { padding[17]; BinFmtString m_hostName; }
         ("m_gameOverIfAllDead"): { padding[51]; bool m_gameOverIfAllDead; }
         ("m_nbPlayersMax"): { padding[49]; s32 m_nbPlayersMax; }
         ("m_clientGetHostItems"): { padding[51]; bool m_clientGetHostItems; }
@@ -208,11 +265,12 @@ struct ParamsField {
         ("m_monstersHpAddPerPlayer"): { padding[50]; float m_monstersHpAddPerPlayer; }
         ("m_monstersDamagesMult"): { padding[50]; float m_monstersDamagesMult; }
         ("m_monstersDamagesAddPerPlayer"): { padding[50]; float m_monstersDamagesAddPerPlayer; }
-        ("m_mod"): { padding[22]; String m_mod [[comment("Inherited from CDesc")]]; }
-        ("m_id"): { padding[22]; String m_id [[comment("Inherited from CDesc")]]; }
+        ("m_mod"): { padding[17]; BinFmtString m_mod [[comment("Inherited from CDesc")]]; }
+        ("m_id"): { padding[17]; BinFmtString m_id [[comment("Inherited from CDesc")]]; }
         ("m_idNum"): { padding[49]; s32 m_idNum [[comment("Inherited from CDesc")]]; }
     }
-    padding[1];
+    BinFmtElement object_type [[hidden]];
+    std::assert(object_type == BinFmtElement::End, "BinaryFormatter serialized data must end with 0x0B byte");
 } [[inline]];
 
 struct GameParamsData {
@@ -440,36 +498,6 @@ enum RocketStep : s32 {
     Liftoff
 };
 
-struct BinFmtString {
-    u8 object_type [[hidden]];
-    std::assert(object_type == 6, "Invalid object type for System.String");
-    s32 object_id [[hidden]];
-    String value [[inline]];
-} [[format("format_BFString")]];
-fn format_BFString(ref auto string) {
-    return std::format("\"{}\"", string.value);
-};
-
-// note: only works if there is no null gaps in array
-struct ListOfStrings {
-    s32 length; // list length
-    padding[9];
-    s32 capacity; // array length
-    BinFmtString strings[length];
-    
-    // skip null filler
-    match (capacity - length) {
-        (0): padding[0];
-        (1): padding[1];
-        (2 ... 255): padding[2];
-        (_): padding[5];
-    }
-    // std::print("len: {}, cap: {}, arr: {}", length, capacity, strings);
-} [[format("format_ListOfStrings")]];
-fn format_ListOfStrings(ref auto list) {
-    return list.length == 0 ? "[ empty ]" : std::format("[ ... ] (length: {})", list.length);
-};
-
 struct VarsField {
     String fieldName [[hidden]];
     
@@ -478,7 +506,7 @@ struct VarsField {
         break;
     }
     match (fieldName) {
-        ("m_lastSaveDate"): { padding[22]; String m_lastSaveDate; }
+        ("m_lastSaveDate"): { padding[17]; BinFmtString m_lastSaveDate; }
         ("m_simuTimeD"): { padding[50]; double m_simuTimeD; }
         ("m_worldTimeD"): { padding[50]; double m_worldTimeD; }
         ("m_clock"): { padding[50]; float m_clock; }
@@ -488,7 +516,7 @@ struct VarsField {
         ("m_eventIdNum"): { padding[49]; s32 m_eventIdNum; }
         ("m_eventStartTime"): { padding[50]; float m_eventStartTime; }
         ("m_lavaCycleSkipped"): { padding[51]; bool m_lavaCycleSkipped; }
-        ("m_bossAreas"): { padding[22]; String m_bossAreas; }
+        ("m_bossAreas"): { padding[17]; BinFmtString m_bossAreas; }
         ("m_monsterT2AlreadyHit"): { padding[51]; bool m_monsterT2AlreadyHit; }
         ("m_eruptionTime"): { padding[50]; float m_eruptionTime; }
         ("m_eruptionStartPressure"): { padding[50]; float m_eruptionStartPressure; }
@@ -518,7 +546,8 @@ struct VarsField {
         ("m_droneLastTimeDontEnter"): { padding[50]; float m_droneLastTimeDontEnter; }
         ("m_droneComboNb"): { padding[49]; s32 m_droneComboNb; }
     }
-    padding[1];
+    BinFmtElement object_type [[hidden]];
+    std::assert(object_type == BinFmtElement::End, "BinaryFormatter serialized data must end with 0x0B byte");
 } [[inline]];
 
 struct VarsData {
