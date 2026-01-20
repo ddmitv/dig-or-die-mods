@@ -49,29 +49,34 @@ fn lookup_code_name(s16 id) {
     return data.items_data.code_names[id - 1];
 };
 
-fn read_7_bit_encoded_int(u128 address) {
-    s32 num = 0;
-    s32 offset = 0;
-    u8 i;
-    for (i = 0, i < 5, i += 1) {
-        u8 chuck @ address + i;
-        num |= s32(chuck & 127) << offset;
-        offset += 7;
-        if ((chuck & 128) == 0) {
-            break;
-        }
-    }
-    read_count = i;
-    return num;    
-};
-
 struct EncodedInt7Bit {
-    s32 number = read_7_bit_encoded_int($);
-    std::assert(read_count < 5, "Too many bytes in what should have been a 7 bit encoded Int32");
-    u8 chunks[read_count];
-} [[format("format_encoded_int_7_bit"), transform("transform_encoded_int_7_bit"), sealed]];
-fn format_encoded_int_7_bit(ref auto value) { return value.number; };
-fn transform_encoded_int_7_bit(ref auto value) { return value.number; };
+    u8 chunks[while($ == addressof(this) || $[$-1] & 0x80 != 0)];
+
+    std::assert(sizeof(chunks) < 5, "Too many bytes in what should have been a 7 bit encoded Int32");
+} [[format("format_EncodedInt7Bit"), transform("transform_EncodedInt7Bit"), format_write("format_write_EncodedInt7Bit"), sealed]];
+
+fn transform_EncodedInt7Bit(ref auto x) {
+    u32 res = x.chunks[0] & 0x7F;
+    for (u8 i = 1, i < 5 && x.chunks[i-1] & 0x80 != 0, i += 1) {
+        res |= u32(x.chunks[i] & 0x7F) << (7 * i);
+    }
+    return res;
+};
+fn format_EncodedInt7Bit(ref auto x) { return u32(x); };
+
+fn format_write_EncodedInt7Bit(ref str s) {
+    auto value = std::string::parse_int(s, 10);
+    u8 bytes[5];
+    for (u8 i = 0, value != 0, i += 1) {
+        u8 chunk = u8(value & 127);
+        value = (value >> 7) & 0x1FFFFFF;
+        if (value != 0) {
+            chunk |= 0x80;
+        }
+        bytes[i] = chunk;
+    }
+    return bytes;
+};
 
 struct String {
     EncodedInt7Bit length [[comment("C#'s strings length is encoded with 7-bit signed integer")]];
