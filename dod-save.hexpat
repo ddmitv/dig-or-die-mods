@@ -133,29 +133,29 @@ fn format_item_id(auto id) {
 };
 
 enum BinFmtElement : u8 {
-    Header,
-    RefTypeObject,
-    UntypedRuntimeObject,
-    UntypedExternalObject,
-    RuntimeObject,
-    ExternalObject,
-    String,
-    GenericArray,
-    BoxedPrimitiveTypeValue,
-    ObjectReference,
-    NullValue,
-    End,
-    Assembly,
-    ArrayFiller8b,
-    ArrayFiller32b,
-    ArrayOfPrimitiveType,
-    ArrayOfObject,
-    ArrayOfString,
-    Method,
-    _Unknown4,
-    _Unknown5,
-    MethodCall,
-    MethodResponse
+    Header                 = 0x00,  // SerializationHeaderRecord
+    RefTypeObject          = 0x01,  // ClassWithMembersAndTypes
+    UntypedRuntimeObject   = 0x02,  // ClassWithMembers
+    UntypedExternalObject  = 0x03,  // SystemClassWithMembers
+    RuntimeObject          = 0x04,  // ClassWithId
+    ExternalObject         = 0x05,  // SystemClassWithMembersAndTypes
+    String                 = 0x06,  // BinaryObjectString
+    GenericArray           = 0x07,  // ClassWithMembersAndTypes (array variant)
+    BoxedPrimitiveTypeValue= 0x08,  // BinaryArray (primitive boxed types)
+    ObjectReference        = 0x09,  // MemberReference
+    NullValue              = 0x0A,  // NULL record
+    End                    = 0x0B,  // MessageEnd
+    Assembly               = 0x0C,  // Assembly
+    ArrayFiller8b          = 0x0D,  // BinaryArray (8-bit filler)
+    ArrayFiller32b         = 0x0E,  // BinaryArray (32-bit filler)
+    ArrayOfPrimitiveType   = 0x0F,  // BinaryArray (primitive types)
+    ArrayOfObject          = 0x10,  // BinaryArray (object references)
+    ArrayOfString          = 0x11,  // BinaryArray (strings)
+    Method                 = 0x12,  // MethodCall / MethodReturn wrapper
+    _Unknown4              = 0x13,  // Reserved/unused in public specs
+    _Unknown5              = 0x14,  // Reserved/unused in public specs
+    MethodCall             = 0x15,  // MethodCall record
+    MethodResponse         = 0x16   // MethodReturn record
 };
 
 struct BinFmtString {
@@ -496,11 +496,11 @@ struct UnitsData {
 };
 
 enum RocketStep : s32 {
-    _Inactive,
-    Count0_50,
-    Count50_Wait,
-    Count50to100,
-    Liftoff
+    _Inactive = 0x00,
+    Count0_50 = 0x01,
+    Count50_Wait = 0x02,
+    Count50to100 = 0x03,
+    Liftoff = 0x04
 };
 
 struct VarsField {
