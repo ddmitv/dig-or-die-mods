@@ -82,6 +82,11 @@ public struct Player() {
     public ItemVar?[] itemVars = [];
 }
 public struct Params() {
+    // flattened from CDesc
+    public string m_mod = "Solo";
+    public string m_id = "params";
+    public int m_idNum = 0;
+
     public int m_difficulty;
     public bool m_startCheated;
     public bool m_eventsActive;
@@ -145,12 +150,7 @@ public struct Params() {
     public float m_monstersDamagesMult = 1f;
     public float m_monstersDamagesAddPerPlayer = 0.1f;
 }
-public struct GlobalVars() {
-    // flattened from CDesc
-    public string m_mod = "Solo";
-    public string m_id = "params";
-    public int m_idNum = 0;
-
+public struct Vars() {
     public string m_lastSaveDate = "";
     public double m_simuTimeD = 0.0;
     public double m_worldTimeD = 0.0;
@@ -212,5 +212,5 @@ public class GameState {
     public byte[] worldData = [];
     public Unit[] units = [];
     public SpeciesKillsInfo[] speciesKilled = [];
-    public GlobalVars vars = new();
+    public Vars vars = new();
 }

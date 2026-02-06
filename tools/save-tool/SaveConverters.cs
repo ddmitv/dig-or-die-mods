@@ -56,22 +56,6 @@ public static class BinaryFormatterHelpers {
             }
             return null;
         }
-
-        public override void BindToName(Type serializedType, out string? assemblyName, out string? typeName) {
-            if (serializedType == typeof(Data.int2)) {
-                assemblyName = "Assembly-CSharp";
-                typeName = "int2";
-            } else if (serializedType == typeof(Data.Vector2)) {
-                assemblyName = "UnityEngine";
-                typeName = "UnityEngine.Vector2";
-            } else if (serializedType == typeof(Data.GlobalVars.RocketStep)) {
-                assemblyName = "Assembly-CSharp";
-                typeName = "GVars/RocketStep";
-            } else {
-                assemblyName = null;
-                typeName = null;
-            }
-        }
     }
     public static BinaryFormatter GetBinaryFormatter() {
         var surrogateSelector = new SurrogateSelector();
@@ -226,7 +210,7 @@ public static class V0_25_Converter {
                 field.SetValue(gameState.@params, varValue);
             } else {
                 string fixedVarName = (varName == "monsterT2AlreadyHit" ? "m_monsterT2AlreadyHit" : varName);
-                FieldInfo? field = typeof(Data.GlobalVars).GetField(fixedVarName);
+                FieldInfo? field = typeof(Data.Vars).GetField(fixedVarName);
                 if (field is null) { continue; }
 
                 if (varType != field.FieldType.Name) {
