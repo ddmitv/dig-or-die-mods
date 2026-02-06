@@ -204,7 +204,7 @@ public class GameState {
     public float version = 1.1f;
     public int versionBuild = 1000;
     public string modeName = "";
-    public Params gameParams = new();
+    public Params @params = new();
     public string[] itemsInSave = [];
     public Pickup[] pickups = [];
     public Player[] players = [];
@@ -212,5 +212,5 @@ public class GameState {
     public byte[] worldData = [];
     public Unit[] units = [];
     public SpeciesKillsInfo[] speciesKilled = [];
-    public GlobalVars globalVars = new();
+    public GlobalVars vars = new();
 }

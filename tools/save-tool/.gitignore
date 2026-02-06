@@ -5,4 +5,5 @@
 !Main.cs
 !GameState.cs
 !SaveConverters.cs
+!BinFmtData.cs
 !save-tools.csproj
