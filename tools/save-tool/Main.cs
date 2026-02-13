@@ -255,7 +255,7 @@ Usage: save-tool <source> [options]
         }
         try {
             return PerformAction(parsedArgs, rawData);
-        } catch (Exception ex) {
+        } catch (Exception ex) when (!Debugger.IsAttached) {
             Console.Error.WriteLine($"Error while performing action: {ex.Message.ToLowerFirstChar()}");
             return 1;
         }

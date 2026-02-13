@@ -8,8 +8,9 @@ namespace SaveTool;
 
 // writes values in .NET BinaryFormatter serialization format without using the unsafe BinaryFormatter implementation.
 // uses hardcoded serialization headers to produce compatible binary output for simple types.
-public static class BinFmtData {
+public static class BinFmtCodec {
     #region BinaryFormatter magic constants
+    // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-nrbf/de6a574b-c596-4d83-9df7-63c0077acd32
     private const byte messageEndTag = 0x0B;
 
     private static readonly byte[] intMagic = {
@@ -36,7 +37,7 @@ public static class BinFmtData {
         0x6E, 0x67, 0x6C, 0x65, 0x01, 0x00, 0x00, 0x00, 0x07, 0x6D, 0x5F, 0x76, 0x61, 0x6C, 0x75, 0x65,
         0x00, 0x0B,
     };
-    private static readonly byte[] ushort16Magic = {
+    private static readonly byte[] ushortMagic = {
         0x00, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x04, 0x01, 0x00, 0x00, 0x00, 0x0D, 0x53, 0x79, 0x73, 0x74, 0x65, 0x6D, 0x2E, 0x55, 0x49,
         0x6E, 0x74, 0x31, 0x36, 0x01, 0x00, 0x00, 0x00, 0x07, 0x6D, 0x5F, 0x76, 0x61, 0x6C, 0x75, 0x65,
@@ -62,7 +63,7 @@ public static class BinFmtData {
         0x73, 0x2B, 0x52, 0x6F, 0x63, 0x6B, 0x65, 0x74, 0x53, 0x74, 0x65, 0x70, 0x01, 0x00, 0x00, 0x00,
         0x07, 0x76, 0x61, 0x6C, 0x75, 0x65, 0x5F, 0x5F, 0x00, 0x08, 0x02, 0x00, 0x00, 0x00,
     };
-    private static readonly byte[] stringListMagic1 = {
+    private static readonly byte[] stringListMagic1_v2050 = {
         0x00, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x04, 0x01, 0x00, 0x00, 0x00, 0x7F, 0x53, 0x79, 0x73, 0x74, 0x65, 0x6D, 0x2E, 0x43, 0x6F,
         0x6C, 0x6C, 0x65, 0x63, 0x74, 0x69, 0x6F, 0x6E, 0x73, 0x2E, 0x47, 0x65, 0x6E, 0x65, 0x72, 0x69,
@@ -76,8 +77,25 @@ public static class BinFmtData {
         0x73, 0x05, 0x5F, 0x73, 0x69, 0x7A, 0x65, 0x08, 0x5F, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6F, 0x6E,
         0x06, 0x00, 0x00, 0x08, 0x08, 0x09, 0x02, 0x00, 0x00, 0x00,
     };
-    private static readonly byte[] stringListMagic2 = {
+    private static readonly byte[] stringListMagic1_v2000 = {
+        0x00, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x04, 0x01, 0x00, 0x00, 0x00, 0x7F, 0x53, 0x79, 0x73, 0x74, 0x65, 0x6D, 0x2E, 0x43, 0x6F,
+        0x6C, 0x6C, 0x65, 0x63, 0x74, 0x69, 0x6F, 0x6E, 0x73, 0x2E, 0x47, 0x65, 0x6E, 0x65, 0x72, 0x69,
+        0x63, 0x2E, 0x4C, 0x69, 0x73, 0x74, 0x60, 0x31, 0x5B, 0x5B, 0x53, 0x79, 0x73, 0x74, 0x65, 0x6D,
+        0x2E, 0x53, 0x74, 0x72, 0x69, 0x6E, 0x67, 0x2C, 0x20, 0x6D, 0x73, 0x63, 0x6F, 0x72, 0x6C, 0x69,
+        0x62, 0x2C, 0x20, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6F, 0x6E, 0x3D, 0x32, 0x2E, 0x30, 0x2E, 0x30,
+        0x2E, 0x30, 0x2C, 0x20, 0x43, 0x75, 0x6C, 0x74, 0x75, 0x72, 0x65, 0x3D, 0x6E, 0x65, 0x75, 0x74,
+        0x72, 0x61, 0x6C, 0x2C, 0x20, 0x50, 0x75, 0x62, 0x6C, 0x69, 0x63, 0x4B, 0x65, 0x79, 0x54, 0x6F,
+        0x6B, 0x65, 0x6E, 0x3D, 0x62, 0x37, 0x37, 0x61, 0x35, 0x63, 0x35, 0x36, 0x31, 0x39, 0x33, 0x34,
+        0x65, 0x30, 0x38, 0x39, 0x5D, 0x5D, 0x03, 0x00, 0x00, 0x00, 0x06, 0x5F, 0x69, 0x74, 0x65, 0x6D,
+        0x73, 0x05, 0x5F, 0x73, 0x69, 0x7A, 0x65, 0x08, 0x5F, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6F, 0x6E,
+        0x06, 0x00, 0x00, 0x08, 0x08, 0x09, 0x02, 0x00, 0x00, 0x00
+    };
+    private static readonly byte[] stringListMagic2_v2050 = {
         0x0A, 0x00, 0x00, 0x00, 0x11, 0x02, 0x00, 0x00, 0x00,
+    };
+    private static readonly byte[] stringListMagic2_v2000 = {
+        0x02, 0x00, 0x00, 0x00, 0x11, 0x02, 0x00, 0x00, 0x00,
     };
     private static readonly byte[] stringMagic = {
         0x00, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -112,7 +130,7 @@ public static class BinFmtData {
         writer.Write(messageEndTag);
     }
     public static void WriteUShort(BinaryWriter writer, ushort value) {
-        writer.Write(ushort16Magic);
+        writer.Write(ushortMagic);
         writer.Write(value);
         writer.Write(messageEndTag);
     }
@@ -128,15 +146,15 @@ public static class BinFmtData {
         writer.Write((float)value.y);
         writer.Write(messageEndTag);
     }
-    public static void WriteRocketStep(BinaryWriter writer, Vars.RocketStep rocketStepEnum) {
+    public static void WriteRocketStepEnum(BinaryWriter writer, Vars.RocketStep rocketStepEnum) {
         writer.Write(rocketStepMagic);
         writer.Write((int)rocketStepEnum);
         writer.Write(messageEndTag);
     }
-    public static void WriteStringList(BinaryWriter writer, List<string> strings) {
-        writer.Write(stringListMagic1);
+    public static void WriteStringList_v2050(BinaryWriter writer, List<string> strings) {
+        writer.Write(stringListMagic1_v2050);
         writer.Write((int)strings.Count); // list length
-        writer.Write(stringListMagic2);
+        writer.Write(stringListMagic2_v2050);
         writer.Write((int)strings.Count); // list capacity
 
         const byte recordTypeString = 0x06;
@@ -161,5 +179,146 @@ public static class BinFmtData {
         writer.Write(ulongMagic);
         writer.Write(value);
         writer.Write(messageEndTag);
+    }
+
+    private static void CheckMagic(BinaryReader reader, byte[] magic) {
+        for (int i = 0; i < magic.Length; i++) {
+            byte b = reader.ReadByte();
+            if (b != magic[i]) {
+                throw new InvalidDataException($"BinaryFormatter magic mismatch: expected 0x{magic[i]:X2}, got 0x{b:X2}");
+            }
+        }
+    }
+    private static void CheckMessageEndTag(BinaryReader reader) {
+        byte b = reader.ReadByte();
+        if (b != messageEndTag) {
+            throw new InvalidDataException($"BinaryFormatter message end tag mismatch: expected 0x{messageEndTag:X2}, got 0x{b:X2}");
+        }
+    }
+    private static void CheckMagicByte(BinaryReader reader, byte magic) {
+        byte b = reader.ReadByte();
+        if (b != magic) {
+            throw new InvalidDataException($"BinaryFormatter magic mismatch: expected 0x{magic:X2}, got 0x{b:X2}");
+        }
+    }
+
+    public static int ReadInt(BinaryReader reader) {
+        CheckMagic(reader, intMagic);
+        int result = reader.ReadInt32();
+        CheckMessageEndTag(reader);
+        return result;
+    }
+    public static bool ReadBool(BinaryReader reader) {
+        CheckMagic(reader, boolMagic);
+        bool result = reader.ReadBoolean();
+        CheckMessageEndTag(reader);
+        return result;
+    }
+    public static double ReadDouble(BinaryReader reader) {
+        CheckMagic(reader, doubleMagic);
+        double result = reader.ReadDouble();
+        CheckMessageEndTag(reader);
+        return result;
+    }
+    public static float ReadFloat(BinaryReader reader) {
+        CheckMagic(reader, floatMagic);
+        float result = reader.ReadSingle();
+        CheckMessageEndTag(reader);
+        return result;
+    }
+    public static ushort ReadUShort(BinaryReader reader) {
+        CheckMagic(reader, ushortMagic);
+        ushort result = reader.ReadUInt16();
+        CheckMessageEndTag(reader);
+        return result;
+    }
+    public static int2 ReadInt2(BinaryReader reader) {
+        CheckMagic(reader, int2Magic);
+        int x = reader.ReadInt32();
+        int y = reader.ReadInt32();
+        CheckMessageEndTag(reader);
+        return new int2(x, y);
+    }
+    public static Vector2 ReadVector2(BinaryReader reader) {
+        CheckMagic(reader, vector2Magic);
+        float x = reader.ReadSingle();
+        float y = reader.ReadSingle();
+        CheckMessageEndTag(reader);
+        return new Vector2(x, y);
+    }
+    public static Vars.RocketStep ReadRocketStepEnum(BinaryReader reader) {
+        CheckMagic(reader, rocketStepMagic);
+        Vars.RocketStep result = (Vars.RocketStep)reader.ReadInt32();
+        CheckMessageEndTag(reader);
+        if (!Enum.IsDefined<Vars.RocketStep>(result)) {
+            throw new InvalidDataException($"Value {result} for RocketStep enum is not defined");
+        }
+        return result;
+    }
+    public static List<string> ReadStringList_v2000(BinaryReader reader) {
+        CheckMagic(reader, stringListMagic1_v2000);
+        int listLength = reader.ReadInt32();
+        CheckMagic(reader, stringListMagic2_v2000);
+        int listCapacity = reader.ReadInt32();
+
+        if (listLength > listCapacity) {
+            throw new InvalidDataException($"Illegal list state: length ({listLength}) > capacity ({listCapacity})");
+        }
+        List<string> result = new(); // cannot trust listLength and listCapacity
+
+        const byte recordTypeString = 0x06;
+        int expectedObjectId = 3;
+        for (int i = 0; i < listLength; ++i) {
+            byte recordType = reader.ReadByte();
+            if (recordType != recordTypeString) {
+                throw new InvalidDataException($"Expected object record type: {recordTypeString}, got: {recordType}");
+            }
+            int objectId = reader.ReadInt32();
+            if (objectId != expectedObjectId) {
+                throw new InvalidDataException($"Expected string object ID: {expectedObjectId}, got: {objectId}");
+            }
+            result.Add(reader.ReadString());
+            expectedObjectId += 1;
+        }
+        const byte nullValueElem = 0x0A;
+        const byte arrayFiller8bElem = 0x0D;
+        const byte arrayFiller32bElem = 0x0E;
+
+        int numNulls = listCapacity - listLength;
+        if (numNulls == 0) {
+            // skip
+        } else if (numNulls == 1) {
+            CheckMagicByte(reader, nullValueElem);
+        } else if (numNulls == 2) {
+            CheckMagicByte(reader, nullValueElem);
+            CheckMagicByte(reader, nullValueElem);
+        } else if (numNulls <= 255) {
+            CheckMagicByte(reader, arrayFiller8bElem);
+            byte actualNumNulls = reader.ReadByte();
+            if (actualNumNulls != numNulls) {
+                throw new InvalidDataException($"Invalid number of null fillers. Expected: {numNulls}, got: {actualNumNulls}");
+            }
+        } else {
+            CheckMagicByte(reader, arrayFiller32bElem);
+            int actualNumNulls = reader.ReadInt32();
+            if (actualNumNulls != numNulls) {
+                throw new InvalidDataException($"Invalid number of null fillers. Expected: {numNulls}, got: {actualNumNulls}");
+            }
+        }
+        CheckMessageEndTag(reader);
+
+        return result;
+    }
+    public static string ReadString(BinaryReader reader) {
+        CheckMagic(reader, stringMagic);
+        string result = reader.ReadString();
+        CheckMessageEndTag(reader);
+        return result;
+    }
+    public static ulong ReadULong(BinaryReader reader) {
+        CheckMagic(reader, ulongMagic);
+        ulong result = reader.ReadUInt64();
+        CheckMessageEndTag(reader);
+        return result;
     }
 }

@@ -3,72 +3,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Runtime.CompilerServices;
 using System.Buffers.Binary;
 using SaveTool.Data;
 
-#pragma warning disable SYSLIB0050
-#pragma warning disable SYSLIB0011 // Type or member is obsolete
-
-
 namespace SaveTool;
 
-// Version = 0.25 (build 301)
-
 public class SaveLoadingException(string message) : Exception(message) { }
-
-public class UnsafeDeserializationException(string assemblyName, string typeName)
-    : Exception($"Unsafe deserialization from type '{typeName}', assembly: '{assemblyName}'") { }
-
-public static class BinaryFormatterHelpers {
-    private sealed class Vector2_SerializationSurrogate : ISerializationSurrogate {
-        public void GetObjectData(object obj, SerializationInfo info, StreamingContext context) {
-            info.AddValue("x", ((Data.Vector2)obj).x);
-            info.AddValue("y", ((Data.Vector2)obj).y);
-        }
-        public object SetObjectData(object obj, SerializationInfo info, StreamingContext context, ISurrogateSelector? selector) {
-            return new Data.Vector2(info.GetSingle("x"), info.GetSingle("y"));
-        }
-    }
-    private sealed class FormatterBinder : SerializationBinder {
-        private static readonly HashSet<string> _allowedTypes = [
-            "System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
-            "System.Double, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
-            "System.Single, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
-            "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
-            "System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
-            "System.Collections.Generic.List`1[[System.String, mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
-            "int2, Assembly-CSharp",
-            "UnityEngine.Vector2, UnityEngine",
-        ];
-
-        public override Type? BindToType(string assemblyName, string typeName) {
-            if (!_allowedTypes.Contains($"{typeName}, {assemblyName}")) {
-                throw new UnsafeDeserializationException(assemblyName, typeName);
-            }
-            if (typeName == "int2" && assemblyName == "Assembly-CSharp") {
-                return typeof(Data.int2);
-            }
-            if (typeName == "UnityEngine.Vector2" && assemblyName == "UnityEngine") {
-                return typeof(Data.Vector2);
-            }
-            return null;
-        }
-    }
-    public static BinaryFormatter GetBinaryFormatter() {
-        var surrogateSelector = new SurrogateSelector();
-        surrogateSelector.AddSurrogate(typeof(Data.Vector2),
-            new StreamingContext(StreamingContextStates.All),
-            new Vector2_SerializationSurrogate());
-
-        return new BinaryFormatter() {
-            SurrogateSelector = surrogateSelector,
-            Binder = new FormatterBinder()
-        };
-    }
-}
 
 public static class V0_25_Converter {
     private static bool IsUnitMonster(string unitCodeName) {
@@ -190,35 +131,180 @@ public static class V0_25_Converter {
         if (reader.ReadString() != "Units Data") { // magic string
             throw new SaveLoadingException("Units Data");
         }
-        BinaryFormatter formatter = BinaryFormatterHelpers.GetBinaryFormatter();
+        static void CheckVarType(string actual, string expected) {
+            if (actual != expected) {
+                throw new SaveLoadingException($"Mismatched field type: expected '{expected}', got '{actual}'");
+            }
+        }
+
+        ref var @params = ref gameState.@params;
+        ref var vars = ref gameState.vars;
+
+        float oldRocketActivationTime = float.MinValue;
+        float oldRocketEnterTime = float.MinValue;
+        float oldRocketLaunchTime = float.MinValue;
+
         int varsCount = reader.ReadInt32();
         for (int i = 0; i < varsCount; ++i) {
             string varName = reader.ReadString();
             string varType = reader.ReadString();
-            object varValue = formatter.Deserialize(reader.BaseStream);
 
-            // ignore these field because there's no equivalents for them (maybe m_cinematicRocketStep or m_cinematicRocketStepStartTime?)
-            if (varName is "m_cinematicRocketActivationTime" or "m_cinematicRocketEnterTime" or "m_cinematicRocketLaunchTime") {
-                continue;
-            }
-            if (varName is "m_difficulty" or "m_seed" or "m_shipPos") {
-                FieldInfo? field = typeof(Data.Params).GetField(varName);
-                if (field is null) { continue; }
-                if (varType != field.FieldType.Name) {
-                    throw new SaveLoadingException("Variables corrupted");
-                }
-                field.SetValue(gameState.@params, varValue);
-            } else {
-                string fixedVarName = (varName == "monsterT2AlreadyHit" ? "m_monsterT2AlreadyHit" : varName);
-                FieldInfo? field = typeof(Data.Vars).GetField(fixedVarName);
-                if (field is null) { continue; }
-
-                if (varType != field.FieldType.Name) {
-                    throw new SaveLoadingException("Variables corrupted");
-                }
-                field.SetValue(gameState.vars, varValue);
+            switch (varName) {
+            case "m_difficulty":
+                CheckVarType(varType, "Int32");
+                @params.m_difficulty = BinFmtCodec.ReadInt(reader);
+                break;
+            case "m_seed":
+                CheckVarType(varType, "Int32");
+                @params.m_seed = BinFmtCodec.ReadInt(reader);
+                break;
+            case "m_shipPos":
+                CheckVarType(varType, "int2");
+                @params.m_shipPos = BinFmtCodec.ReadInt2(reader);
+                break;
+            case "m_lastSaveDate":
+                CheckVarType(varType, "String");
+                vars.m_lastSaveDate = BinFmtCodec.ReadString(reader);
+                break;
+            case "m_simuTimeD":
+                CheckVarType(varType, "Double");
+                vars.m_simuTimeD = BinFmtCodec.ReadDouble(reader);
+                break;
+            case "m_worldTimeD":
+                CheckVarType(varType, "Double");
+                vars.m_worldTimeD = BinFmtCodec.ReadDouble(reader);
+                break;
+            case "m_clock":
+                CheckVarType(varType, "Single");
+                vars.m_clock = BinFmtCodec.ReadFloat(reader);
+                break;
+            case "monsterT2AlreadyHit":
+                CheckVarType(varType, "Boolean");
+                vars.m_monsterT2AlreadyHit = BinFmtCodec.ReadBool(reader);
+                break;
+            case "m_eruptionTime":
+                CheckVarType(varType, "Single");
+                vars.m_eruptionTime = BinFmtCodec.ReadFloat(reader);
+                break;
+            case "m_eruptionStartPressure":
+                CheckVarType(varType, "Single");
+                vars.m_eruptionStartPressure = BinFmtCodec.ReadFloat(reader);
+                break;
+            case "m_brokenHeart":
+                CheckVarType(varType, "Boolean");
+                vars.m_brokenHeart = BinFmtCodec.ReadBool(reader);
+                break;
+            case "m_cinematicIntroTime":
+                CheckVarType(varType, "Single");
+                vars.m_cinematicIntroTime = BinFmtCodec.ReadFloat(reader);
+                break;
+            case "m_cinematicRocketActivationTime":
+                CheckVarType(varType, "Single");
+                oldRocketActivationTime = BinFmtCodec.ReadFloat(reader);
+                break;
+            case "m_cinematicRocketEnterTime":
+                CheckVarType(varType, "Single");
+                oldRocketEnterTime = BinFmtCodec.ReadFloat(reader);
+                break;
+            case "m_cinematicRocketLaunchTime":
+                CheckVarType(varType, "Single");
+                oldRocketLaunchTime = BinFmtCodec.ReadFloat(reader);
+                break;
+            case "m_cinematicRocketPos":
+                CheckVarType(varType, "Vector2");
+                vars.m_cinematicRocketPos = BinFmtCodec.ReadVector2(reader);
+                break;
+            case "m_postGame":
+                CheckVarType(varType, "Boolean");
+                vars.m_postGame = BinFmtCodec.ReadBool(reader);
+                break;
+            case "m_autoBuilderLastTimeFound":
+                CheckVarType(varType, "Single");
+                vars.m_autoBuilderLastTimeFound = BinFmtCodec.ReadFloat(reader);
+                break;
+            case "m_achievNoElectricity":
+                CheckVarType(varType, "Boolean");
+                vars.m_achievNoElectricity = BinFmtCodec.ReadBool(reader);
+                break;
+            case "m_achievNoShoot":
+                CheckVarType(varType, "Boolean");
+                vars.m_achievNoShoot = BinFmtCodec.ReadBool(reader);
+                break;
+            case "m_achievNoCraft":
+                CheckVarType(varType, "Boolean");
+                vars.m_achievNoCraft = BinFmtCodec.ReadBool(reader);
+                break;
+            case "m_achievNoMK2":
+                CheckVarType(varType, "Boolean");
+                vars.m_achievNoMK2 = BinFmtCodec.ReadBool(reader);
+                break;
+            case "m_achievWentToSea":
+                CheckVarType(varType, "Boolean");
+                vars.m_achievWentToSea = BinFmtCodec.ReadBool(reader);
+                break;
+            case "m_achievEarlyDive":
+                CheckVarType(varType, "Boolean");
+                vars.m_achievEarlyDive = BinFmtCodec.ReadBool(reader);
+                break;
+            case "m_aiSentencesTold":
+                CheckVarType(varType, "List`1");
+                vars.m_aiSentencesTold = BinFmtCodec.ReadStringList_v2000(reader);
+                break;
+            case "m_autoBuilderLevelBuilt":
+                CheckVarType(varType, "Int32");
+                vars.m_autoBuilderLevelBuilt = BinFmtCodec.ReadInt(reader);
+                break;
+            case "m_nbNightsSurvived":
+                CheckVarType(varType, "Int32");
+                vars.m_nbNightsSurvived = BinFmtCodec.ReadInt(reader);
+                break;
+            case "m_bossKilled_Madcrab":
+                CheckVarType(varType, "Boolean");
+                vars.m_bossKilled_Madcrab = BinFmtCodec.ReadBool(reader);
+                break;
+            case "m_bossKilled_FireflyQueen":
+                CheckVarType(varType, "Boolean");
+                vars.m_bossKilled_FireflyQueen = BinFmtCodec.ReadBool(reader);
+                break;
+            case "m_bossKilled_DwellerLord":
+                CheckVarType(varType, "Boolean");
+                vars.m_bossKilled_DwellerLord = BinFmtCodec.ReadBool(reader);
+                break;
+            case "m_bossKilled_Balrog":
+                CheckVarType(varType, "Boolean");
+                vars.m_bossKilled_Balrog = BinFmtCodec.ReadBool(reader);
+                break;
+            case "m_droneLastTimeEnters":
+                CheckVarType(varType, "Single");
+                vars.m_droneLastTimeEnters = BinFmtCodec.ReadFloat(reader);
+                break;
+            case "m_droneLastTimeDontEnter":
+                CheckVarType(varType, "Single");
+                vars.m_droneLastTimeDontEnter = BinFmtCodec.ReadFloat(reader);
+                break;
+            case "m_droneComboNb":
+                CheckVarType(varType, "Int32");
+                vars.m_droneComboNb = BinFmtCodec.ReadInt(reader);
+                break;
+            default:
+                throw new SaveLoadingException($"Unusual field name: '{varName}'");
             }
         }
+        // note: no mapping for RocketStep.Count50to100 since v0.25 didn't have a distinct 50->100% counting phase
+        if (oldRocketLaunchTime > 0f) {
+            vars.m_cinematicRocketStep = Vars.RocketStep.Liftoff;
+            vars.m_cinematicRocketStepStartTime = oldRocketLaunchTime;
+        } else if (oldRocketEnterTime > 0f) {
+            vars.m_cinematicRocketStep = Vars.RocketStep.Count50_Wait;
+            vars.m_cinematicRocketStepStartTime = oldRocketEnterTime;
+        } else if (oldRocketActivationTime > 0f) {
+            vars.m_cinematicRocketStep = Vars.RocketStep.Count0_50;
+            vars.m_cinematicRocketStepStartTime = oldRocketActivationTime;
+        } else {
+            vars.m_cinematicRocketStep = Vars.RocketStep._Inactive;
+            vars.m_cinematicRocketStepStartTime = float.MinValue;
+        }
+
         if (reader.ReadString() != "Vars Data") { // magic string
             throw new SaveLoadingException("Vars Data");
         }
@@ -825,68 +911,68 @@ public static class V1_11_Converter {
         writer.Write("Header"); // magic string
 
         ref readonly var @params = ref gameState.@params;
-        writer.Write("m_difficulty"); BinFmtData.WriteInt(writer, @params.m_difficulty);
-        writer.Write("m_startCheated"); BinFmtData.WriteBool(writer, @params.m_startCheated);
-        writer.Write("m_eventsActive"); BinFmtData.WriteBool(writer, @params.m_eventsActive);
-        writer.Write("m_spawnPos"); BinFmtData.WriteInt2(writer, @params.m_spawnPos);
-        writer.Write("m_shipPos"); BinFmtData.WriteInt2(writer, @params.m_shipPos);
-        writer.Write("m_gridSize"); BinFmtData.WriteInt2(writer, @params.m_gridSize);
-        writer.Write("m_seed"); BinFmtData.WriteInt(writer, @params.m_seed);
-        writer.Write("m_gameName"); BinFmtData.WriteString(writer, @params.m_gameName);
-        writer.Write("m_visibility"); BinFmtData.WriteInt(writer, @params.m_visibility);
-        writer.Write("m_passwordMD5"); BinFmtData.WriteString(writer, @params.m_passwordMD5);
-        writer.Write("m_hostId"); BinFmtData.WriteULong(writer, @params.m_hostId);
-        writer.Write("m_hostName"); BinFmtData.WriteString(writer, @params.m_hostName);
-        writer.Write("m_gameOverIfAllDead"); BinFmtData.WriteBool(writer, @params.m_gameOverIfAllDead);
-        writer.Write("m_nbPlayersMax"); BinFmtData.WriteInt(writer, @params.m_nbPlayersMax);
-        writer.Write("m_clientGetHostItems"); BinFmtData.WriteBool(writer, @params.m_clientGetHostItems);
-        writer.Write("m_banGiveLootToHost"); BinFmtData.WriteBool(writer, @params.m_banGiveLootToHost);
-        writer.Write("m_devMode"); BinFmtData.WriteBool(writer, @params.m_devMode);
-        writer.Write("m_checkMinerals"); BinFmtData.WriteBool(writer, @params.m_checkMinerals);
-        writer.Write("m_dynamicSpawn"); BinFmtData.WriteBool(writer, @params.m_dynamicSpawn);
-        writer.Write("m_cloudCycleDistance"); BinFmtData.WriteFloat(writer, @params.m_cloudCycleDistance);
-        writer.Write("m_cloudCycleDuration"); BinFmtData.WriteFloat(writer, @params.m_cloudCycleDuration);
-        writer.Write("m_cloudRadius"); BinFmtData.WriteFloat(writer, @params.m_cloudRadius);
-        writer.Write("m_rainQuantity"); BinFmtData.WriteFloat(writer, @params.m_rainQuantity);
-        writer.Write("m_generationOreDiv"); BinFmtData.WriteFloat(writer, @params.m_generationOreDiv);
-        writer.Write("m_weightMult"); BinFmtData.WriteFloat(writer, @params.m_weightMult);
-        writer.Write("m_dropChanceMult"); BinFmtData.WriteFloat(writer, @params.m_dropChanceMult);
-        writer.Write("m_lavaPressureBottomCycle"); BinFmtData.WriteFloat(writer, @params.m_lavaPressureBottomCycle);
-        writer.Write("m_lavaPressureTopCycle"); BinFmtData.WriteFloat(writer, @params.m_lavaPressureTopCycle);
-        writer.Write("m_eruptionDurationTotal"); BinFmtData.WriteFloat(writer, @params.m_eruptionDurationTotal);
-        writer.Write("m_eruptionDurationAcc"); BinFmtData.WriteFloat(writer, @params.m_eruptionDurationAcc);
-        writer.Write("m_eruptionDurationUp"); BinFmtData.WriteFloat(writer, @params.m_eruptionDurationUp);
-        writer.Write("m_eruptionPressure"); BinFmtData.WriteFloat(writer, @params.m_eruptionPressure);
-        writer.Write("m_eruptionCheckMinY"); BinFmtData.WriteFloat(writer, @params.m_eruptionCheckMinY);
-        writer.Write("m_dayDurationTotal"); BinFmtData.WriteFloat(writer, @params.m_dayDurationTotal);
-        writer.Write("m_nightDuration"); BinFmtData.WriteFloat(writer, @params.m_nightDuration);
-        writer.Write("m_gravityPlayers"); BinFmtData.WriteFloat(writer, @params.m_gravityPlayers);
-        writer.Write("m_eventsDelayMin"); BinFmtData.WriteFloat(writer, @params.m_eventsDelayMin);
-        writer.Write("m_eventsDelayMax"); BinFmtData.WriteFloat(writer, @params.m_eventsDelayMax);
-        writer.Write("m_rocketPreparationDuration"); BinFmtData.WriteInt(writer, @params.m_rocketPreparationDuration);
-        writer.Write("m_speedSimu"); BinFmtData.WriteFloat(writer, @params.m_speedSimu);
-        writer.Write("m_speedSimuWorld"); BinFmtData.WriteFloat(writer, @params.m_speedSimuWorld);
-        writer.Write("m_speedSimuWorldLocked"); BinFmtData.WriteBool(writer, @params.m_speedSimuWorldLocked);
-        writer.Write("m_rainY"); BinFmtData.WriteInt(writer, @params.m_rainY);
-        writer.Write("m_fastEvaporationYMax"); BinFmtData.WriteInt(writer, @params.m_fastEvaporationYMax);
-        writer.Write("m_sunLightYMin"); BinFmtData.WriteInt(writer, @params.m_sunLightYMin);
-        writer.Write("m_sunLightYMax"); BinFmtData.WriteInt(writer, @params.m_sunLightYMax);
-        writer.Write("m_respawnDelay"); BinFmtData.WriteInt(writer, @params.m_respawnDelay);
-        writer.Write("m_dropAtDeathPercent_Peaceful"); BinFmtData.WriteFloat(writer, @params.m_dropAtDeathPercent_Peaceful);
-        writer.Write("m_dropAtDeathPercent_Easy"); BinFmtData.WriteFloat(writer, @params.m_dropAtDeathPercent_Easy);
-        writer.Write("m_dropAtDeathPercent_Normal"); BinFmtData.WriteFloat(writer, @params.m_dropAtDeathPercent_Normal);
-        writer.Write("m_dropAtDeathPercent_Hard"); BinFmtData.WriteFloat(writer, @params.m_dropAtDeathPercent_Hard);
-        writer.Write("m_dropAtDeathPercent_Brutal"); BinFmtData.WriteFloat(writer, @params.m_dropAtDeathPercent_Brutal);
-        writer.Write("m_dropAtDeathMax"); BinFmtData.WriteInt(writer, @params.m_dropAtDeathMax);
-        writer.Write("m_monstersDayNb"); BinFmtData.WriteInt(writer, @params.m_monstersDayNb);
-        writer.Write("m_monstersDayNbAddPerPlayer"); BinFmtData.WriteInt(writer, @params.m_monstersDayNbAddPerPlayer);
-        writer.Write("m_bossRespawnDelay"); BinFmtData.WriteFloat(writer, @params.m_bossRespawnDelay);
-        writer.Write("m_monstersNightSpawnRateMult"); BinFmtData.WriteFloat(writer, @params.m_monstersNightSpawnRateMult);
-        writer.Write("m_monstersNightSpawnRateAddPerPlayer"); BinFmtData.WriteFloat(writer, @params.m_monstersNightSpawnRateAddPerPlayer);
-        writer.Write("m_monstersHpMult"); BinFmtData.WriteFloat(writer, @params.m_monstersHpMult);
-        writer.Write("m_monstersHpAddPerPlayer"); BinFmtData.WriteFloat(writer, @params.m_monstersHpAddPerPlayer);
-        writer.Write("m_monstersDamagesMult"); BinFmtData.WriteFloat(writer, @params.m_monstersDamagesMult);
-        writer.Write("m_monstersDamagesAddPerPlayer"); BinFmtData.WriteFloat(writer, @params.m_monstersDamagesAddPerPlayer);
+        writer.Write("m_difficulty"); BinFmtCodec.WriteInt(writer, @params.m_difficulty);
+        writer.Write("m_startCheated"); BinFmtCodec.WriteBool(writer, @params.m_startCheated);
+        writer.Write("m_eventsActive"); BinFmtCodec.WriteBool(writer, @params.m_eventsActive);
+        writer.Write("m_spawnPos"); BinFmtCodec.WriteInt2(writer, @params.m_spawnPos);
+        writer.Write("m_shipPos"); BinFmtCodec.WriteInt2(writer, @params.m_shipPos);
+        writer.Write("m_gridSize"); BinFmtCodec.WriteInt2(writer, @params.m_gridSize);
+        writer.Write("m_seed"); BinFmtCodec.WriteInt(writer, @params.m_seed);
+        writer.Write("m_gameName"); BinFmtCodec.WriteString(writer, @params.m_gameName);
+        writer.Write("m_visibility"); BinFmtCodec.WriteInt(writer, @params.m_visibility);
+        writer.Write("m_passwordMD5"); BinFmtCodec.WriteString(writer, @params.m_passwordMD5);
+        writer.Write("m_hostId"); BinFmtCodec.WriteULong(writer, @params.m_hostId);
+        writer.Write("m_hostName"); BinFmtCodec.WriteString(writer, @params.m_hostName);
+        writer.Write("m_gameOverIfAllDead"); BinFmtCodec.WriteBool(writer, @params.m_gameOverIfAllDead);
+        writer.Write("m_nbPlayersMax"); BinFmtCodec.WriteInt(writer, @params.m_nbPlayersMax);
+        writer.Write("m_clientGetHostItems"); BinFmtCodec.WriteBool(writer, @params.m_clientGetHostItems);
+        writer.Write("m_banGiveLootToHost"); BinFmtCodec.WriteBool(writer, @params.m_banGiveLootToHost);
+        writer.Write("m_devMode"); BinFmtCodec.WriteBool(writer, @params.m_devMode);
+        writer.Write("m_checkMinerals"); BinFmtCodec.WriteBool(writer, @params.m_checkMinerals);
+        writer.Write("m_dynamicSpawn"); BinFmtCodec.WriteBool(writer, @params.m_dynamicSpawn);
+        writer.Write("m_cloudCycleDistance"); BinFmtCodec.WriteFloat(writer, @params.m_cloudCycleDistance);
+        writer.Write("m_cloudCycleDuration"); BinFmtCodec.WriteFloat(writer, @params.m_cloudCycleDuration);
+        writer.Write("m_cloudRadius"); BinFmtCodec.WriteFloat(writer, @params.m_cloudRadius);
+        writer.Write("m_rainQuantity"); BinFmtCodec.WriteFloat(writer, @params.m_rainQuantity);
+        writer.Write("m_generationOreDiv"); BinFmtCodec.WriteFloat(writer, @params.m_generationOreDiv);
+        writer.Write("m_weightMult"); BinFmtCodec.WriteFloat(writer, @params.m_weightMult);
+        writer.Write("m_dropChanceMult"); BinFmtCodec.WriteFloat(writer, @params.m_dropChanceMult);
+        writer.Write("m_lavaPressureBottomCycle"); BinFmtCodec.WriteFloat(writer, @params.m_lavaPressureBottomCycle);
+        writer.Write("m_lavaPressureTopCycle"); BinFmtCodec.WriteFloat(writer, @params.m_lavaPressureTopCycle);
+        writer.Write("m_eruptionDurationTotal"); BinFmtCodec.WriteFloat(writer, @params.m_eruptionDurationTotal);
+        writer.Write("m_eruptionDurationAcc"); BinFmtCodec.WriteFloat(writer, @params.m_eruptionDurationAcc);
+        writer.Write("m_eruptionDurationUp"); BinFmtCodec.WriteFloat(writer, @params.m_eruptionDurationUp);
+        writer.Write("m_eruptionPressure"); BinFmtCodec.WriteFloat(writer, @params.m_eruptionPressure);
+        writer.Write("m_eruptionCheckMinY"); BinFmtCodec.WriteFloat(writer, @params.m_eruptionCheckMinY);
+        writer.Write("m_dayDurationTotal"); BinFmtCodec.WriteFloat(writer, @params.m_dayDurationTotal);
+        writer.Write("m_nightDuration"); BinFmtCodec.WriteFloat(writer, @params.m_nightDuration);
+        writer.Write("m_gravityPlayers"); BinFmtCodec.WriteFloat(writer, @params.m_gravityPlayers);
+        writer.Write("m_eventsDelayMin"); BinFmtCodec.WriteFloat(writer, @params.m_eventsDelayMin);
+        writer.Write("m_eventsDelayMax"); BinFmtCodec.WriteFloat(writer, @params.m_eventsDelayMax);
+        writer.Write("m_rocketPreparationDuration"); BinFmtCodec.WriteInt(writer, @params.m_rocketPreparationDuration);
+        writer.Write("m_speedSimu"); BinFmtCodec.WriteFloat(writer, @params.m_speedSimu);
+        writer.Write("m_speedSimuWorld"); BinFmtCodec.WriteFloat(writer, @params.m_speedSimuWorld);
+        writer.Write("m_speedSimuWorldLocked"); BinFmtCodec.WriteBool(writer, @params.m_speedSimuWorldLocked);
+        writer.Write("m_rainY"); BinFmtCodec.WriteInt(writer, @params.m_rainY);
+        writer.Write("m_fastEvaporationYMax"); BinFmtCodec.WriteInt(writer, @params.m_fastEvaporationYMax);
+        writer.Write("m_sunLightYMin"); BinFmtCodec.WriteInt(writer, @params.m_sunLightYMin);
+        writer.Write("m_sunLightYMax"); BinFmtCodec.WriteInt(writer, @params.m_sunLightYMax);
+        writer.Write("m_respawnDelay"); BinFmtCodec.WriteInt(writer, @params.m_respawnDelay);
+        writer.Write("m_dropAtDeathPercent_Peaceful"); BinFmtCodec.WriteFloat(writer, @params.m_dropAtDeathPercent_Peaceful);
+        writer.Write("m_dropAtDeathPercent_Easy"); BinFmtCodec.WriteFloat(writer, @params.m_dropAtDeathPercent_Easy);
+        writer.Write("m_dropAtDeathPercent_Normal"); BinFmtCodec.WriteFloat(writer, @params.m_dropAtDeathPercent_Normal);
+        writer.Write("m_dropAtDeathPercent_Hard"); BinFmtCodec.WriteFloat(writer, @params.m_dropAtDeathPercent_Hard);
+        writer.Write("m_dropAtDeathPercent_Brutal"); BinFmtCodec.WriteFloat(writer, @params.m_dropAtDeathPercent_Brutal);
+        writer.Write("m_dropAtDeathMax"); BinFmtCodec.WriteInt(writer, @params.m_dropAtDeathMax);
+        writer.Write("m_monstersDayNb"); BinFmtCodec.WriteInt(writer, @params.m_monstersDayNb);
+        writer.Write("m_monstersDayNbAddPerPlayer"); BinFmtCodec.WriteInt(writer, @params.m_monstersDayNbAddPerPlayer);
+        writer.Write("m_bossRespawnDelay"); BinFmtCodec.WriteFloat(writer, @params.m_bossRespawnDelay);
+        writer.Write("m_monstersNightSpawnRateMult"); BinFmtCodec.WriteFloat(writer, @params.m_monstersNightSpawnRateMult);
+        writer.Write("m_monstersNightSpawnRateAddPerPlayer"); BinFmtCodec.WriteFloat(writer, @params.m_monstersNightSpawnRateAddPerPlayer);
+        writer.Write("m_monstersHpMult"); BinFmtCodec.WriteFloat(writer, @params.m_monstersHpMult);
+        writer.Write("m_monstersHpAddPerPlayer"); BinFmtCodec.WriteFloat(writer, @params.m_monstersHpAddPerPlayer);
+        writer.Write("m_monstersDamagesMult"); BinFmtCodec.WriteFloat(writer, @params.m_monstersDamagesMult);
+        writer.Write("m_monstersDamagesAddPerPlayer"); BinFmtCodec.WriteFloat(writer, @params.m_monstersDamagesAddPerPlayer);
 
         writer.Write(""); // denotes ending of serialized params
         writer.Write("Game Params Data"); // magic string
@@ -981,45 +1067,45 @@ public static class V1_11_Converter {
         writer.Write("Units Data"); // magic string
 
         ref readonly var vars = ref gameState.vars;
-        writer.Write("m_lastSaveDate"); BinFmtData.WriteString(writer, vars.m_lastSaveDate);
-        writer.Write("m_simuTimeD"); BinFmtData.WriteDouble(writer, vars.m_simuTimeD);
-        writer.Write("m_worldTimeD"); BinFmtData.WriteDouble(writer, vars.m_worldTimeD);
-        writer.Write("m_clock"); BinFmtData.WriteFloat(writer, vars.m_clock);
-        writer.Write("m_cloudPosRatio"); BinFmtData.WriteFloat(writer, vars.m_cloudPosRatio);
-        writer.Write("m_droneTargetId"); BinFmtData.WriteUShort(writer, vars.m_droneTargetId);
-        writer.Write("m_achievementsLocked"); BinFmtData.WriteBool(writer, vars.m_achievementsLocked);
-        writer.Write("m_eventIdNum"); BinFmtData.WriteInt(writer, vars.m_eventIdNum);
-        writer.Write("m_eventStartTime"); BinFmtData.WriteFloat(writer, vars.m_eventStartTime);
-        writer.Write("m_lavaCycleSkipped"); BinFmtData.WriteBool(writer, vars.m_lavaCycleSkipped);
-        writer.Write("m_bossAreas"); BinFmtData.WriteString(writer, vars.m_bossAreas);
-        writer.Write("m_monsterT2AlreadyHit"); BinFmtData.WriteBool(writer, vars.m_monsterT2AlreadyHit);
-        writer.Write("m_eruptionTime"); BinFmtData.WriteFloat(writer, vars.m_eruptionTime);
-        writer.Write("m_eruptionStartPressure"); BinFmtData.WriteFloat(writer, vars.m_eruptionStartPressure);
-        writer.Write("m_brokenHeart"); BinFmtData.WriteBool(writer, vars.m_brokenHeart);
-        writer.Write("m_heartPos"); BinFmtData.WriteInt2(writer, vars.m_heartPos);
-        writer.Write("m_cinematicIntroTime"); BinFmtData.WriteFloat(writer, vars.m_cinematicIntroTime);
-        writer.Write("m_cinematicRocketPos"); BinFmtData.WriteVector2(writer, vars.m_cinematicRocketPos);
-        writer.Write("m_cinematicRocketStep"); BinFmtData.WriteRocketStep(writer, vars.m_cinematicRocketStep);
-        writer.Write("m_cinematicRocketStepStartTime"); BinFmtData.WriteFloat(writer, vars.m_cinematicRocketStepStartTime);
-        writer.Write("m_postGame"); BinFmtData.WriteBool(writer, vars.m_postGame);
-        writer.Write("m_autoBuilderLastTimeFound"); BinFmtData.WriteFloat(writer, vars.m_autoBuilderLastTimeFound);
-        writer.Write("m_achievNoElectricity"); BinFmtData.WriteBool(writer, vars.m_achievNoElectricity);
-        writer.Write("m_achievNoShoot"); BinFmtData.WriteBool(writer, vars.m_achievNoShoot);
-        writer.Write("m_achievNoCraft"); BinFmtData.WriteBool(writer, vars.m_achievNoCraft);
-        writer.Write("m_achievNoMK2"); BinFmtData.WriteBool(writer, vars.m_achievNoMK2);
-        writer.Write("m_achievWentToSea"); BinFmtData.WriteBool(writer, vars.m_achievWentToSea);
-        writer.Write("m_achievEarlyDive"); BinFmtData.WriteBool(writer, vars.m_achievEarlyDive);
-        writer.Write("m_aiSentencesTold"); BinFmtData.WriteStringList(writer, vars.m_aiSentencesTold);
-        writer.Write("m_autoBuilderLevelBuilt"); BinFmtData.WriteInt(writer, vars.m_autoBuilderLevelBuilt);
-        writer.Write("m_autoBuilderLevelUsed"); BinFmtData.WriteInt(writer, vars.m_autoBuilderLevelUsed);
-        writer.Write("m_nbNightsSurvived"); BinFmtData.WriteInt(writer, vars.m_nbNightsSurvived);
-        writer.Write("m_bossKilled_Madcrab"); BinFmtData.WriteBool(writer, vars.m_bossKilled_Madcrab);
-        writer.Write("m_bossKilled_FireflyQueen"); BinFmtData.WriteBool(writer, vars.m_bossKilled_FireflyQueen);
-        writer.Write("m_bossKilled_DwellerLord"); BinFmtData.WriteBool(writer, vars.m_bossKilled_DwellerLord);
-        writer.Write("m_bossKilled_Balrog"); BinFmtData.WriteBool(writer, vars.m_bossKilled_Balrog);
-        writer.Write("m_droneLastTimeEnters"); BinFmtData.WriteFloat(writer, vars.m_droneLastTimeEnters);
-        writer.Write("m_droneLastTimeDontEnter"); BinFmtData.WriteFloat(writer, vars.m_droneLastTimeDontEnter);
-        writer.Write("m_droneComboNb"); BinFmtData.WriteInt(writer, vars.m_droneComboNb);
+        writer.Write("m_lastSaveDate"); BinFmtCodec.WriteString(writer, vars.m_lastSaveDate);
+        writer.Write("m_simuTimeD"); BinFmtCodec.WriteDouble(writer, vars.m_simuTimeD);
+        writer.Write("m_worldTimeD"); BinFmtCodec.WriteDouble(writer, vars.m_worldTimeD);
+        writer.Write("m_clock"); BinFmtCodec.WriteFloat(writer, vars.m_clock);
+        writer.Write("m_cloudPosRatio"); BinFmtCodec.WriteFloat(writer, vars.m_cloudPosRatio);
+        writer.Write("m_droneTargetId"); BinFmtCodec.WriteUShort(writer, vars.m_droneTargetId);
+        writer.Write("m_achievementsLocked"); BinFmtCodec.WriteBool(writer, vars.m_achievementsLocked);
+        writer.Write("m_eventIdNum"); BinFmtCodec.WriteInt(writer, vars.m_eventIdNum);
+        writer.Write("m_eventStartTime"); BinFmtCodec.WriteFloat(writer, vars.m_eventStartTime);
+        writer.Write("m_lavaCycleSkipped"); BinFmtCodec.WriteBool(writer, vars.m_lavaCycleSkipped);
+        writer.Write("m_bossAreas"); BinFmtCodec.WriteString(writer, vars.m_bossAreas);
+        writer.Write("m_monsterT2AlreadyHit"); BinFmtCodec.WriteBool(writer, vars.m_monsterT2AlreadyHit);
+        writer.Write("m_eruptionTime"); BinFmtCodec.WriteFloat(writer, vars.m_eruptionTime);
+        writer.Write("m_eruptionStartPressure"); BinFmtCodec.WriteFloat(writer, vars.m_eruptionStartPressure);
+        writer.Write("m_brokenHeart"); BinFmtCodec.WriteBool(writer, vars.m_brokenHeart);
+        writer.Write("m_heartPos"); BinFmtCodec.WriteInt2(writer, vars.m_heartPos);
+        writer.Write("m_cinematicIntroTime"); BinFmtCodec.WriteFloat(writer, vars.m_cinematicIntroTime);
+        writer.Write("m_cinematicRocketPos"); BinFmtCodec.WriteVector2(writer, vars.m_cinematicRocketPos);
+        writer.Write("m_cinematicRocketStep"); BinFmtCodec.WriteRocketStepEnum(writer, vars.m_cinematicRocketStep);
+        writer.Write("m_cinematicRocketStepStartTime"); BinFmtCodec.WriteFloat(writer, vars.m_cinematicRocketStepStartTime);
+        writer.Write("m_postGame"); BinFmtCodec.WriteBool(writer, vars.m_postGame);
+        writer.Write("m_autoBuilderLastTimeFound"); BinFmtCodec.WriteFloat(writer, vars.m_autoBuilderLastTimeFound);
+        writer.Write("m_achievNoElectricity"); BinFmtCodec.WriteBool(writer, vars.m_achievNoElectricity);
+        writer.Write("m_achievNoShoot"); BinFmtCodec.WriteBool(writer, vars.m_achievNoShoot);
+        writer.Write("m_achievNoCraft"); BinFmtCodec.WriteBool(writer, vars.m_achievNoCraft);
+        writer.Write("m_achievNoMK2"); BinFmtCodec.WriteBool(writer, vars.m_achievNoMK2);
+        writer.Write("m_achievWentToSea"); BinFmtCodec.WriteBool(writer, vars.m_achievWentToSea);
+        writer.Write("m_achievEarlyDive"); BinFmtCodec.WriteBool(writer, vars.m_achievEarlyDive);
+        writer.Write("m_aiSentencesTold"); BinFmtCodec.WriteStringList_v2050(writer, vars.m_aiSentencesTold);
+        writer.Write("m_autoBuilderLevelBuilt"); BinFmtCodec.WriteInt(writer, vars.m_autoBuilderLevelBuilt);
+        writer.Write("m_autoBuilderLevelUsed"); BinFmtCodec.WriteInt(writer, vars.m_autoBuilderLevelUsed);
+        writer.Write("m_nbNightsSurvived"); BinFmtCodec.WriteInt(writer, vars.m_nbNightsSurvived);
+        writer.Write("m_bossKilled_Madcrab"); BinFmtCodec.WriteBool(writer, vars.m_bossKilled_Madcrab);
+        writer.Write("m_bossKilled_FireflyQueen"); BinFmtCodec.WriteBool(writer, vars.m_bossKilled_FireflyQueen);
+        writer.Write("m_bossKilled_DwellerLord"); BinFmtCodec.WriteBool(writer, vars.m_bossKilled_DwellerLord);
+        writer.Write("m_bossKilled_Balrog"); BinFmtCodec.WriteBool(writer, vars.m_bossKilled_Balrog);
+        writer.Write("m_droneLastTimeEnters"); BinFmtCodec.WriteFloat(writer, vars.m_droneLastTimeEnters);
+        writer.Write("m_droneLastTimeDontEnter"); BinFmtCodec.WriteFloat(writer, vars.m_droneLastTimeDontEnter);
+        writer.Write("m_droneComboNb"); BinFmtCodec.WriteInt(writer, vars.m_droneComboNb);
 
         writer.Write(""); // denotes ending of vars section
         writer.Write("Vars Data"); // magic string
