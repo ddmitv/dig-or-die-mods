@@ -6,6 +6,8 @@ Enhances the game's saving system with the following configurable features:
 - Customizable number of Autosave and Quicksave slots.
 - Recovery save (prevents losing progress from accidental ALT-F4).
 
+![Save confirmation popup](readme-res/confirmation-popup.png)
+
 # Configuration
 
 > [!TIP]
