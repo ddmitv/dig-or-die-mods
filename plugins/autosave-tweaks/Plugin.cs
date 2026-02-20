@@ -113,7 +113,7 @@ public class AutosaveTweaks : BaseUnityPlugin {
             defaultValue: false, description: "When enabled, cliking 'SAVE AND QUIT' button performs a quicksave. Hold Shift to open the full save menu instead"
         );
         configUnsavedTimeThreshold = Config.Bind<float>(section: "General", key: "UnsavedTimeThreshold",
-            defaultValue: 5f, description: "Show quit confirmation when you have unsaved progress older than this duration. Set to 0 to always show it"
+            defaultValue: 5f, description: "Show quit confirmation when you have unsaved progress older than this duration (in minutes). Set to 0 to always show it"
         );
         configShowQuitConfirmation = Config.Bind<bool>(section: "General", key: "ShowQuitConfirmation",
             defaultValue: true, description: "Show confirmation popup when quitting with unsaved progress"
@@ -134,7 +134,7 @@ public class AutosaveTweaks : BaseUnityPlugin {
             defaultValue: false, description: "Create a recovery save file when closing the game with unsaved progress (DOES NOT protect against crashes)"
         );
         configExitOnShift = Config.Bind<bool>(section: "General", key: "ExitOnShift",
-            defaultValue: true, description: "When 'SAVE AND QUIT' button with Shift modifier is pressed, the game immediately exits"
+            defaultValue: true, description: "When 'SAVE AND QUIT' button with Shift modifier is pressed, the game immediately exits instead of opening the home menu"
         );
 
         Utils.AddLocalizationText("AUTOSAVE_TWEAKS_QUIT", "QUIT WITHOUT SAVE");
