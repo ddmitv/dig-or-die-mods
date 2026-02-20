@@ -70,6 +70,19 @@ public static class CodeMatcherExtensions {
         self.Opcode = opcode;
         return self;
     }
+
+    public static CodeMatcher ReplaceInstructionAndAdvance(this CodeMatcher self, CodeInstruction instruction) {
+        // keep previous labels
+        self.SetAndAdvance(instruction.opcode, instruction.operand);
+        return self;
+    }
+    public static CodeMatcher ReplaceInstructionsAndAdvance(this CodeMatcher self, params CodeInstruction[] instructions) {
+        foreach (var instr in instructions) {
+            // keep previous labels
+            self.SetAndAdvance(instr.opcode, instr.operand);
+        }
+        return self;
+    }
 }
 
 public static class CodeMatchExtensions {
