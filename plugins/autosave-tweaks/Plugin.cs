@@ -131,7 +131,7 @@ public class AutosaveTweaks : BaseUnityPlugin {
             )
         );
         configEnableRecoverySave = Config.Bind<bool>(section: "General", key: "EnableRecoverySave",
-            defaultValue: false, description: "Create a recovery save file when closing the game with unsaved progress (DOES NOT protect agains crashes)"
+            defaultValue: false, description: "Create a recovery save file when closing the game with unsaved progress (DOES NOT protect against crashes)"
         );
         configExitOnShift = Config.Bind<bool>(section: "General", key: "ExitOnShift",
             defaultValue: true, description: "When 'SAVE AND QUIT' button with Shift modifier is pressed, the game immediately exits"
