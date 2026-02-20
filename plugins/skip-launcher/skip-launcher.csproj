@@ -2,7 +2,7 @@
   <PropertyGroup>
     <AssemblyName>skip_launcher</AssemblyName>
     <Product>Skip Launcher</Product>
-    <Version>0.0.0</Version>
+    <Version>1.0.0</Version>
   </PropertyGroup>
   <Import Project="../utils-lib/utils-lib.targets"/>
 </Project>
