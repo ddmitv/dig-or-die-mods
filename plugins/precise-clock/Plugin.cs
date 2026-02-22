@@ -16,6 +16,7 @@ internal static class PreciseTimePatch {
             var timeStr = PreciseClock.ToTimeString(
                 (GVars.m_clock + eventStartDelta / SOutgame.Params.m_dayDurationTotal) % 1f
             );
+            if (timeStr.Length == 0) { return str; }
             return $"{str} ({timeStr})";
         }
         static string ChangeEnvOnGoingStr(string str) {
@@ -23,6 +24,7 @@ internal static class PreciseTimePatch {
             var timeStr = PreciseClock.ToTimeString(
                 (GVars.m_clock + eventStartDelta / SOutgame.Params.m_dayDurationTotal) % 1f
             );
+            if (timeStr.Length == 0) { return str; }
             return $"{str} ({timeStr})";
         }
 
@@ -109,6 +111,9 @@ public class PreciseClock : BaseUnityPlugin {
     private static ConfigEntry<TimeFormat> configTimeFormat = null;
 
     public static string ToTimeString(float clock) {
+        if (float.IsNaN(clock) || float.IsInfinity(clock)) {
+            return "";
+        }
         if (clock < 0f) { clock += 1f; }
 
         if (configTimeFormat.Value == TimeFormat.H12AmPm) {
