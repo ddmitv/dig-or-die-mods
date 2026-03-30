@@ -54,6 +54,8 @@ jobs:
       - name: Build
         run: ./trunk build --release --public-url "${{ steps.pages.outputs.base_path }}/"
         working-directory: ./tools/world-viewer
+        env:
+          RUSTFLAGS: -D warnings
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
