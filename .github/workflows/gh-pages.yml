@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'tools/world-viewer/**'
+      - '.github/workflows/gh-pages.yml'
   workflow_dispatch:
 
 permissions:
