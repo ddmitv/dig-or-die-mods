@@ -187,6 +187,7 @@ fn set_app_title(ui: &egui::Ui, title: String) {
         let document = window.document().expect("should have a document on window");
         document.set_title(&title);
     }
+    #[cfg(not(target_arch = "wasm32"))]
     ui.send_viewport_cmd(egui::ViewportCommand::Title(title));
 }
 
