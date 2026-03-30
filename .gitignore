@@ -3,6 +3,8 @@
 !.gitignore
 !.gitattributes
 !.editorconfig
+!.github/
+
 !DevEnv.targets.template
 !Directory.Build.props
 !NuGet.Config
