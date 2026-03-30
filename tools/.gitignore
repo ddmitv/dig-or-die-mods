@@ -1,5 +1,6 @@
-*
+/*
 
 !.gitignore
 !save-tool/
+!world-viewer/
 !Directory.Build.props
