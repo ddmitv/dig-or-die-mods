@@ -188,7 +188,7 @@ fn show_abnormalities(ui: &mut egui::Ui, nodes: &[save_model::AbnormalitiesNode]
     }
 }
 
-fn set_app_title(ui: &egui::Ui, title: String) {
+fn set_app_title(_ui: &egui::Ui, title: String) {
     info!("Changing title to {title:?}");
     #[cfg(target_arch = "wasm32")]
     {
@@ -197,7 +197,7 @@ fn set_app_title(ui: &egui::Ui, title: String) {
         document.set_title(&title);
     }
     #[cfg(not(target_arch = "wasm32"))]
-    ui.send_viewport_cmd(egui::ViewportCommand::Title(title));
+    _ui.send_viewport_cmd(egui::ViewportCommand::Title(title));
 }
 
 
