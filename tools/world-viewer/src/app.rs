@@ -88,11 +88,20 @@ impl eframe::App for App {
                 .default_open(false)
                 // .frame(egui::Frame::window(&ctx.style()).fill(Color32::from_rgb(40, 40, 0)))
                 .resizable([true, false])
+                .vscroll(true)
+                .default_height(200.0)
                 .show(ui, |ui| {
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        show_abnormalities(ui, abnorms.nodes());
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
+                        ui.add_space(5.0);
+                        egui::Popup::from_toggle_button_response(&ui.small_button("ℹ")).show(|ui| {
+                            ui.label("Save abnormalities indicate that the save file contains states that are impossible to achieve in the vanilla game \
+                                      without external tampering with save file format. Unlike hard save loading errors, the game can still open and load \
+                                      this save with abnormalities without any issues.");
+                        });
+                    });
+                    ui.separator();
+                    show_abnormalities(ui, abnorms.nodes());
                 });
-            });
         }
 
         if self.save.is_none() {
