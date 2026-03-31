@@ -320,11 +320,23 @@ impl WorldViewer {
                         ui.label(format!("Unit ID: {}", player.unit_player_id));
                         ui.group(|ui| {
                             ui.weak("Appearance:");
-                            ui.checkbox(&mut player.skin_is_female.clone(), "Is Female");
-                            ui.label(format!("Color skin: {}", player.skin_color_skin));
+                            ui.label(format!("Female: {}", player.skin_is_female));
+                            ui.horizontal(|ui| {
+                                ui.label("Color skin:");
+                                show_color_indicator(ui, vec2(10.0, 10.0), Color32::from_gray((player.skin_color_skin * 255.0) as u8));
+                                ui.label(player.skin_color_skin.to_string());
+                            });
                             ui.label(format!("Hair style: {}", player.skin_hair_style));
-                            ui.label(format!("Hair color: {}", player.skin_color_hair));
-                            ui.label(format!("Eyes color: {}", player.skin_color_eyes));
+                            ui.horizontal(|ui| {
+                                ui.label("Hair color:");
+                                show_color_indicator(ui, vec2(10.0, 10.0), player.skin_color_hair.to_color32());
+                                ui.label(player.skin_color_hair.to_string());
+                            });
+                            ui.horizontal(|ui| {
+                                ui.label("Eyes color:");
+                                show_color_indicator(ui, vec2(10.0, 10.0), player.skin_color_eyes.to_color32());
+                                ui.label(player.skin_color_eyes.to_string());
+                            });
                         });
                     });
                 }
@@ -451,11 +463,7 @@ impl WorldViewer {
         });
         ui.horizontal(|ui| {
             ui.label("Light:");
-            let (rect, _) = ui.allocate_exact_size(vec2(10.0, 10.0), egui::Sense::hover());
-            
-            let color = Color32::from_rgb(cell.light.r, cell.light.g, cell.light.b);
-            ui.painter().rect_filled(rect, 1.0, color);
-            ui.painter().rect_stroke(rect, 1.0, Stroke::new(1.0, ui.visuals().widgets.noninteractive.bg_stroke.color), egui::StrokeKind::Outside);
+            show_color_indicator(ui, vec2(10.0, 10.0), cell.light.to_color32());
 
             ui.label(format!("({}, {}, {})", cell.light.r, cell.light.g, cell.light.b));
         });
@@ -630,4 +638,11 @@ fn item_name_widget_text(content_id: u16) -> egui::WidgetText {
     job.append(item_name, 0.0, TextFormat::simple(egui::FontId::default(), item_color));
     job.append(item_codename, 6.0, TextFormat::simple(egui::FontId::monospace(13.0), Color32::GRAY));
     return job.into();
+}
+
+fn show_color_indicator(ui: &mut egui::Ui, size: Vec2, color: Color32) {
+    let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
+            
+    ui.painter().rect_filled(rect, 1.0, color);
+    ui.painter().rect_stroke(rect, 1.0, Stroke::new(1.0, ui.visuals().widgets.noninteractive.bg_stroke.color), egui::StrokeKind::Outside);
 }
