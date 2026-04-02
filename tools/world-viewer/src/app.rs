@@ -39,6 +39,63 @@ impl App {
             world_viewer: WorldViewer::new(&cc.egui_ctx),
         };
     }
+
+    fn ui_file_drag_and_drop(&mut self, ctx: &egui::Context) {
+        use egui::{Align2, Color32, Id, LayerId, Order, FontId};
+        use eframe::emath::GuiRounding as _;
+
+        let hovered_files_len = ctx.input(|i| i.raw.hovered_files.len());
+        if hovered_files_len > 0 {
+            let painter = ctx.layer_painter(LayerId::new(Order::Foreground, Id::new("file_drop_target")));
+
+            let content_rect = ctx.content_rect();
+            painter.rect_filled(content_rect, 0.0, Color32::from_black_alpha(192));
+            let (text, color) = if hovered_files_len == 1 {
+                ("⬇ Drop save file here ⬇", Color32::WHITE)
+            } else {
+                ("❌ Please only drop single save file here ❌", Color32::YELLOW)
+            };
+            painter.text(content_rect.center().round_to_pixels(painter.pixels_per_point()), Align2::CENTER_CENTER, text, FontId::proportional(32.0), color);
+        }
+        if let Some(dropped_file) = ctx.input(|i| match &i.raw.dropped_files[..] { [single] => Some(single.clone()), _ => None }) {
+            let tx = self.msg_chs.0.clone();
+
+            #[cfg(target_arch = "wasm32")]
+            if let Some(bytes) = dropped_file.bytes {
+                let task = async move {
+                    let save = Self::process_save_bytes(&bytes);
+                    let _ = tx.send(ChannelPayload { save, file_name: dropped_file.name });
+                };
+                wasm_bindgen_futures::spawn_local(task);
+                return;
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            if let Some(path) = dropped_file.path {
+                std::thread::spawn(move || {
+                    let save = std::fs::read(&path).context("Failed to read file")
+                                .and_then(|bytes| Self::process_save_bytes(&bytes));
+
+                    _ = tx.send(ChannelPayload { save, file_name: dropped_file.name });
+                });
+                return;
+            }
+            error!("Failed to extract bytes from file");
+        }
+    }
+
+    fn process_save_bytes(raw_bytes: &[u8]) -> anyhow::Result<save_model::SaveModel> {
+        const UNCOMPRESSED_SAVE_MAGIC: [u8; 10] = [ 0x09, 0x53, 0x41, 0x56, 0x45, 0x20, 0x46, 0x49, 0x4C, 0x45 ]; // "\x09SAVE FILE"
+
+        let decompressed_bytes = if raw_bytes.starts_with(&UNCOMPRESSED_SAVE_MAGIC) {
+            info!("Detected uncompressed save format");
+            raw_bytes
+        } else {
+            info!("Detected compressed LZF2 save format");
+            &lzf2::lzf2_decompress(raw_bytes).context("Failed to decompress save data")?
+        };
+        info!("Decompressed to {} bytes, deserializing...", decompressed_bytes.len());
+        return save_model::SaveModel::deserialize(decompressed_bytes).context("Failed to read save data")
+    }
 }
 
 impl eframe::App for App {
@@ -48,6 +105,8 @@ impl eframe::App for App {
             let fullscreen = ui.input(|i| i.viewport().fullscreen.unwrap_or(false));
             ui.send_viewport_cmd(egui::ViewportCommand::Fullscreen(!fullscreen));
         }
+
+        self.ui_file_drag_and_drop(ui.ctx());
         
         if let Ok(ChannelPayload { save, file_name }) = self.msg_chs.1.try_recv() {
             match save {
@@ -111,8 +170,6 @@ impl eframe::App for App {
                 ui.separator();
 
                 if ui.button("Open file").clicked() {
-                    const UNCOMPRESSED_SAVE_MAGIC: [u8; 10] = [ 0x09, 0x53, 0x41, 0x56, 0x45, 0x20, 0x46, 0x49, 0x4C, 0x45 ]; // "\x09SAVE FILE"
-
                     let tx = self.msg_chs.0.clone();
                     let task = async move {
                         let file = rfd::AsyncFileDialog::new()
@@ -125,19 +182,7 @@ impl eframe::App for App {
                             let raw_bytes = file_handle.read().await;
                             info!("Read {} bytes from file", raw_bytes.len());
 
-                            let save = {
-                                if raw_bytes.starts_with(&UNCOMPRESSED_SAVE_MAGIC) {
-                                    info!("Detected uncompressed save format");
-                                    Ok(raw_bytes)
-                                } else {
-                                    info!("Detected compressed LZF2 save format");
-                                    lzf2::lzf2_decompress(&raw_bytes).context("Failed to decompress save data")
-                                }
-                                .and_then(|decompressed_bytes| {
-                                    info!("Decompressed to {} bytes, deserializing...", decompressed_bytes.len());
-                                    save_model::SaveModel::deserialize(&decompressed_bytes).context("Failed to read save data")
-                                })
-                            };
+                            let save = Self::process_save_bytes(&raw_bytes);
                             if let Err(err) = tx.send(ChannelPayload { save, file_name }) {
                                 error!("Channel send failed: {err}");
                             }
