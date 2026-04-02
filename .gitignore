@@ -10,8 +10,10 @@
 !NuGet.Config
 !Generate-DevEnv.ps1
 !Install-BepInEx.ps1
-!dod-save.hexpat
 !README.md
+
+!dod-save.hexpat
+!dod-proto.lua
 
 !plugins/
 !tools/
