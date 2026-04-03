@@ -424,6 +424,22 @@ impl WorldViewer {
             && let Some(cell_pos) = self.selected_cell {
             self.zoom_to_position(cell_pos_to_vec2(cell_pos), 10.0, &resp.rect);
         }
+
+        if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::F)) {
+            let (world_width, world_height) = save.cell_grid.dimensions();
+            
+            let world_size = vec2(world_height as f32, world_width as f32);
+            let viewport_size = resp.rect.size();
+
+            let zoom_x = viewport_size.x / world_size.x;
+            let zoom_y = viewport_size.y / world_size.y;
+            let zoom = zoom_x.min(zoom_y);
+
+            let center = world_size * 0.5;
+
+            self.zoom_to_position(center, zoom, &resp.rect);
+            info!("Zoomed to fit world (Zoom: {})", zoom);
+        }
     }
 
     fn show_cell_inspector_contents(&mut self, ui: &mut egui::Ui, save: &mut sm::SaveModel) {
