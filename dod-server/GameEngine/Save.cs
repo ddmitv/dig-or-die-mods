@@ -29,7 +29,7 @@ public static class SaveManager {
                 if (typeName == "int2") {
                     return typeof(int2);
                 }
-                if (typeName == "GVars+RocketStep") {
+                if (typeName == "GVars/RocketStep" || typeName == "GVars+RocketStep") {
                     return typeof(GVars.RocketStep);
                 }
                 throw new NotSupportedException($"Unexpected type: \"{typeName}\" in assembly \"{assemblyName}\"");
