@@ -11,7 +11,8 @@ fn main() -> eframe::Result {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
 
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default(),
+        viewport: egui::ViewportBuilder::default()
+            .with_icon(load_app_icon()),
         ..Default::default()
     };
     return eframe::run_native(
@@ -44,3 +45,13 @@ fn main() {
     });
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+fn load_app_icon() -> egui::IconData {
+    let bytes = include_bytes!("../assets/world-viewer-logo.png");
+    let image = image::load_from_memory_with_format(bytes, image::ImageFormat::Png)
+        .expect("Failed to load icon app image")
+        .into_rgba8();
+    let (width, height) = image.dimensions();
+
+    return egui::IconData { rgba: image.into_vec(), width, height }
+}
