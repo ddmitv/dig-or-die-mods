@@ -9,7 +9,6 @@ eframe = "0.34.1"
 log = "0.4.27"
 rfd = "0.17.2"
 anyhow = "1.0.102"
-futures = "0.3.32"
 image = { version = "0.25.10", default-features = false, features = ["png"] }
 phf = { version = "0.13.1", features = ["macros"] }
 # egui_field_editor = "0.3.0"
@@ -17,6 +16,7 @@ phf = { version = "0.13.1", features = ["macros"] }
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 env_logger = "0.11.8"
+futures = "0.3.32"
 
 # web:
 [target.'cfg(target_arch = "wasm32")'.dependencies]  
