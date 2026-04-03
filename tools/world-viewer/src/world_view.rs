@@ -115,7 +115,7 @@ impl WorldViewer {
         info!("Item spritesheet image dimension: {}x{}, format: {:?}, bytes: {}", image.width(), image.height(), image.color(), image.as_bytes().len());
 
         let image_size = [image.width() as usize, image.height() as usize];
-        let color_image = egui::ColorImage::from_rgba_premultiplied(image_size, image.to_rgba8().as_raw());
+        let color_image = egui::ColorImage::from_rgba_premultiplied(image_size, image.into_rgba8().as_raw());
 
         return ctx.load_texture("item_spritesheet", color_image, egui::TextureOptions::NEAREST);
     }
@@ -126,7 +126,7 @@ impl WorldViewer {
         info!("Unit spritesheet image dimension: {}x{}, format: {:?}, bytes: {}", image.width(), image.height(), image.color(), image.as_bytes().len());
 
         let image_size = [image.width() as usize, image.height() as usize];
-        let color_image = egui::ColorImage::from_rgba_premultiplied(image_size, image.to_rgba8().as_raw());
+        let color_image = egui::ColorImage::from_rgba_premultiplied(image_size, image.into_rgba8().as_raw());
 
         return ctx.load_texture("unit_spritesheet", color_image, egui::TextureOptions::NEAREST);
     }
