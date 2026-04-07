@@ -538,6 +538,7 @@ local payload_dissectors = {
     [9] = function(tvb, tree) -- SMessageUnitsPos
         local offset = 0
         local unit_count = 0
+        local unit_count_label = tree:add_le(dod_proto, tvb(0, 0), "Units count: "):set_generated()
         while offset < tvb:len() do
             local unit_tree = tree:add(dod_proto, tvb(offset, 14))
 
@@ -565,7 +566,7 @@ local payload_dissectors = {
 
             unit_count = unit_count + 1
         end
-        tree:add_le(dod_proto, tvb(), "Units count: "..unit_count):set_generated()
+        unit_count_label:append_text(unit_count)
     end,
     [10] = function(tvb, tree) -- SMessageMonstersAttack
         local offset = 0
