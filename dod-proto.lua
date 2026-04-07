@@ -1076,6 +1076,7 @@ function dod_proto.dissector(buffer, pinfo, tree)
     pinfo.cols.protocol = dod_proto.name
     local subtree = tree:add(dod_proto, buffer(), "Dig or Die Protocol Data")
     local offset = 0
+    local found_messages_in_packet = {}
 
     while offset < length do
         if offset + 4 > length then
@@ -1128,8 +1129,13 @@ function dod_proto.dissector(buffer, pinfo, tree)
         else
             payload_subtree:add_le(dod_proto, payload_tvb, "Unknown message type")
         end
-
+        found_messages_in_packet[#found_messages_in_packet+1] = msg_name.."("..msg_id..")"
+        
         offset = offset + total_msg_len
+    end
+    if #found_messages_in_packet > 0 then
+        local info_str = #found_messages_in_packet == 1 and ("DODMsg="..found_messages_in_packet[1]) or ("DODMsg=["..table.concat(found_messages_in_packet, ", ").."]")
+        pinfo.cols.info:append(" " .. info_str)
     end
     return length
 end
