@@ -26,22 +26,44 @@ fn main() -> eframe::Result {
 fn main() {  
     use eframe::wasm_bindgen::JsCast;
 
-    eframe::WebLogger::init(log::LevelFilter::Debug).ok();
+    _ = eframe::WebLogger::init(log::LevelFilter::Debug);
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
     let web_options = eframe::WebOptions::default();
 
     wasm_bindgen_futures::spawn_local(async {
-        let document = web_sys::window().expect("No window").document().expect("No document");
+        let document = web_sys::window()
+            .expect("No window")
+            .document()
+            .expect("No document");
 
-        let canvas: web_sys::HtmlCanvasElement =
-            document.get_element_by_id("the_canvas_id").expect("Failed to find the_canvas_id")
-            .dyn_into().expect("the_canvas_id was not a HtmlCanvasElement");
+        let canvas = document
+            .get_element_by_id("the_canvas_id")
+            .expect("Failed to find the_canvas_id")
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .expect("the_canvas_id was not a HtmlCanvasElement");
 
-        eframe::WebRunner::new()
+        let start_res = eframe::WebRunner::new()
             .start(canvas, web_options, Box::new(|cc| Ok(Box::new(app::App::new(cc)))))
-            .await
-            .expect("failed to start eframe");
+            .await;
+        
+        if let Some(loading_text) = document.get_element_by_id("loading_text") {
+            match start_res {
+                Ok(_) => {
+                    loading_text.remove();
+                },
+                Err(e) => {
+                    let error_msg = e.as_string().unwrap_or_else(|| format!("{:?}", e));
+                    loading_text.set_inner_html(&format!(r#"
+                        <p style="color: #ff6b6b; font-weight: bold;">Failed to load the app.</p>
+                        <p style="font-size: 14px; font-family: monospace;">{error_msg}</p>
+                        <p style="font-size: 14px;">Make sure you use a modern browser with WebGL and WASM enabled.</p>
+                        <p style="font-size: 14px;">Check the console for details.</p>
+                    "#));
+                    web_sys::console::error_1(&format!("start error: {error_msg}").into());
+                },
+            }
+        }
     });
 }
 
