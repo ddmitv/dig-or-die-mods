@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
-
   <PropertyGroup>
     <TargetFramework>net35</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -24,17 +22,7 @@
   <ItemGroup>
     <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
     <PackageReference Include="BepInEx.Core" Version="5.*" />
-    <PackageReference Include="UnityEngine.Modules" Version="5.4.1" IncludeAssets="compile" />
-    <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" PrivateAssets="all" />
-    
-    <Reference Include="Assembly-CSharp" HintPath="$(GameManaged)Assembly-CSharp.dll" Publicize="true" />
-    <Reference Include="Assembly-CSharp-firstpass" HintPath="$(GameManaged)Assembly-CSharp-firstpass.dll" Publicize="true" />
+    <PackageReference Include="DigOrDie.GameLibs" Version="1.11.864" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net35" Version="1.0.3" />
   </ItemGroup>
-  
-  <Target Name="InstallPlugin" AfterTargets="Build">
-    <Copy
-      SourceFiles="$(TargetDir)$(AssemblyName).dll"
-      DestinationFolder="$(GameDir)BepInEx\plugins" />
-    <Message Text="Copying plugin assembly &quot;$(TargetDir)$(AssemblyName).dll&quot; to &quot;$(GameDir)BepInEx\plugins\$(AssemblyName).dll&quot;" Importance="high" />
-  </Target>
 </Project>

@@ -5,10 +5,8 @@
 !.editorconfig
 !.github/
 
-!DevEnv.targets.template
 !Directory.Build.props
 !NuGet.Config
-!Generate-DevEnv.ps1
 !Install-BepInEx.ps1
 !README.md
 

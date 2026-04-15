@@ -11,4 +11,14 @@
       <Compile Include="$(BaseIntermediateOutputPath)ThisPluginInfo.g.cs" />
     </ItemGroup>
   </Target>
+  
+  <Target Name="InstallPlugin" AfterTargets="Build" Condition="'$(DIG_OR_DIE_PATH)' != ''">
+    <PropertyGroup>
+      <_DigOrDiePath>$([MSBuild]::EnsureTrailingSlash('$(DIG_OR_DIE_PATH)'))</_DigOrDiePath>
+    </PropertyGroup>
+    <Copy
+      SourceFiles="$(TargetDir)$(AssemblyName).dll"
+      DestinationFolder="$(_DigOrDiePath)BepInEx\plugins" />
+    <Message Text="Copying plugin assembly &quot;$(TargetDir)$(AssemblyName).dll&quot; to &quot;$(_DigOrDiePath)BepInEx\plugins\$(AssemblyName).dll&quot;" Importance="high" />
+  </Target>
 </Project>
