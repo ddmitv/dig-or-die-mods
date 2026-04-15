@@ -153,28 +153,28 @@ To reset configuration to default delete the configuration file and next time th
 
 ## Prerequisites
 
-- **Dig or Die** installed via Steam (default location: `C:\Program Files (x86)\Steam\steamapps\common\Dig or Die\`)
-- **.NET SDK** (version supporting C# 12.0)
-- [Git](https://github.com/git/git) (optional, you can directly download the `.zip` of project)
+- [.NET SDK](https://dotnet.microsoft.com/en-us/download) (should support C# 12.0)
 
-## Building the Project  
+> [!NOTE]
+> Set the environment variable `DIG_OR_DIE_PATH` to your Dig or Die installation path to automatically deploy built plugins to `BepInEx\plugins`.
+ 
+## Build with Visual Studio
 
-Clone the repository:
-```bash
-git clone https://github.com/ddmitv/dig-or-die-mods.git
-cd dig-or-die-mods
-```
+> [!TIP]
+> You can download Visual Studio at https://visualstudio.microsoft.com/downloads
 
-> [!IMPORTANT]
-> If you have Dig or Die installed in non-default location (`C:\Program Files (x86)\Steam\steamapps\common\Dig or Die\`)
-> please run `Generate-DevEnv.ps1` powershell script or manually create and fill `DevEnv.targets` file (see `DevEnv.targets.template`).
+Open the plugins/ directory (where all plugin source code is located).
 
-Build required plugins (run in project root):
+The plugin's directory should contain a `.csproj` file that you need to open with Visual Studio.  
+You can build the current plugin with `Ctrl+B` or `Build > {plugin name}`.
+
+### Build with .NET CLI
+
+Open a terminal in the repository root and run:
 ```bash
 dotnet build plugins/{plugin name}
 ```
-
-If build successfully, they will be automatically copied to `BepInEx/plugins` in game folder.
+Add `-c Release` to build with Release configuration.
 
 # Modifying Save Files
 
