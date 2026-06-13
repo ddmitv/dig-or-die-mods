@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dig or Die Mods</title>
     
+    <!-- Preload critical font assets for faster loading -->
+    <link rel="preload" as="font" type="font/woff2" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-400-normal.woff2" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-700-normal.woff2" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.0.6/files/jetbrains-mono-latin-400-normal.woff2" crossorigin>
+    
+    <!-- Preload the CSS stylesheets as well (optional but helps) -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/index.css" as="style">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.0.6/index.css" as="style">
+    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/index.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.0.6/index.css">
     <style>
@@ -35,7 +44,7 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             line-height: 1.6;
@@ -56,7 +65,7 @@
         }
 
         code {
-            font-family: inherit;
+            font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
             font-weight: 500;
             color: var(--text-primary);
             background: rgba(255, 255, 255, 0.08);
