@@ -1,0 +1,2570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dig or Die Mods</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/index.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.0.6/index.css">
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #1f1f35;
+            --border: #2a2a40;
+            --border-hover: #3a3a55;
+            --text-primary: #e8e8f0;
+            --text-secondary: #9898b0;
+            --text-muted: #686880;
+            --accent: #7c5cfc;
+            --accent-hover: #9078ff;
+            --accent-glow: rgba(124, 92, 252, 0.3);
+            --success: #34d399;
+            --success-glow: rgba(52, 211, 153, 0.25);
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --info: #60a5fa;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+
+        .meta-icon {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+            color: var(--text-muted);
+        }
+
+        code {
+            font-family: inherit;
+            font-weight: 500;
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+            word-break: break-word;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 3rem 0 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 50%, var(--accent-glow) 0%, transparent 50%);
+            opacity: 0.3;
+            animation: headerGlow 8s ease-in-out infinite alternate;
+        }
+
+        @keyframes headerGlow {
+            0% {
+                transform: translate(0, 0);
+            }
+            100% {
+                transform: translate(5%, 5%);
+            }
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .header-content h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-content p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .header-nav {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .header-nav a:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--border);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.65rem 1.25rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 4px 20px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-hover);
+        }
+
+        .btn-sm {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        .btn-sm svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        section {
+            padding: 3rem 0;
+        }
+
+        section+section {
+            border-top: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .install-guide {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .steps {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .step {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .step-number {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .step-content h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+        }
+
+        .step-content p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .code-block {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            padding-right: 5rem;
+            margin-top: 0.75rem;
+            position: relative;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--success);
+            word-break: break-all;
+            display: block;
+            background: transparent;
+            padding: 0;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 50%;
+            right: 0.5rem;
+            transform: translate(0, -50%);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+
+        .copy-btn.copied {
+            color: var(--success);
+            border-color: var(--success);
+        }
+
+        .collapsible {
+            margin-top: 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .collapsible:first-child {
+            margin-top: 0;
+        }
+
+        .collapsible-header {
+            background: var(--bg-card);
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.2s;
+            user-select: none;
+        }
+
+        .collapsible-header:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .collapsible-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .collapsible-arrow {
+            transition: transform 0.3s ease;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .collapsible.open .collapsible-arrow {
+            transform: rotate(180deg);
+        }
+
+        .collapsible-body {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: var(--bg-secondary);
+        }
+
+        .collapsible.open .collapsible-body {
+            grid-template-rows: 1fr;
+        }
+
+        .collapsible-inner {
+            overflow: hidden;
+            min-height: 0;
+            padding: 0 1.5rem;
+            transition: padding 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .collapsible.open .collapsible-inner {
+            padding: 1.5rem;
+        }
+
+        .manual-steps {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .manual-step {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .manual-step-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .manual-step-content h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+        }
+
+        .manual-step-content p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .tip-box,
+        .warning-box,
+        .note-box {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .box-icon {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .tip-box {
+            background: rgba(52, 211, 153, 0.08);
+            border: 1px solid rgba(52, 211, 153, 0.2);
+            color: var(--success);
+        }
+
+        .tip-box .box-icon {
+            color: var(--success);
+        }
+
+        .tip-box code {
+            background: rgba(52, 211, 153, 0.12);
+            color: var(--success);
+        }
+
+        .warning-box {
+            background: rgba(251, 191, 36, 0.08);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            color: var(--warning);
+        }
+
+        .warning-box .box-icon {
+            color: var(--warning);
+        }
+
+        .warning-box code {
+            background: rgba(251, 191, 36, 0.12);
+            color: var(--warning);
+        }
+
+        .note-box {
+            background: rgba(96, 165, 250, 0.08);
+            border: 1px solid rgba(96, 165, 250, 0.2);
+            color: var(--info);
+        }
+
+        .note-box .box-icon {
+            color: var(--info);
+        }
+
+        .note-box code {
+            background: rgba(96, 165, 250, 0.12);
+            color: var(--info);
+        }
+
+        .config-block {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        .config-change {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .config-change .old {
+            color: var(--danger);
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+
+        .config-change .new {
+            color: var(--success);
+        }
+
+        .file-tree {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;        /* keeps header flush with rounded corners */
+            margin-top: 0.75rem;
+        }
+        
+        .ft-header {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.75rem 1rem;
+            background: rgba(96, 165, 250, 0.08);
+            border-bottom: 1px solid var(--border);
+            color: var(--info);
+            font-size: 0.8rem;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .ft-header svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+        
+        .ft-content {
+            padding: 1rem 1.25rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            line-height: 1.5;
+            overflow-x: auto;
+        }
+
+        .ft-node {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.28rem 0;
+            white-space: nowrap;
+        }
+
+        .ft-node svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+        }
+
+        .ft-children {
+            position: relative;
+            padding-left: 1.4rem;
+        }
+
+        .ft-children::before {
+            content: '';
+            position: absolute;
+            left: 0.45rem;
+            top: 0;
+            bottom: 0.55rem;
+            border-left: 1px solid var(--border-hover);
+        }
+
+        .ft-children > .ft-item {
+            position: relative;
+        }
+
+        .ft-children > .ft-item::before {
+            content: '';
+            position: absolute;
+            left: -0.95rem;
+            top: 50%;
+            width: 0.7rem;
+            border-top: 1px solid var(--border-hover);
+        }
+
+        .ft-label {
+            color: var(--text-secondary);
+        }
+
+        .ft-root > .ft-node > .ft-label {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .ft-folder > .ft-node > svg {
+            color: var(--info);
+        }
+
+        .ft-folder > .ft-node > .ft-label {
+            color: var(--info);
+        }
+
+        .ft-file > .ft-node > svg {
+            color: var(--text-muted);
+        }
+
+        .ft-file > .ft-node > .ft-label {
+            color: var(--text-secondary);
+        }
+
+        .ft-new > .ft-node > .ft-label {
+            color: var(--success);
+        }
+
+        .ft-new > .ft-node > svg {
+            color: var(--success);
+        }
+
+        .ft-highlight > .ft-node > .ft-label {
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .ft-highlight > .ft-node > svg {
+            color: var(--warning);
+        }
+
+        .ft-badge {
+            font-size: 0.65rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+            background: rgba(52, 211, 153, 0.15);
+            color: var(--success);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .ft-comment {
+            color: var(--text-muted);
+            font-style: italic;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.72rem;
+            margin-left: 0.25rem;
+        }
+
+        .ft-legend {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+        .ft-legend svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        .recommended-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .rec-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .rec-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .rec-card-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .rec-card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .rec-card-icon svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .rec-card-icon.config-icon {
+            background: rgba(124, 92, 252, 0.15);
+            color: var(--accent);
+        }
+
+        .rec-card-icon.debug-icon {
+            background: rgba(251, 191, 36, 0.15);
+            color: var(--warning);
+        }
+
+        .rec-card-icon.editor-icon {
+            background: rgba(52, 211, 153, 0.15);
+            color: var(--success);
+        }
+
+        .rec-card-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .rec-card h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.15rem;
+        }
+
+        .rec-card .author {
+            color: var(--accent);
+            font-size: 0.78rem;
+        }
+
+        .rec-card p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .rec-card .links {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .build-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.25rem;
+            margin-top: 1.5rem;
+        }
+
+        .build-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .build-card h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .build-card h4 svg {
+            width: 18px;
+            height: 18px;
+            color: var(--accent);
+        }
+
+        .build-card p,
+        .build-card li {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .build-card ul {
+            padding-left: 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .build-card .code-block {
+            margin-top: 0.5rem;
+            padding: 0.75rem;
+            padding-right: 4rem;
+        }
+
+        .build-prereq {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .build-prereq h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .build-prereq h4 svg {
+            width: 18px;
+            height: 18px;
+            color: var(--accent);
+        }
+
+        .build-prereq p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .mods-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .sort-btns {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .sort-btn {
+            padding: 0.45rem 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .sort-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .sort-btn:hover:not(.active) {
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+        }
+
+        .search-bar {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-bar svg {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 0.7rem 1rem 0.7rem 2.75rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .search-bar input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-bar input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .search-bar .clear-search {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 4px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .search-bar .clear-search:hover {
+            color: var(--text-primary);
+        }
+
+        .search-bar .clear-search.visible {
+            display: flex;
+        }
+
+        .mods-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .mod-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mod-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .mod-card.downloaded {
+            border-color: rgba(52, 211, 153, 0.45);
+            box-shadow: 0 0 20px rgba(52, 211, 153, 0.1), 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .mod-card.downloaded:hover {
+            border-color: rgba(52, 211, 153, 0.6);
+            box-shadow: 0 0 28px rgba(52, 211, 153, 0.18), 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .mod-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            gap: 0.75rem;
+        }
+
+        /* Keep title from pushing badges out */
+        .mod-card-header > div:first-child {
+            flex: 1 1 0%;
+            min-width: 0;
+        }
+
+        .badges-row {
+            flex-shrink: 0;
+            display: flex;
+            gap: 0.4rem;
+            align-items: center;
+            flex-wrap: nowrap;
+        }
+
+        .mod-card h4 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .mod-card .mod-desc {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            flex-grow: 1;
+            line-height: 1.5;
+        }
+
+        .mod-desc.loading {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .mod-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.78rem;
+        }
+
+        .mod-meta-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .mod-meta-row .meta-icon {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+            color: var(--text-muted);
+        }
+
+        .mod-meta-row .label {
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .mod-meta-row .value {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .mod-sha256-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            min-width: 0;
+            background: transparent;
+            padding: 0;
+        }
+
+        .mod-sha256-copy {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.25rem 0.4rem;
+            margin-left: -0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .mod-sha256-copy:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .mod-sha256-copy svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        .mod-sha256-copy.copied {
+            color: var(--success);
+            border-color: var(--success);
+        }
+
+        .mod-card .mod-links {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.2rem 0.55rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: rgba(124, 92, 252, 0.25);
+            color: var(--accent-hover);
+            white-space: nowrap;
+            flex-shrink: 0;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: 1px solid rgba(124, 92, 252, 0.2);
+            gap: 3px;
+        }
+
+        .badge:hover {
+            background: rgba(124, 92, 252, 0.35);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .badge-downloaded {
+            background: rgba(52, 211, 153, 0.13);
+            color: var(--success);
+            border: 1px solid rgba(52, 211, 153, 0.25);
+            cursor: default;
+            gap: 3px;
+        }
+
+        .badge-downloaded:hover {
+            background: rgba(52, 211, 153, 0.18);
+            border-color: rgba(52, 211, 153, 0.4);
+            color: var(--success);
+        }
+
+        .badge-downloaded svg {
+            flex-shrink: 0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .loading .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .error-msg {
+            text-align: center;
+            padding: 2rem;
+            color: var(--danger);
+            background: rgba(248, 113, 113, 0.05);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+            border-radius: 12px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .no-results svg {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 1rem;
+            color: var(--border-hover);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .modal-body h1,
+        .modal-body h2,
+        .modal-body h3,
+        .modal-body h4 {
+            color: var(--text-primary);
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .modal-body h1 {
+            font-size: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .modal-body h2 {
+            font-size: 1.25rem;
+        }
+
+        .modal-body h3 {
+            font-size: 1.1rem;
+        }
+
+        .modal-body h1:first-child,
+        .modal-body h2:first-child,
+        .modal-body h3:first-child {
+            margin-top: 0;
+        }
+
+        .modal-body p {
+            margin-bottom: 1rem;
+        }
+
+        .modal-body a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .modal-body a:hover {
+            text-decoration: underline;
+        }
+
+        .modal-body code {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
+            color: var(--text-primary);
+        }
+
+        .modal-body pre {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-x: auto;
+            margin-bottom: 1rem;
+        }
+
+        .modal-body pre code {
+            background: transparent;
+            padding: 0;
+            color: var(--success);
+            font-size: 0.8rem;
+        }
+
+        .modal-body ul,
+        .modal-body ol {
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal-body li {
+            margin-bottom: 0.25rem;
+        }
+
+        .modal-body img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+            border: 1px solid var(--border);
+        }
+
+        .modal-body blockquote {
+            border-left: 3px solid var(--accent);
+            padding-left: 1rem;
+            color: var(--text-muted);
+            margin: 1rem 0;
+        }
+
+        .modal-body table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+        }
+
+        .modal-body th,
+        .modal-body td {
+            border: 1px solid var(--border);
+            padding: 0.5rem;
+            text-align: left;
+        }
+
+        .modal-body th {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .modal-body hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 1.5rem 0;
+        }
+
+        .markdown-alert {
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid;
+        }
+
+        .markdown-alert-note {
+            background: rgba(96, 165, 250, 0.08);
+            border-color: var(--info);
+        }
+
+        .markdown-alert-tip {
+            background: rgba(52, 211, 153, 0.08);
+            border-color: var(--success);
+        }
+
+        .markdown-alert-important {
+            background: rgba(124, 92, 252, 0.08);
+            border-color: var(--accent);
+        }
+
+        .markdown-alert-warning {
+            background: rgba(251, 191, 36, 0.08);
+            border-color: var(--warning);
+        }
+
+        .markdown-alert-caution {
+            background: rgba(248, 113, 113, 0.08);
+            border-color: var(--danger);
+        }
+
+        .markdown-alert-title {
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.02em;
+        }
+
+        .markdown-alert-note .markdown-alert-title {
+            color: var(--info);
+        }
+
+        .markdown-alert-tip .markdown-alert-title {
+            color: var(--success);
+        }
+
+        .markdown-alert-important .markdown-alert-title {
+            color: var(--accent-hover);
+        }
+
+        .markdown-alert-warning .markdown-alert-title {
+            color: var(--warning);
+        }
+
+        .markdown-alert-caution .markdown-alert-title {
+            color: var(--danger);
+        }
+
+        .markdown-alert p:last-child {
+            margin-bottom: 0;
+        }
+
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 2rem 0;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-hover);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
+        }
+        
+        html {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-hover) var(--bg-primary);
+        }
+        
+        .header-nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            display: inline-flex;       /* new */
+            align-items: center;        /* new */
+            gap: 0.35rem;               /* new – space between icon and text */
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-content h1 {
+                font-size: 1.8rem;
+            }
+            .mods-grid,
+            .recommended-grid {
+                grid-template-columns: 1fr;
+            }
+            .mods-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .install-guide {
+                padding: 1.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container header-content">
+            <h1>Dig or Die Mods</h1>
+            <p>Enhance your Dig or Die experience with community plugins</p>
+            <div class="header-actions">
+                <a href="https://github.com/ddmitv/dig-or-die-mods" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                    View on GitHub
+                </a>
+            </div>
+            <nav class="header-nav">
+                <a href="https://github.com/ddmitv/dig-or-die-mods/wiki/Documentation" target="_blank" rel="noopener noreferrer">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                    </svg>
+                    Documentation
+                </a>
+                <a href="https://github.com/ddmitv/dig-or-die-mods/wiki/Tables" target="_blank" rel="noopener noreferrer">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+
+                    Tables
+                </a>
+                <a href="https://github.com/ddmitv/dig-or-die-mods/wiki/Other-mods" target="_blank" rel="noopener noreferrer">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2a2.5 2.5 0 0 0-2.5 2.5V5H5a1 1 0 0 0-1 1v4.5h.5a2.5 2.5 0 0 1 0 5H4v4.5a1 1 0 0 0 1 1h4.5v.5a2.5 2.5 0 0 0 5 0V21h4.5a1 1 0 0 0 1-1v-4.5h.5a2.5 2.5 0 0 0 0-5H20V6a1 1 0 0 0-1-1h-4.5v-.5A2.5 2.5 0 0 0 12 2z"/>
+                    </svg>
+                    Other Mods
+                </a>
+                <a href="https://github.com/ddmitv/dig-or-die-mods/wiki/Debugging" target="_blank" rel="noopener noreferrer">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 2 1.88 1.88M14.12 3.88 16 2M9 7.13v-1a3.003 3.003 0 1 1 6 0v1M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6M12 20v-9M6.53 9C4.6 8.8 3 7.1 3 5M6 13H2M3 21c0-2.1 1.7-3.9 3.8-4M20.97 5c0 2.1-1.6 3.8-3.5 4M22 13h-4M17.2 17c2.1.1 3.8 1.9 3.8 4"/></svg>
+                    Debugging
+                </a>
+                <a href="https://github.com/ddmitv/dig-or-die-mods/tree/main/dod-decomp" target="_blank" rel="noopener noreferrer">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 18l6-6-6-6"/>
+                        <path d="M8 6l-6 6 6 6"/>
+                    </svg>
+                    Decompilation
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <section>
+        <div class="container">
+            <h2 class="section-title">⚡ Quick Installation Guide</h2>
+            <div class="install-guide">
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>Open PowerShell</h3>
+                            <p><strong>Windows 10:</strong> Press the Windows key, type <code>PowerShell</code>, and click to launch.<br>
+                                <strong>Windows 11:</strong> Right-click the Start menu and choose <code>Terminal</code>.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>Install BepInEx automatically</h3>
+                            <p>Copy the command below, paste it into PowerShell, and press <code>Enter</code>:</p>
+                            <div class="code-block">
+                                <button class="copy-btn" onclick="copyToClipboard(this, 'irm &quot;https://raw.githubusercontent.com/ddmitv/dig-or-die-mods/main/Install-BepInEx.ps1&quot; | iex')">Copy</button>
+                                <code>irm "https://raw.githubusercontent.com/ddmitv/dig-or-die-mods/main/Install-BepInEx.ps1" | iex</code>
+                            </div>
+                            <p style="margin-top:0.5rem;font-size:0.8rem;color:var(--warning);">If you encounter an error, try the Manual Installation Guide below.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>Download mods</h3>
+                            <p>Download desired <code>.dll</code> files from below and place them in <code>BepInEx/plugins</code> folder.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h3>Play!</h3>
+                            <p>Run the game through Steam.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="container">
+            <h2 class="section-title">📖 Detailed Guides & Troubleshooting</h2>
+            <div class="install-guide" style="padding: 1.5rem;">
+
+                <div class="collapsible" id="manualInstall">
+                    <div class="collapsible-header" onclick="toggleCollapsible('manualInstall')">
+                        <h3>📋 Manual Installation Guide</h3>
+                        <span class="collapsible-arrow">▼</span>
+                    </div>
+                    <div class="collapsible-body">
+                        <div class="collapsible-inner">
+                            <div class="manual-steps">
+                                <div class="manual-step">
+                                    <div class="step-number">1</div>
+                                    <div class="manual-step-content">
+                                        <h4>Download BepInEx</h4>
+                                        <p>Get the <strong>32-bit (x86)</strong> Windows BepInEx <strong>version 5.4.23 or newer</strong> from the <a href="https://github.com/BepInEx/BepInEx/releases" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">BepInEx GitHub releases</a>.</p>
+                                        <div class="tip-box">
+                                            <svg class="box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
+                                            <span>The file name should look like <code>BepInEx_win_x86_5.4.23.3.zip</code></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="manual-step">
+                                    <div class="step-number">2</div>
+                                    <div class="manual-step-content">
+                                        <h4>Install BepInEx</h4>
+                                        <p>Extract the downloaded <code>.zip</code> contents into your game directory <strong>where <code>DigOrDie.exe</code> is located</strong>.</p>
+                                        <div class="tip-box">
+                                            <svg class="box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
+                                            <span>In Steam: right-click the game → <strong>Manage →</strong> → <strong>Browse local files →</strong>. Optionally, back up your game by copying the entire <strong>Dig Or Die</strong> folder elsewhere before extracting.</span>
+                                        </div>
+
+                                        <div class="file-tree">
+                                            <div class="ft-header">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                                                <span>After extraction, your game folder should look like this:</span>
+                                            </div>
+                                            <div class="ft-content">
+                                                <div class="ft-item ft-root">
+                                                    <div class="ft-node">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                                                        <span class="ft-label">Dig or Die/</span>
+                                                    </div>
+                                                    <div class="ft-children">
+                                                        <div class="ft-item ft-file">
+                                                            <div class="ft-node">
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                                <span class="ft-label">DigOrDie.exe</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="ft-item ft-folder">
+                                                            <div class="ft-node">
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                                                                <span class="ft-label">DigOrDie_Data/</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="ft-item ft-file ft-new">
+                                                            <div class="ft-node">
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                                <span class="ft-label">winhttp.dll</span>
+                                                                <span class="ft-badge">new</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="ft-item ft-file ft-new">
+                                                            <div class="ft-node">
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                                <span class="ft-label">doorstop_config.ini</span>
+                                                                <span class="ft-badge">new</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="ft-item ft-file ft-new">
+                                                            <div class="ft-node">
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                                <span class="ft-label">.doorstop_version</span>
+                                                                <span class="ft-badge">new</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="ft-item ft-file ft-new">
+                                                            <div class="ft-node">
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                                <span class="ft-label">changelog.txt</span>
+                                                                <span class="ft-badge">new</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="ft-item ft-folder ft-new">
+                                                            <div class="ft-node">
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                                                                <span class="ft-label">BepInEx/</span>
+                                                                <span class="ft-badge">new</span>
+                                                            </div>
+                                                            <div class="ft-children">
+                                                                <div class="ft-item ft-folder">
+                                                                    <div class="ft-node">
+                                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                                                                        <span class="ft-label">config/</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="ft-item ft-folder">
+                                                                    <div class="ft-node">
+                                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                                                                        <span class="ft-label">core/</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="ft-item ft-folder">
+                                                                    <div class="ft-node">
+                                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                                                                        <span class="ft-label">patchers/</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="ft-item ft-folder ft-highlight">
+                                                                    <div class="ft-node">
+                                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                                                                        <span class="ft-label">plugins/</span>
+                                                                        <span class="ft-comment">← put .dll files here</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="manual-step">
+                                    <div class="step-number">3</div>
+                                    <div class="manual-step-content">
+                                        <h4>First Launch</h4>
+                                        <p>Run the game <strong>through Steam</strong>. Directly running <code>DigOrDie.exe</code> won't work.</p>
+                                        <div class="warning-box">
+                                            <svg class="box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                            <span>The game will always show a black screen on first launch — don't wait for it to start. Wait until the <code>BepInEx/config</code> folder appears, then close the game.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="manual-step">
+                                    <div class="step-number">4</div>
+                                    <div class="manual-step-content">
+                                        <h4>BepInEx Configuration</h4>
+                                        <p>Open <code>BepInEx/config/BepInEx.cfg</code> in a text editor and find near the end:</p>
+                                        <div class="config-block">[Preloader.Entrypoint]
+
+## The local filename of the assembly to target.
+# Setting type: String
+# Default value: UnityEngine.dll
+Assembly = UnityEngine.dll
+
+## The name of the type in the entrypoint assembly to search for the entrypoint method.
+# Setting type: String
+# Default value: Application
+Type = Application
+
+## The name of the method in the specified entrypoint assembly and type to hook and load Chainloader from.
+# Setting type: String
+# Default value: .cctor
+Method = .cctor</div>
+                                        <div class="config-change">
+                                            <span>Change</span>
+                                            <code class="old">Type = Application</code>
+                                            <span>→</span>
+                                            <code class="new">Type = MonoBehaviour</code>
+                                        </div>
+                                        <div class="tip-box" style="align-items: flex-start;">
+                                            <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
+                                                <svg class="box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
+                                                <div style="display: flex; flex-direction: column; gap: 0.6rem; flex-grow: 1; min-width: 0;">
+                                                    <strong>Optional: Enable debug console</strong>
+                                                    <p style="margin: 0.2rem 0 0rem; font-size: 0.8rem; color: var(--success);">
+                                                        Find the <code>[Logging.Console]</code> section in <code>BepInEx.cfg</code> and set <code>Enabled = true</code>. A console window with logging will appear on game start.
+                                                    </p>
+                                                    <pre style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.8rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--success); overflow-x: auto; line-height: 1.5;">[Logging.Console]
+## Enables showing a console for log output.
+# Setting type: Boolean
+# Default value: false
+Enabled = true</pre>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="manual-step">
+                                    <div class="step-number">5</div>
+                                    <div class="manual-step-content">
+                                        <h4>Install Plugins</h4>
+                                        <p>Download plugin <code>.dll</code> files from below and place them into the <code>Dig or Die/BepInEx/plugins</code> folder.</p>
+                                    </div>
+                                </div>
+                                <div class="manual-step">
+                                    <div class="step-number">6</div>
+                                    <div class="manual-step-content">
+                                        <h4>Play!</h4>
+                                        <p>Run the game <strong>through Steam</strong>. Plugins should now be active.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="collapsible" id="pluginConfig">
+                    <div class="collapsible-header" onclick="toggleCollapsible('pluginConfig')">
+                        <h3>⚙️ Plugin Configuration</h3>
+                        <span class="collapsible-arrow">▼</span>
+                    </div>
+                    <div class="collapsible-body">
+                        <div class="collapsible-inner">
+                            <ul style="padding-left: 1.25rem; color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
+                                <li style="margin-bottom: 0.4rem;">Many plugins have configuration files under <code>BepInEx/config</code>. A config file is created automatically the first time the game is started with that plugin.</li>
+                                <li style="margin-bottom: 0.4rem;">Usually, config changes require a game restart to take effect, though some plugins read settings dynamically (check the plugin's documentation).</li>
+                                <li>To reset a plugin's config to defaults, delete its config file — it will be recreated on next launch.</li>
+                            </ul>
+
+                            <div class="file-tree">
+                                <div class="ft-header">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                                    <span>Example config file structure after installing some plugins:</span>
+                                </div>
+                                <div class="ft-content">
+                                    <div class="ft-item ft-root">
+                                        <div class="ft-node">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                                            <span class="ft-label">Dig or Die/BepInEx/config/</span>
+                                        </div>
+                                        <div class="ft-children">
+                                            <div class="ft-item ft-file">
+                                                <div class="ft-node">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                    <span class="ft-label">BepInEx.cfg</span>
+                                                    <span class="ft-comment">← main BepInEx config</span>
+                                                </div>
+                                            </div>
+                                            <div class="ft-item ft-file ft-new">
+                                                <div class="ft-node">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                    <span class="ft-label">com.example.precise-clock.cfg</span>
+                                                </div>
+                                            </div>
+                                            <div class="ft-item ft-file ft-new">
+                                                <div class="ft-node">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                    <span class="ft-label">com.example.better-chat.cfg</span>
+                                                </div>
+                                            </div>
+                                            <div class="ft-item ft-file ft-new">
+                                                <div class="ft-node">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                    <span class="ft-label">com.example.autosave-tweaks.cfg</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ft-legend">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                                <span>Config files are named after the plugin's GUID and appear after first launch</span>
+                            </div>
+                            <div class="tip-box" style="margin-top:1rem;">
+                                <svg class="box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
+                                <span>Use <a href="https://github.com/BepInEx/BepInEx.ConfigurationManager#readme" target="_blank" rel="noopener noreferrer" style="color:var(--success)">Configuration Manager</a> (see Recommended Plugins below) to edit configs in-game via a GUI.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="collapsible" id="troubleshooting">
+                    <div class="collapsible-header" onclick="toggleCollapsible('troubleshooting')">
+                        <h3>🔧 Troubleshooting</h3>
+                        <span class="collapsible-arrow">▼</span>
+                    </div>
+                    <div class="collapsible-body">
+                        <div class="collapsible-inner">
+                            <p style="color: var(--text-secondary); font-size: 0.875rem;">Check <code>Dig or Die/DigOrDie_Data/output_log.txt</code> for errors. Visit the <a href="https://docs.bepinex.dev/articles/user_guide/troubleshooting.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">BepInEx Troubleshooting page</a> for more help.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="collapsible" id="uninstallation">
+                    <div class="collapsible-header" onclick="toggleCollapsible('uninstallation')">
+                        <h3>🗑️ Uninstallation</h3>
+                        <span class="collapsible-arrow">▼</span>
+                    </div>
+                    <div class="collapsible-body">
+                        <div class="collapsible-inner">
+                            <ul style="padding-left: 1.25rem; color: var(--text-secondary); font-size: 0.875rem;">
+                                <li style="margin-bottom: 0.4rem;"><strong>Disable specific plugin:</strong> Delete its <code>.dll</code> from <code>BepInEx/plugins</code>.</li>
+                                <li style="margin-bottom: 0.4rem;"><strong>Temporarily disable all mods:</strong> Rename <code>winhttp.dll</code> to <code>winhttp.dll.off</code>. Rename back to re-enable.</li>
+                                <li><strong>Full uninstall:</strong> Delete <code>BepInEx/</code>, <code>winhttp.dll</code>, <code>doorstop_config.ini</code>, <code>.doorstop_version</code>, <code>changelog.txt</code>. Then verify integrity of game files through Steam.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="container">
+            <h2 class="section-title">Recommended Plugins</h2>
+            <p class="section-subtitle">Essential tools for the best modding experience</p>
+            <div class="recommended-grid">
+                <div class="rec-card">
+                    <div class="rec-card-header">
+                        <div class="rec-card-icon config-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </div>
+                        <div class="rec-card-info">
+                            <h4>Configuration Manager</h4>
+                            <div class="author">by BepInEx</div>
+                        </div>
+                    </div>
+                    <p>Easy plugin configuration editing via in-game GUI. No need to edit config files manually.</p>
+                    <div class="links">
+                        <a href="https://github.com/BepInEx/BepInEx.ConfigurationManager/releases" class="btn btn-secondary btn-sm" target="_blank" rel="noopener noreferrer">Download from GitHub</a>
+                        <a href="https://github.com/BepInEx/BepInEx.ConfigurationManager#readme" class="btn btn-secondary btn-sm" target="_blank" rel="noopener noreferrer">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                            Documentation
+                        </a>
+                    </div>
+                </div>
+                <div class="rec-card">
+                    <div class="rec-card-header">
+                        <div class="rec-card-icon debug-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        </div>
+                        <div class="rec-card-info">
+                            <h4>Demystify Exceptions</h4>
+                            <div class="author">by BepInEx</div>
+                        </div>
+                    </div>
+                    <p>Clearer exception messages in logs. Makes troubleshooting mod issues much easier.</p>
+                    <div class="links">
+                        <a href="https://github.com/BepInEx/BepInEx.Debug/releases" class="btn btn-secondary btn-sm" target="_blank" rel="noopener noreferrer">Download from GitHub</a>
+                        <a href="https://github.com/BepInEx/BepInEx.Debug#readme" class="btn btn-secondary btn-sm" target="_blank" rel="noopener noreferrer">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                            Documentation
+                        </a>
+                    </div>
+                </div>
+                <div class="rec-card">
+                    <div class="rec-card-header">
+                        <div class="rec-card-icon editor-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                        </div>
+                        <div class="rec-card-info">
+                            <h4>Runtime Unity Editor</h4>
+                            <div class="author">by ManlyMarco</div>
+                        </div>
+                    </div>
+                    <p>In-game inspector and debugging tools. Inspect and modify game objects in real-time.</p>
+                    <div class="links">
+                        <a href="https://github.com/ManlyMarco/RuntimeUnityEditor/releases" class="btn btn-secondary btn-sm" target="_blank" rel="noopener noreferrer">Download from GitHub</a>
+                        <a href="https://github.com/ManlyMarco/RuntimeUnityEditor#readme" class="btn btn-secondary btn-sm" target="_blank" rel="noopener noreferrer">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                            Documentation
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="container">
+            <div class="mods-header">
+                <div>
+                    <h2 class="section-title">Available Mods</h2>
+                    <p class="section-subtitle" id="modCount" style="margin-bottom:0;">Loading...</p>
+                </div>
+                <div class="sort-btns">
+                    <button class="sort-btn" onclick="sortMods('name', this)">Sort by Name</button>
+                    <button class="sort-btn active" onclick="sortMods('updated', this)">Sort by Updated</button>
+                    <button class="sort-btn" onclick="sortMods('downloads', this)">Sort by Downloads</button>
+                </div>
+            </div>
+            <div class="search-bar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="searchInput" placeholder="Search mods by name or description..." oninput="handleSearch(this.value)">
+                <button class="clear-search" id="clearSearch" onclick="clearSearch()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div id="modsContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading mods from GitHub...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="container">
+            <h2 class="section-title">🛠️ Building Plugins Yourself</h2>
+            <p class="section-subtitle">Compile the plugins from source code</p>
+            <div class="install-guide">
+                <div class="build-prereq">
+                    <h4>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        Prerequisites
+                    </h4>
+                    <p>Install <a href="https://dotnet.microsoft.com/download" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">.NET SDK</a> (should support C# 12.0).</p>
+                    <div class="note-box" style="margin-top: 0.75rem;">
+                        <svg class="box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        <span>Set the environment variable <code>DIG_OR_DIE_PATH</code> to your Dig or Die installation path to automatically deploy built plugins to <code>BepInEx\plugins</code>.</span>
+                    </div>
+                </div>
+
+                <div class="build-grid">
+                    <div class="build-card">
+                        <h4>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                            Using Visual Studio
+                        </h4>
+                        <p>You can download Visual Studio from <a href="https://visualstudio.microsoft.com/downloads" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">microsoft.com</a>.</p>
+                        <ul>
+                            <li>Open the <code>plugins/</code> directory (where all plugin source code is located).</li>
+                            <li>The plugin's directory should contain a <code>.csproj</code> file that you need to open with Visual Studio.</li>
+                            <li>You can build the current plugin with <code>Ctrl+B</code> or <strong>Build → {plugin name}</strong>.</li>
+                        </ul>
+                    </div>
+                    <div class="build-card">
+                        <h4>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                            Using Command Line
+                        </h4>
+                        <p>Open a terminal in the repository root and run:</p>
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyToClipboard(this, 'dotnet build plugins/{plugin name}')">Copy</button>
+                            <code>dotnet build plugins/{plugin name}</code>
+                        </div>
+                        <div class="tip-box" style="margin-top: 0.75rem;">
+                            <svg class="box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
+                            <span>Add <code>-c Release</code> to build with Release configuration.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="readmeModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">README Preview</h3>
+                <button class="modal-close" onclick="closeReadmeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div class="loading"><div class="spinner"></div><p>Loading README...</p></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked@18.0.5/lib/marked.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.10/dist/purify.min.js"></script>
+
+    <script>
+        const GITHUB_API = 'https://api.github.com/repos/ddmitv/dig-or-die-mods/releases';
+        const REPO_URL = 'https://github.com/ddmitv/dig-or-die-mods';
+        const RAW_CONTENT_URL = 'https://raw.githubusercontent.com/ddmitv/dig-or-die-mods/refs/heads/main/plugins';
+        const LS_DOWNLOADED_KEY = 'dod-downloaded-mods';
+
+        const ICON_CLOCK = `<svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+        const ICON_BOX = `<svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>`;
+        const ICON_DOWNLOAD = `<svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+        const ICON_LOCK = `<svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
+        const ICON_COPY = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+        const ICON_CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+        const ICON_CHECK_CIRCLE = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+        const ICON_GITHUB = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>`;
+        const ICON_EYE = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+        
+        const ALERT_REGEX = /^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*\n((?:>\s?.*\n?)*)/;
+
+        let allMods = [];
+        let currentSort = 'updated';
+        let currentSearch = '';
+        let markedReady = false;
+        let markedParse = null;
+        
+        const githubAlertsExtension = {
+            name: 'githubAlert',
+            level: 'block',
+            start(src) {
+                const match = src.match(/^>\s*\[!/);
+                return match ? match.index : -1;
+            },
+            tokenizer(src) {
+                const match = ALERT_REGEX.exec(src);
+                if (match) {
+                    const alertType = match[1].toLowerCase();
+                    const rawContent = match[2];
+                    const content = rawContent.replace(/^>\s?/gm, '').trim();
+                    return {
+                        type: 'githubAlert',
+                        raw: match[0],
+                        alertType: alertType,
+                        content: content
+                    };
+                }
+            },
+            renderer(token) {
+                const typeMap = {
+                    'note': { title: 'Note', cssClass: 'note' },
+                    'tip': { title: 'Tip', cssClass: 'tip' },
+                    'important': { title: 'Important', cssClass: 'important' },
+                    'warning': { title: 'Warning', cssClass: 'warning' },
+                    'caution': { title: 'Caution', cssClass: 'caution' }
+                };
+                const alertInfo = typeMap[token.alertType] || typeMap['note'];
+                const innerHtml = marked.parse(token.content);
+                return `<div class="markdown-alert markdown-alert-${alertInfo.cssClass}"><p class="markdown-alert-title">${alertInfo.title}</p>${innerHtml}</div>\n`;
+            }
+        };
+        
+        if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+            marked.use({ extensions: [githubAlertsExtension] });
+        
+            DOMPurify.addHook('afterSanitizeAttributes', function (node) {
+                if (node.tagName === 'A') {
+                    node.setAttribute('target', '_blank');
+                    node.setAttribute('rel', 'noopener noreferrer');
+                }
+            });
+        }
+
+        // --- Downloaded mods tracking (client-side localStorage) ---
+        function getDownloadedModsMap() {
+            try {
+                const raw = localStorage.getItem(LS_DOWNLOADED_KEY);
+                return raw ? JSON.parse(raw) : {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function isModDownloaded(folderName) {
+            const map = getDownloadedModsMap();
+            return Object.prototype.hasOwnProperty.call(map, folderName);
+        }
+
+        function getModDownloadDate(folderName) {
+            const map = getDownloadedModsMap();
+            return map[folderName] || null;
+        }
+
+        function markModAsDownloaded(folderName) {
+            try {
+                const map = getDownloadedModsMap();
+                map[folderName] = new Date().toISOString();
+                localStorage.setItem(LS_DOWNLOADED_KEY, JSON.stringify(map));
+            } catch (e) {
+                console.warn('Failed to save download state to localStorage:', e);
+            }
+            renderMods(getFilteredAndSortedMods());
+        }
+        
+        function toggleCollapsible(id) {
+            const el = document.getElementById(id);
+            el.classList.toggle('open');
+        }
+
+        function copyToClipboard(btn, text) {
+            navigator.clipboard.writeText(text).then(() => {
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => { btn.textContent = 'Copy';
+                    btn.classList.remove('copied'); }, 2000);
+            }).catch(() => {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => { btn.textContent = 'Copy';
+                    btn.classList.remove('copied'); }, 2000);
+            });
+        }
+
+        function copySha256(btn, hash) {
+            navigator.clipboard.writeText(hash).then(() => {
+                btn.innerHTML = ICON_CHECK;
+                btn.classList.add('copied');
+                setTimeout(() => { btn.innerHTML = ICON_COPY;
+                    btn.classList.remove('copied'); }, 2000);
+            }).catch(() => {
+                const textarea = document.createElement('textarea');
+                textarea.value = hash;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                btn.innerHTML = ICON_CHECK;
+                btn.classList.add('copied');
+                setTimeout(() => { btn.innerHTML = ICON_COPY;
+                    btn.classList.remove('copied'); }, 2000);
+            });
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        async function openReadmeModal(folderName) {
+            const modal = document.getElementById('readmeModal');
+            const body = document.getElementById('modalBody');
+            const title = document.getElementById('modalTitle');
+
+            const mod = allMods.find(m => m.folderName === folderName);
+            const displayName = mod ? mod.displayName : folderName;
+
+            title.textContent = `${displayName} - README`;
+            body.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading README...</p></div>';
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+
+            try {
+                const url = `${RAW_CONTENT_URL}/${folderName}/README.md`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('README not found');
+                const text = await response.text();
+
+                const baseUrl = `${RAW_CONTENT_URL}/${folderName}/`;
+                const processedText = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+                    if (!src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('//')) {
+                        return `![${alt}](${baseUrl}${src})`;
+                    }
+                    return match;
+                });
+
+                const html = marked.parse(processedText);
+                body.innerHTML = DOMPurify.sanitize(html);
+            } catch (e) {
+                body.innerHTML =
+                    `<div class="error-msg"><p>Failed to load README.</p><p style="font-size:0.85rem;color:var(--text-secondary);">${e.message}</p></div>`;
+            }
+        }
+
+        function closeReadmeModal() {
+            const modal = document.getElementById('readmeModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'readmeModal') closeReadmeModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeReadmeModal();
+        });
+
+        async function fetchAllReleases() {
+            const allReleases = [];
+            let page = 1;
+            let keepFetching = true;
+            while (keepFetching) {
+                const response = await fetch(`${GITHUB_API}?per_page=100&page=${page}`);
+                if (response.status === 403) {
+                    throw new Error('GitHub API rate limit exceeded. Please try again in an hour.');
+                }
+                if (!response.ok) throw new Error(`GitHub API error: ${response.status}`);
+                const data = await response.json();
+                if (data.length === 0) keepFetching = false;
+                else {
+                    allReleases.push(...data);
+                    page++;
+                    if (data.length < 100) keepFetching = false;
+                }
+            }
+            return allReleases;
+        }
+
+        function isPluginDll(filename) {
+            return filename.toLowerCase().endsWith('.dll');
+        }
+
+        function parseReadmeDescription(text) {
+            if (!text) return null;
+            const lines = text.split('\n');
+            for (let line of lines) {
+                line = line.trim();
+                if (!line || line.startsWith('#') || line.startsWith('!') || line.startsWith('<') || line.startsWith('>') ||
+                    line.startsWith('|') || line.startsWith('---') || line.startsWith('- ') || line.startsWith('* ') || line
+                    .startsWith('[')) continue;
+                let clean = line.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/`(.*?)`/g, '$1').replace(
+                    /_(.*?)_/g, '$1');
+                if (clean.length > 160) clean = clean.substring(0, 157) + '...';
+                return clean;
+            }
+            return null;
+        }
+
+        async function fetchReadmeDescription(folderName) {
+            try {
+                const response = await fetch(`${RAW_CONTENT_URL}/${folderName}/README.md`);
+                if (!response.ok) return null;
+                return parseReadmeDescription(await response.text());
+            } catch (e) { return null; }
+        }
+
+        function extractDescriptionFromBody(body, pluginName) {
+            if (!body) return '';
+            const lines = body.split('\n');
+            for (let line of lines) {
+                line = line.trim();
+                if (line.includes('`' + pluginName + '`')) {
+                    const match = line.match(/`[^`]+`[:\s]*[-–—]?\s*(.+)/);
+                    if (match && match[1].trim()) return match[1].trim().replace(/^[-–—]\s*/, '').replace(/\*\*/g, '');
+                }
+            }
+            return '';
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024,
+                sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        function formatPluginDisplayName(name) {
+            return name.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        }
+
+        function timeAgo(dateString) {
+            const seconds = Math.floor((new Date() - new Date(dateString)) / 1000);
+            const intervals = [
+                { l: 'year', s: 31536000 },
+                { l: 'month', s: 2592000 },
+                { l: 'week', s: 604800 },
+                { l: 'day', s: 86400 },
+                { l: 'hour', s: 3600 },
+                { l: 'minute', s: 60 },
+            ];
+            for (const i of intervals) {
+                const c = Math.floor(seconds / i.s);
+                if (c >= 1) return `${c} ${i.l}${c !== 1 ? 's' : ''} ago`;
+            }
+            return 'recently';
+        }
+
+        function extractSHA256FromDigest(digest) {
+            if (!digest) return null;
+            return digest.startsWith('sha256:') ? digest.substring(7) : digest;
+        }
+
+        function sortMods(sortBy, btnEl) {
+            currentSort = sortBy;
+            document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+            if (btnEl) btnEl.classList.add('active');
+            renderMods(getFilteredAndSortedMods());
+        }
+
+        function handleSearch(query) {
+            currentSearch = query.toLowerCase().trim();
+            const clearBtn = document.getElementById('clearSearch');
+            if (currentSearch) {
+                clearBtn.classList.add('visible');
+            } else {
+                clearBtn.classList.remove('visible');
+            }
+            renderMods(getFilteredAndSortedMods());
+        }
+
+        function clearSearch() {
+            const input = document.getElementById('searchInput');
+            input.value = '';
+            handleSearch('');
+            input.focus();
+        }
+
+        function getFilteredAndSortedMods() {
+            let mods = [...allMods];
+
+            if (currentSearch) {
+                mods = mods.filter(mod => {
+                    const nameMatch = mod.displayName.toLowerCase().includes(currentSearch) ||
+                        mod.pluginName.toLowerCase().includes(currentSearch);
+                    const descMatch = mod.description ? mod.description.toLowerCase().includes(currentSearch) :
+                    false;
+                    return nameMatch || descMatch;
+                });
+            }
+
+            if (currentSort === 'name') {
+                mods.sort((a, b) => a.pluginName.localeCompare(b.pluginName));
+            } else if (currentSort === 'downloads') {
+                mods.sort((a, b) => b.downloads - a.downloads);
+            } else {
+                mods.sort((a, b) => new Date(b.releaseDate) - new Date(a.releaseDate));
+            }
+
+            return mods;
+        }
+
+        function renderMods(mods) {
+            const container = document.getElementById('modsContainer');
+            const modCountEl = document.getElementById('modCount');
+
+            if (allMods.length === 0) {
+                container.innerHTML =
+                    '<div class="error-msg"><p>No plugin .dll files were found in release assets.</p></div>';
+                return;
+            }
+
+            if (!mods || mods.length === 0) {
+                modCountEl.textContent = `0 results for "${currentSearch}"`;
+                container.innerHTML = `
+                    <div class="no-results">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            <line x1="8" y1="11" x2="14" y2="11"></line>
+                        </svg>
+                        <p>No mods found matching "<strong>${currentSearch}</strong>"</p>
+                        <p style="font-size:0.8rem;margin-top:0.5rem;">Try searching with different keywords</p>
+                    </div>`;
+                return;
+            }
+
+            if (currentSearch) {
+                modCountEl.textContent = `${mods.length} result${mods.length !== 1 ? 's' : ''} for "${currentSearch}"`;
+            } else {
+                modCountEl.textContent = `${allMods.length} mod${allMods.length !== 1 ? 's' : ''} available`;
+            }
+
+            let html = '<div class="mods-grid">';
+            mods.forEach(mod => {
+                const description = mod.description || '<span class="loading">Loading description...</span>';
+                const isDownloaded = isModDownloaded(mod.folderName);
+                const downloadDate = getModDownloadDate(mod.folderName);
+                const downloadTooltip = downloadDate ? `Downloaded on ${formatDate(downloadDate)}` :
+                    'This mod has been downloaded';
+
+                const sha256Row = mod.sha256 ? `
+                    <div class="mod-meta-row">
+                        ${ICON_LOCK}
+                        <span class="label">SHA256:</span>
+                        <span class="mod-sha256-value" title="${mod.sha256}">${mod.sha256}</span>
+                        <button class="mod-sha256-copy" onclick="copySha256(this, '${mod.sha256}')" title="Copy SHA256">${ICON_COPY}</button>
+                    </div>` : '';
+
+                const versionBadge = mod.version ?
+                    `<a href="${mod.releaseUrl}" class="badge" target="_blank" rel="noopener noreferrer" title="View release on GitHub">v${mod.version}</a>` :
+                    '';
+
+                const downloadedBadge = isDownloaded ? `
+                    <span class="badge badge-downloaded" title="${downloadTooltip}">
+                        ${ICON_CHECK_CIRCLE}
+                        Downloaded
+                    </span>` : '';
+
+                html += `
+                    <div class="mod-card fade-in${isDownloaded ? ' downloaded' : ''}">
+                        <div class="mod-card-header">
+                            <div><h4 title="${mod.displayName}">${mod.displayName}</h4></div>
+                            <div class="badges-row">
+                                ${downloadedBadge}
+                                ${versionBadge}
+                            </div>
+                        </div>
+                        <p class="mod-desc">${description}</p>
+                        <div class="mod-meta">
+                            <div class="mod-meta-row">
+                                ${ICON_CLOCK}
+                                <span class="label">Updated:</span>
+                                <span class="value" title="${new Date(mod.releaseDate).toISOString()}">${timeAgo(mod.releaseDate)} · ${formatDate(mod.releaseDate)}</span>
+                            </div>
+                            <div class="mod-meta-row">
+                                ${ICON_BOX}
+                                <span class="label">File size:</span>
+                                <span class="value" title="${mod.downloadSize} Bytes">${formatBytes(mod.downloadSize)}</span>
+                            </div>
+                            <div class="mod-meta-row">
+                                ${ICON_DOWNLOAD}
+                                <span class="label">Downloads:</span>
+                                <span class="value">${mod.downloads.toLocaleString()}</span>
+                            </div>
+                            ${sha256Row}
+                        </div>
+                        <div class="mod-links">
+                            <a href="${mod.downloadUrl}" class="btn btn-primary btn-sm" download onclick="markModAsDownloaded('${mod.folderName}')">
+                                ${ICON_DOWNLOAD.replace('class="meta-icon"', 'width="14" height="14"')}
+                                Download .dll
+                            </a>
+                            <div style="display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden;">
+                                <a href="${mod.readmeUrl}" class="btn btn-secondary btn-sm" target="_blank" rel="noopener noreferrer" style="border: none; border-radius: 0; border-right: 1px solid var(--border); flex: 1; justify-content: center;">
+                                    ${ICON_GITHUB}
+                                    GitHub
+                                </a>
+                                <button class="btn btn-secondary btn-sm" onclick="openReadmeModal('${mod.folderName}')" style="border: none; border-radius: 0; flex: 1; justify-content: center;">
+                                    ${ICON_EYE}
+                                    Preview
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function loadMods() {
+            const container = document.getElementById('modsContainer');
+            const modCountEl = document.getElementById('modCount');
+
+            try {
+                const releases = await fetchAllReleases();
+                if (releases.length === 0) throw new Error('No releases found in the repository.');
+
+                const pluginMap = new Map();
+                releases.forEach(release => {
+                    if (!release.assets || release.assets.length === 0) return;
+                    const releaseDate = new Date(release.published_at);
+                    const body = release.body || '';
+
+                    release.assets.forEach(asset => {
+                        if (!isPluginDll(asset.name)) return;
+                        const pluginName = asset.name.replace(/\.dll$/i, '');
+                        const existing = pluginMap.get(pluginName);
+
+                        if (!existing || releaseDate > new Date(existing.releaseDate)) {
+                            const folderName = pluginName.replace(/_/g, '-');
+                            pluginMap.set(pluginName, {
+                                pluginName,
+                                displayName: formatPluginDisplayName(pluginName),
+                                version: release.tag_name.replace(/^v/, ''),
+                                downloadUrl: asset.browser_download_url,
+                                downloadSize: asset.size,
+                                releaseDate: release.published_at,
+                                releaseUrl: release.html_url,
+                                readmeUrl: `${REPO_URL}/tree/main/plugins/${folderName}#readme`,
+                                description: extractDescriptionFromBody(body, pluginName) || null,
+                                folderName,
+                                sha256: extractSHA256FromDigest(asset.digest),
+                                downloads: asset.download_count || 0
+                            });
+                        }
+                    });
+                });
+
+                allMods = Array.from(pluginMap.values());
+                if (allMods.length === 0) throw new Error('No plugin .dll files were found in release assets.');
+
+                renderMods(getFilteredAndSortedMods());
+
+                await Promise.allSettled(allMods.map(async (p) => {
+                    const desc = await fetchReadmeDescription(p.folderName);
+                    if (desc) p.description = desc;
+                }));
+
+                renderMods(getFilteredAndSortedMods());
+
+            } catch (error) {
+                container.innerHTML = `<div class="error-msg">
+                    <p style="font-size:1.1rem;margin-bottom:0.5rem;">Failed to load mods</p>
+                    <p style="color:var(--text-secondary);font-size:0.85rem;">${error.message}<br>
+                    Visit the <a href="https://github.com/ddmitv/dig-or-die-mods/releases" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">GitHub releases page</a> directly.</p>
+                </div>`;
+                modCountEl.textContent = 'Error loading mods';
+                console.error('Error loading mods:', error);
+            }
+        }
+
+        loadMods();
+    </script>
+</body>
+</html>
