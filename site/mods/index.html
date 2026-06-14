@@ -2328,18 +2328,6 @@ Enabled = true</pre>
             } catch (e) { return null; }
         }
 
-        function extractDescriptionFromBody(body, pluginName) {
-            if (!body) return '';
-            const lines = body.split('\n');
-            for (let line of lines) {
-                line = line.trim();
-                if (line.includes('`' + pluginName + '`')) {
-                    const match = line.match(/`[^`]+`[:\s]*[-–—]?\s*(.+)/);
-                    if (match && match[1].trim()) return match[1].trim().replace(/^[-–—]\s*/, '').replace(/\*\*/g, '');
-                }
-            }
-            return '';
-        }
 
         function formatBytes(bytes) {
             if (bytes === 0) return '0 B';
@@ -2387,7 +2375,11 @@ Enabled = true</pre>
         }
 
         function handleSearch(query) {
-            currentSearch = query.toLowerCase().trim();
+            const prevSearch = currentSearch;
+            currentSearch = query.trim();
+            
+            if (currentSearch == prevSearch) return;
+            
             const clearBtn = document.getElementById('clearSearch');
             if (currentSearch) {
                 clearBtn.classList.add('visible');
@@ -2408,11 +2400,14 @@ Enabled = true</pre>
             let mods = [...allMods];
 
             if (currentSearch) {
+                const searchLower = currentSearch.toLowerCase();
+            
                 mods = mods.filter(mod => {
-                    const nameMatch = mod.displayName.toLowerCase().includes(currentSearch) ||
-                        mod.pluginName.toLowerCase().includes(currentSearch);
-                    const descMatch = mod.description ? mod.description.toLowerCase().includes(currentSearch) :
-                    false;
+                    const nameMatch = mod.displayName?.toLowerCase().includes(searchLower)
+                        || mod.pluginName?.toLowerCase().includes(searchLower)
+                        || mod.pluginName?.toLowerCase().replace('_', '-').includes(searchLower);
+                    const descMatch = mod.description?.toLowerCase().includes(searchLower);
+                    
                     return nameMatch || descMatch;
                 });
             }
@@ -2461,7 +2456,8 @@ Enabled = true</pre>
 
             let html = '<div class="mods-grid">';
             mods.forEach(mod => {
-                const description = mod.description || '<span class="loading">Loading description...</span>';
+                const isDescLoading = !mod.description;
+                const description = mod.description || 'Loading description...';
                 const isDownloaded = isModDownloaded(mod.folderName);
                 const downloadDate = getModDownloadDate(mod.folderName);
                 const downloadTooltip = downloadDate ? `Downloaded on ${formatDate(downloadDate)}` :
@@ -2486,7 +2482,7 @@ Enabled = true</pre>
                     </span>` : '';
 
                 html += `
-                    <div class="mod-card fade-in${isDownloaded ? ' downloaded' : ''}">
+                    <div class="mod-card fade-in${isDownloaded ? ' downloaded' : ''}" data-folder-name="${mod.folderName}">
                         <div class="mod-card-header">
                             <div><h4 title="${mod.displayName}">${mod.displayName}</h4></div>
                             <div class="badges-row">
@@ -2494,7 +2490,7 @@ Enabled = true</pre>
                                 ${versionBadge}
                             </div>
                         </div>
-                        <p class="mod-desc">${description}</p>
+                        <p class="mod-desc${isDescLoading ? ' loading' : ''}">${escapeHtml(description)}</p>
                         <div class="mod-meta">
                             <div class="mod-meta-row">
                                 ${ICON_CLOCK}
@@ -2547,7 +2543,6 @@ Enabled = true</pre>
                 releases.forEach(release => {
                     if (!release.assets || release.assets.length === 0) return;
                     const releaseDate = new Date(release.published_at);
-                    const body = release.body || '';
 
                     release.assets.forEach(asset => {
                         if (!isPluginDll(asset.name)) return;
@@ -2565,7 +2560,7 @@ Enabled = true</pre>
                                 releaseDate: release.published_at,
                                 releaseUrl: release.html_url,
                                 readmeUrl: `${REPO_URL}/tree/main/plugins/${folderName}#readme`,
-                                description: extractDescriptionFromBody(body, pluginName) || null,
+                                description: null,
                                 folderName,
                                 sha256: extractSHA256FromDigest(asset.digest),
                                 downloads: asset.download_count || 0
@@ -2579,12 +2574,21 @@ Enabled = true</pre>
 
                 renderMods(getFilteredAndSortedMods());
 
-                await Promise.allSettled(allMods.map(async (p) => {
+                // Fetch descriptions in the background and update DOM progressively (no flickering)
+                allMods.forEach(async (p) => {
                     const desc = await fetchReadmeDescription(p.folderName);
-                    if (desc) p.description = desc;
-                }));
-
-                renderMods(getFilteredAndSortedMods());
+                    p.description = desc || 'No description available.';
+                    
+                    // Target the specific card and update only its description
+                    const card = document.querySelector(`.mod-card[data-folder-name="${p.folderName}"]`);
+                    if (card) {
+                        const descEl = card.querySelector('.mod-desc');
+                        if (descEl && descEl.classList.contains('loading')) {
+                            descEl.classList.remove('loading');
+                            descEl.textContent = p.description;
+                        }
+                    }
+                });
 
             } catch (error) {
                 container.innerHTML = `<div class="error-msg">
