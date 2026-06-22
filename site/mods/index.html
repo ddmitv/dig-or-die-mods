@@ -954,6 +954,16 @@
             border-color: rgba(52, 211, 153, 0.6);
             box-shadow: 0 0 28px rgba(52, 211, 153, 0.18), 0 8px 30px rgba(0, 0, 0, 0.3);
         }
+        
+        .mod-card.updated {
+            border-color: rgba(251, 191, 36, 0.45);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.1), 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .mod-card.updated:hover {
+            border-color: rgba(251, 191, 36, 0.6);
+            box-shadow: 0 0 28px rgba(251, 191, 36, 0.18), 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
 
         .mod-card-header {
             display: flex;
@@ -1121,6 +1131,18 @@
 
         .badge-downloaded svg {
             flex-shrink: 0;
+        }
+        
+        .badge-updated {
+            background: rgba(251, 191, 36, 0.13);
+            color: var(--warning);
+            border: 1px solid rgba(251, 191, 36, 0.25);
+            gap: 3px;
+        }
+        .badge-updated:hover {
+            background: rgba(251, 191, 36, 0.20);
+            border-color: var(--warning);
+            color: #fcd34d;
         }
 
         .loading {
@@ -2089,6 +2111,7 @@ Enabled = true</pre>
         const ICON_COPY = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
         const ICON_CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
         const ICON_CHECK_CIRCLE = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+        const ICON_UPDATE = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>`;
         const ICON_GITHUB = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>`;
         const ICON_EYE = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
         
@@ -2154,11 +2177,6 @@ Enabled = true</pre>
             } catch (e) {
                 return {};
             }
-        }
-
-        function isModDownloaded(folderName) {
-            const map = getDownloadedModsMap();
-            return Object.prototype.hasOwnProperty.call(map, folderName);
         }
 
         function getModDownloadDate(folderName) {
@@ -2471,10 +2489,10 @@ Enabled = true</pre>
             mods.forEach(mod => {
                 const isDescLoading = !mod.shortDescription;
                 const shortDescription = mod.shortDescription || 'Loading description...';
-                const isDownloaded = isModDownloaded(mod.folderName);
                 const downloadDate = getModDownloadDate(mod.folderName);
-                const downloadTooltip = downloadDate ? `Downloaded on ${formatDate(downloadDate)}` :
-                    'This mod has been downloaded';
+                const isDownloaded = !!downloadDate;
+                    
+                const isUpdated = downloadDate && (new Date(mod.releaseDate) > new Date(downloadDate));
 
                 const sha256Row = mod.sha256 ? `
                     <div class="mod-meta-row">
@@ -2487,19 +2505,29 @@ Enabled = true</pre>
                 const versionBadge = mod.version ?
                     `<a href="${mod.releaseUrl}" class="badge" target="_blank" rel="noopener noreferrer" title="View release on GitHub">v${mod.version}</a>` :
                     '';
+                    
+                const downloadTooltip = downloadDate ? `Downloaded on ${formatDate(downloadDate)}` :
+                    'This mod has been downloaded';
 
-                const downloadedBadge = isDownloaded ? `
+                const downloadedBadge = isDownloaded && !isUpdated ? `
                     <span class="badge badge-downloaded" title="${downloadTooltip}">
                         ${ICON_CHECK_CIRCLE}
                         Downloaded
                     </span>` : '';
+                    
+                const updatedBadge = isUpdated ? `
+                    <span class="badge badge-updated" title="Downloaded on ${formatDate(downloadDate)} — a newer version is available.">
+                        ${ICON_UPDATE}
+                        Updated
+                    </span>` : '';
 
                 html += `
-                    <div class="mod-card fade-in${isDownloaded ? ' downloaded' : ''}" data-folder-name="${mod.folderName}">
+                    <div class="mod-card fade-in${isDownloaded ? ' downloaded' : ''}${isUpdated ? ' updated' : ''}" data-folder-name="${mod.folderName}">
                         <div class="mod-card-header">
                             <div><h4 title="${mod.displayName}">${mod.displayName}</h4></div>
                             <div class="badges-row">
                                 ${downloadedBadge}
+                                ${updatedBadge}
                                 ${versionBadge}
                             </div>
                         </div>
