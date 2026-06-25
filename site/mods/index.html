@@ -493,7 +493,7 @@
         }
 
         .config-change {
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 0.5rem;
             margin-top: 0.5rem;
@@ -1913,7 +1913,74 @@ Enabled = true</pre>
                     </div>
                     <div class="collapsible-body">
                         <div class="collapsible-inner">
-                            <p style="color: var(--text-secondary); font-size: 0.875rem;">Check <code>Dig or Die/DigOrDie_Data/output_log.txt</code> for errors. Visit the <a href="https://docs.bepinex.dev/articles/user_guide/troubleshooting.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">BepInEx Troubleshooting page</a> for more help.</p>
+                            <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1.5rem;">If you encounter issues, check <code>Dig or Die/DigOrDie_Data/output_log.txt</code> for errors. Below are common solutions based on the official BepInEx documentation.</p>
+                            
+                            <div class="manual-steps">
+                                <div class="manual-step">
+                                    <div class="step-number">1</div>
+                                    <div class="manual-step-content">
+                                        <h4>Enable the Debug Console</h4>
+                                        <p>Seeing load progress and potential errors live is the best way to diagnose issues.</p>
+                                        <p style="margin-top: 0.5rem;">Open <code>BepInEx/config/BepInEx.cfg</code>, locate <code>[Logging.Console]</code>, and change
+                                            <span class="config-change">
+                                                <code class="old">Enabled = false</code>
+                                                <span>→</span>
+                                                <code class="new">Enabled = true</code>
+                                            </span>
+                                        </p>
+                                        <div class="config-block">[Logging.Console]
+## Enables showing a console for log output.
+# Setting type: Boolean
+# Default value: false
+Enabled = true</div>
+                                    </div>
+                                </div>
+
+                                <div class="manual-step">
+                                    <div class="step-number">2</div>
+                                    <div class="manual-step-content">
+                                        <h4>Fix Corrupted <code>Managed</code> Folder</h4>
+                                        <p>If you upgraded from an older BepInEx version or another modding framework, incompatible DLLs might be left behind.</p>
+                                        <ol style="padding-left: 1.25rem; color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.5rem;">
+                                            <li>Go to <code>Dig or Die/DigOrDie_Data</code> and delete the <code>Managed</code> folder.</li>
+                                            <li>Open Steam, right-click Dig or Die → <strong>Properties</strong> → <strong>Installed Files</strong> → <strong>Verify integrity of game files</strong>.</li>
+                                        </ol>
+                                    </div>
+                                </div>
+
+                                <div class="manual-step">
+                                    <div class="step-number">3</div>
+                                    <div class="manual-step-content">
+                                        <h4>Check Game Path Characters</h4>
+                                        <p>The Unity Mono runtime cannot handle non-ASCII characters or extremely long path names.</p>
+                                        <div class="warning-box">
+                                            <svg class="box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                            <span>Ensure your game folder path is under 256 characters and only contains standard letters (A-Z, a-z), numbers (0-9), and common punctuation.</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="manual-step">
+                                    <div class="step-number">4</div>
+                                    <div class="manual-step-content">
+                                        <h4>Verify BepInEx Architecture (Bitness)</h4>
+                                        <p>Dig or Die is a <strong>32-bit (x86)</strong> game. Using the 64-bit (x64) version of BepInEx will cause the game to fail silently or crash on startup.</p>
+                                        <p style="margin-top: 0.5rem;">Ensure you downloaded <code>BepInEx_win_x86_...</code> and not <code>x64</code>.</p>
+                                    </div>
+                                </div>
+
+                                <div class="manual-step">
+                                    <div class="step-number">5</div>
+                                    <div class="manual-step-content">
+                                        <h4>Fix Harmony / MonoMod Errors</h4>
+                                        <p>If logs show <code>NotImplementedException: Derived classes must implement it</code> or similar Harmony patching errors, you need to change the Harmony backend.</p>
+                                        <p style="margin-top: 0.5rem;">Open <code>BepInEx/config/BepInEx.cfg</code>, locate <code>[Preloader]</code>, and add/change:</p>
+                                        <div class="config-block">[Preloader]
+## Specifies which MonoMod backend to use for Harmony patches.
+HarmonyBackend = cecil</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
