@@ -1,10 +1,9 @@
 ﻿
 using BepInEx;
 using BepInEx.Configuration;
+using DODModAPI;
 using HarmonyLib;
-using ModUtils;
 using System;
-using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
@@ -37,46 +36,24 @@ public class FlashEffect : MonoBehaviour {
     }
 }
 
+public class TestEvent : ModEnvironment {
+    public TestEvent() : base("testEvent", "Test Event", 10f) {
+        m_shakeCam = true;
+    }
+
+    public override void OnEventStart() => Misc.SendChatMessageLocal("starting event!!");
+    public override void OnEventUpdate() => SNetwork.GetMyPlayer().m_unitPlayer.m_pos += Vector2.up * SMain.SimuDeltaTime;
+    public override void OnEventEnd() => Misc.SendChatMessageLocal("ending event!!");
+}
+
 [BepInPlugin("more-items", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 [BepInDependency(ReplacementorPluginGUID, BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency(DODModAPIPlugin.GUID)]
 public class MoreItemsPlugin : BaseUnityPlugin {
     private const string ReplacementorPluginGUID = "replacementor";
 
     public static ConfigEntry<float> configBossRespawnDelay = null;
 
-    private UnityEngine.Texture2D LoadTexture2DFromManifest(Assembly assembly, string logicalName) {
-        using var stream = assembly.GetManifestResourceStream(logicalName);
-
-        var texture = new Texture2D(width: 1, height: 1,
-            format: TextureFormat.DXT5, mipmap: true
-        );
-        if (!texture.LoadImage(Utils.ReadAllBytes(stream))) {
-            throw new InvalidOperationException($"Failed to load texture image from '{logicalName}'");
-        }
-
-        texture.filterMode = FilterMode.Bilinear;
-        texture.anisoLevel = 1;
-        texture.wrapMode = TextureWrapMode.Repeat;
-        texture.Apply(updateMipmaps: true);
-
-        return texture;
-    }
-    private UnityEngine.Texture2D LoadSurfaceFromManifest(Assembly assembly, string logicalName) {
-        using var stream = assembly.GetManifestResourceStream(logicalName);
-
-        var texture = new Texture2D(width: 512, height: 512,
-            format: TextureFormat.DXT1, mipmap: true
-        );
-        if (!texture.LoadImage(Utils.ReadAllBytes(stream))) {
-            throw new InvalidOperationException($"Failed to load texture image from '{logicalName}'");
-        }
-        texture.filterMode = FilterMode.Bilinear;
-        texture.anisoLevel = 1;
-        texture.wrapMode = TextureWrapMode.Repeat;
-        texture.Apply(updateMipmaps: true);
-
-        return texture;
-    }
     private void InitReplacementorDependency(PluginInfo pluginInfo) {
         try {
             var pluginType = pluginInfo.Instance.GetType();
@@ -96,9 +73,9 @@ public class MoreItemsPlugin : BaseUnityPlugin {
                 Logger.LogWarning($"Failed to find 'AddReplaceableItem' method in '{ReplacementorPluginGUID}' plugin type");
                 return;
             }
-            addReplaceableItemMethod.Invoke(pluginInfo.Instance, [CustomItems.redLightSticky.Item, replaceTypeLight]);
-            addReplaceableItemMethod.Invoke(pluginInfo.Instance, [CustomItems.greenLightSticky.Item, replaceTypeLight]);
-            addReplaceableItemMethod.Invoke(pluginInfo.Instance, [CustomItems.blueLightSticky.Item, replaceTypeLight]);
+            addReplaceableItemMethod.Invoke(pluginInfo.Instance, [CustomItems.redLightSticky.item, replaceTypeLight]);
+            addReplaceableItemMethod.Invoke(pluginInfo.Instance, [CustomItems.greenLightSticky.item, replaceTypeLight]);
+            addReplaceableItemMethod.Invoke(pluginInfo.Instance, [CustomItems.blueLightSticky.item, replaceTypeLight]);
             Logger.LogInfo($"Successfully added custom lights for replacable items into '{ReplacementorPluginGUID}' plugin");
         } catch (Exception ex) {
             Logger.LogWarning($"Failed to add custom lights for replacable items into '{ReplacementorPluginGUID}' plugin: {ex}");
@@ -109,27 +86,29 @@ public class MoreItemsPlugin : BaseUnityPlugin {
         configBossRespawnDelay = Config.Bind<float>("General", "BossRespawnDelay", defaultValue: 360f,
             "Respawn delay for bosses. Can't be turned off because boss's loot is used in multiple recipes"
         );
-        var configUniqualizeVersionBuild = Config.Bind<bool>("General", "UniqualizeVersionBuild", defaultValue: false,
-            "Safe guard to prevent joining to server with different mod version"
-        );
         var configEnable = Config.Bind<bool>("General", "Enable", defaultValue: true,
             description: "Enables the plugin"
         );
         if (!configEnable.Value) { return; }
 
-        if (configUniqualizeVersionBuild.Value) {
-            Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
-        }
+        DODModAPI.SpriteManager.RegisterTexture(Textures.ResourceName);
+        DODModAPI.SpriteManager.RegisterTexture(Textures.fertileDirt_surfaceMaterial);
+        DODModAPI.SpriteManager.RegisterTexture(Textures.SurfaceTops);
+        DODModAPI.SpriteManager.RegisterTexture(Textures.SpritesAtlasResource);
 
-        var currectAssembly = Assembly.GetExecutingAssembly();
-        ModCTile.texture = LoadTexture2DFromManifest(currectAssembly, "more-items.textures.combined_textures.png");
-        ModCSurface.fertileDirtTexture = LoadSurfaceFromManifest(currectAssembly, "more-items.textures.surfaces.surface_fertileDirt.png");
-        ModCSurface.surfaceTops = LoadSurfaceFromManifest(currectAssembly, "more-items.textures.surfaces.surface_tops.png");
-        CustomBullets.particlesTexture = LoadTexture2DFromManifest(currectAssembly, "more-items.textures.combined_particles.png");
+        DODModAPI.ItemManager.RegisterAllItems(typeof(CustomItems));
+        DODModAPI.UnitManager.RegisterUnit(CustomUnits.waterVaporizer);
 
-        var harmony = Harmony.CreateAndPatchAll(currectAssembly, Info.Metadata.GUID);
+        EventManager.Register(new TestEvent());
 
-        Utils.RunStaticConstructor(typeof(CustomItems));
+        // ModCTile.texture = LoadTexture2DFromManifest(currectAssembly, "more-items.textures.combined_textures.png");
+        // ModCSurface.fertileDirtTexture = LoadSurfaceFromManifest(currectAssembly, "more-items.textures.surfaces.surface_fertileDirt.png");
+        // ModCSurface.surfaceTops = LoadSurfaceFromManifest(currectAssembly, "more-items.textures.surfaces.surface_tops.png");
+        // CustomBullets.particlesTexture = LoadTexture2DFromManifest(currectAssembly, "more-items.textures.combined_particles.png");
+
+        var harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), Info.Metadata.GUID);
+
+        //Utils.RunStaticConstructor(typeof(CustomItems));
 
         gameObject.AddComponent<FlashEffect>();
 

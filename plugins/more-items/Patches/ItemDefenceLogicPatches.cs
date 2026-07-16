@@ -3,8 +3,8 @@ using HarmonyLib;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
-using ModUtils.Extensions;
-using ModUtils;
+using DODModAPI.Extensions;
+using DODModAPI;
 
 [HarmonyPatch]
 internal static class CUnitDefensePatches {
@@ -22,14 +22,14 @@ internal static class CUnitDefensePatches {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.Update))]
     private static IEnumerable<CodeInstruction> CUnitDefense_Update(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        var codeMatcher = new CodeMatcher(instructions, generator);
+        var codeCursor = new CodeCursor(instructions, generator);
 
-        PatchTeslaTurretMK2(codeMatcher);
-        PatchExplosive(codeMatcher);
-        PatchCollector(codeMatcher);
-        PatchSpikesTurretClass(codeMatcher);
+        PatchTeslaTurretMK2(codeCursor);
+        PatchExplosive(codeCursor);
+        PatchCollector(codeCursor);
+        PatchSpikesTurretClass(codeCursor);
 
-        return codeMatcher.Instructions();
+        return codeCursor.Finish();
     }
     [HarmonyPostfix]
     [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.OnDisplayWorld))]
@@ -52,32 +52,32 @@ internal static class CUnitDefensePatches {
             if (expItem.indestructible) {
                 SSingleton<SWorld>.Inst.SetContent(
                     pos: __instance.PosCell - int2.up,
-                    item: (CItemCell)CustomItems.indestructibleLavaOld.Item
+                    item: (CItemCell)CustomItems.indestructibleLavaOld.item
                 );
             }
-            ExtCItem_Explosive.lastTimeMap[__instance.Id] = 0f;
+            ExtCItem_Explosive.lastTimeWeakTable.AddOrUpdate(__instance, 0f);
         }
     }
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.OnDisplayWorld))]
     [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.Update))]
     private static IEnumerable<CodeInstruction> CUnitDefense_OnDisplayWorld(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        return new CodeMatcher(instructions, generator).Start()
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
                 new(OpCodes.Ldsfld, typeof(GItems).StaticField("turretCeiling")),
                 new(OpCodes.Bne_Un))
-            .CreateLabelAtOffset(4, out Label successLabel)
-            .InjectAndAdvance(OpCodes.Ldarg_0)
-            .Insert(
+            .CreateLabel(offset: 4, out Label successLabel)
+            .Inject(
+                new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
                 new(OpCodes.Isinst, typeof(ExtCItem_CeilingTurret)),
                 new(OpCodes.Brtrue, successLabel))
-            .Instructions();
+            .Finish();
     }
     enum DuoTurretState : byte { Left, Right }
-    private static readonly ModUtils.WeakDictionary<CUnitDefense, DuoTurretState> duoTurretStates = new();
+    private static readonly DODModAPI.WeakTable<CUnitDefense, DuoTurretState> duoTurretStates = new();
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(SBullets), nameof(SBullets.FireBullet))]
@@ -85,84 +85,41 @@ internal static class CUnitDefensePatches {
         const float fireDisplacement = 0.06f;
 
         if (attackDesc is not ExtDuoCAttackDesc || attacker is not CUnitDefense defenseAttacker) { return true; }
-        DuoTurretState state = duoTurretStates.TrySet(defenseAttacker, DuoTurretState.Left);
+        DuoTurretState state = duoTurretStates.GetOrAdd(defenseAttacker, DuoTurretState.Left);
 
         Vector2 vector = aimedPos - (attacker is not CUnitPlayer ? firePos : attacker.PosCenter);
         float angle = Mathf.Atan2(vector.y, vector.x);
-        Vector2 normalizedDisplacedFirePos = (state == DuoTurretState.Left ? firePos.RotateLeft() : firePos.RotateRight()).normalized;
+        Vector2 normalizedDisplacedFirePos = (state == DuoTurretState.Left ? Misc.RotateLeft(firePos) : Misc.RotateRight(firePos)).normalized;
         Vector2 displacedFirePos = firePos + normalizedDisplacedFirePos * fireDisplacement;
 
         __instance.m_bullets.Add(new CBullet(attackDesc, attacker, displacedFirePos, angle, aimedPos));
 
-        duoTurretStates.Set(defenseAttacker, state == DuoTurretState.Left ? DuoTurretState.Right : DuoTurretState.Left);
+        duoTurretStates.AddOrUpdate(defenseAttacker, state == DuoTurretState.Left ? DuoTurretState.Right : DuoTurretState.Left);
 
         return false;
     }
 
-    private static void PatchExplosive(CodeMatcher codeMatcher) {
-        static void ExplosiveLogic(CUnitDefense self) {
-            if (self.GetLastFireTime() <= 0f) {
-                return;
-            }
-            var item = (ExtCItem_Explosive)self.m_item;
-
-            ref var currentCell = ref SWorld.Grid[self.PosCell.x, self.PosCell.y];
-
-            if (item.lavaReleaseTime >= 0
-                && GVars.SimuTime >= self.GetLastFireTime() + item.lavaReleaseTime
-                && GVars.SimuTime > ExtCItem_Explosive.lastTimeMap[self.Id]
-            ) {
-                const float dt = ExtCItem_Explosive.deltaTime;
-                ExtCItem_Explosive.lastTimeMap[self.Id] = GVars.SimuTime + dt;
-
-                float releaseTime = GVars.SimuTime - (self.GetLastFireTime() + item.lavaReleaseTime);
-                float completionPercentage = releaseTime / (item.explosionTime - item.lavaReleaseTime);
-
-                Utils.AddLava(ref currentCell, item.lavaQuantity * Mathf.Pow(3f, releaseTime));
-
-                var fireRange = Mathf.Lerp(0f, item.m_attack.m_range * 5f, completionPercentage);
-                SWorld.SetFireAround(self.PosCell, fireRange);
-
-                var evaporationRange = Mathf.Lerp(0f, item.m_attack.m_range * 4f, completionPercentage);
-                Utils.EvaporateWaterAround(Mathf.CeilToInt(evaporationRange), self.PosCell, evaporationRate: 0.6f);
-
-                var destructionRange = Mathf.CeilToInt(Mathf.Lerp(0f, item.m_attack.m_range / 3f, completionPercentage));
-                SWorld.DoDamageAOE(self.Pos, destructionRange, Utils.CeilDiv(item.m_attack.m_damage, 20));
-            }
-            if (GVars.m_simuTimeD <= (double)(self.GetLastFireTime() + item.explosionTime)) {
-                return;
-            }
-            item.DestoryItself(self.PosCell);
-            item.DoDamageAround(self.PosCenter, item.m_attack);
-            item.PlayExplosionSound(item.m_attack.Sound, self.PosCenter);
-            item.StartVolcanoEruption();
-            item.DoExplosionBgChange(self.PosCell);
-            item.DoExplosionLavaRelease(ref currentCell);
-            item.DoFlashEffect(self.PosCenter);
-            item.DoShockWave(self.m_pos);
-            item.DoFireAround(self.m_pos);
-        }
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+    private static void PatchExplosive(CodeCursor codeCursor) {
+        codeCursor.MoveToStart()
+            .FindNext(
+                // inject here
+            // skipLabel:
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
                 new(OpCodes.Ldsfld, typeof(GItems).StaticField("explosive")),
                 new(OpCodes.Bne_Un))
-            .ThrowIfInvalid("(1)")
-            .Advance(1)
-            .Insert(new CodeInstruction(OpCodes.Ldarg_0))
-            .CreateLabel(out var nextLabel)
-            .Insert(
+            .DeclareLabel(out var skipLabel)
+            .InjectWithLabel(skipLabel,
+                new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
                 new(OpCodes.Isinst, typeof(ExtCItem_Explosive)),
                 new(OpCodes.Ldnull),
-                new(OpCodes.Beq, nextLabel),
+                new(OpCodes.Beq, skipLabel),
                 new(OpCodes.Ldarg_0),
-                Transpilers.EmitDelegate(ExplosiveLogic));
+                Transpilers.EmitDelegate(ExtCItem_Explosive.ExplosiveLogic));
     }
 
-    private static void PatchCollector(CodeMatcher codeMatcher) {
+    private static void PatchCollector(CodeCursor codeCursor) {
         static void CollectorLogic(CUnitDefense self, Vector2 targetPos) {
             int particlesCount = (int)(GVars.m_simuTimeD * 15.0) - (int)((GVars.m_simuTimeD - SMain.SimuDeltaTimeD) * 15.0);
             SSingleton<SParticles>.Inst.EmitMultiple(
@@ -181,13 +138,13 @@ internal static class CUnitDefensePatches {
                 SSingleton<SWorld>.Inst.DoDamageToCell(new int2(targetPos), ((ExtCItem_Collector)self.m_item).collectorDamage, 2, true);
             }
         }
-        codeMatcher.Start()
-            .MatchForward(useEnd: true,
+        codeCursor.MoveToStart()
+            .FindNextEnd(
                 new(OpCodes.Call, typeof(Mathf).Method("MoveTowardsAngle")),
-                new(OpCodes.Stfld, typeof(CUnitDefense).Field("m_angleDeg")))
-            .ThrowIfInvalid("(1)")
-            .Advance(1)
-            .CreateLabel(out var skipLabel)
+                new(OpCodes.Stfld, typeof(CUnitDefense).Field("m_angleDeg"))
+            // skipLabel:
+            )
+            .CreateLabel(offset: 0, out var skipLabel)
             .Insert(
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
@@ -200,22 +157,23 @@ internal static class CUnitDefensePatches {
                 new(OpCodes.Ldc_I4_1), // flag = true
                 new(OpCodes.Stloc_2));
     }
-    private static void PatchTeslaTurretMK2(CodeMatcher codeMatcher) {
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+    private static void PatchTeslaTurretMK2(CodeCursor codeCursor) {
+        codeCursor.MoveToStart()
+            .FindNext(
+                // inject here
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
                 new(OpCodes.Ldsfld, typeof(GItems).StaticField("turretTesla")),
-                new(OpCodes.Bne_Un))
-            .ThrowIfInvalid("(1)")
-            .CreateLabelAtOffset(4, out var teslaCond) // after bne.un
-            .Advance(1)
-            .InsertAndAdvance(
+                new(OpCodes.Bne_Un)
+            // teslaCond:
+            )
+            .CreateLabel(offset: 4, out var teslaCond) // after bne.un
+            .Inject(
+                new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
-                new(OpCodes.Ldfld, typeof(CItem_Defense).Field("m_codeName")),
-                new(OpCodes.Ldstr, "turretTeslaMK2"),
-                new(OpCodes.Beq, teslaCond),
-                new(OpCodes.Ldarg_0));
+                new(OpCodes.Ldsfld, typeof(CustomItems).StaticField(nameof(CustomItems.turretTeslaMK2))),
+                new(OpCodes.Ldfld, typeof(ModItem).Field(nameof(ModItem.item))),
+                new(OpCodes.Beq, teslaCond));
     }
     private static Vector2 GetCollectorTargetPos(CUnitDefense self) {
         int range = Mathf.FloorToInt(self.m_item.m_attack.m_range);
@@ -230,10 +188,10 @@ internal static class CUnitDefensePatches {
                 int2 relative = new int2(i, j) - self.PosCell;
 
                 if (relative.sqrMagnitude <= range * range) {
-                    if (!Utils.IsValidCell(i, j)) { continue; }
+                    if (!Misc.IsInWorld(i, j)) { continue; }
 
                     CItemCell content = SWorld.Grid[i, j].GetContent();
-                    if (isBasaltCollector ? ReferenceEquals(content, GItems.lava) : content is CItem_Plant
+                    if (isBasaltCollector ? content == GItems.lava : content is CItem_Plant
                         && relative.sqrMagnitude < closestDist) {
                         closestDist = relative.sqrMagnitude;
                         result = new Vector2(i + 0.5f, j + 0.5f);
@@ -243,17 +201,19 @@ internal static class CUnitDefensePatches {
         }
         return result;
     }
-    private static void PatchSpikesTurretClass(CodeMatcher codeMatcher) {
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+    private static void PatchSpikesTurretClass(CodeCursor codeCursor) {
+        codeCursor.MoveToStart()
+            .FindNext(
+                // inject here
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
                 new(OpCodes.Ldsfld, typeof(GItems).StaticField("turretSpikes")),
-                new(OpCodes.Bne_Un))
-            .ThrowIfInvalid("(1)")
-            .CreateLabelAtOffset(4, out Label successLabel)
-            .InjectAndAdvance(OpCodes.Ldarg_0)
-            .Insert(
+                new(OpCodes.Bne_Un)
+            // successLabel:
+            )
+            .CreateLabel(offset: 4, out Label successLabel)
+            .Inject(
+                new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
                 new(OpCodes.Isinst, typeof(ExtCItem_SpikesTurret)),
                 new(OpCodes.Brtrue, successLabel));

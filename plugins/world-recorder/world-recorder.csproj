@@ -1,8 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../Plugin.Common.props" />
+
   <PropertyGroup>
     <AssemblyName>world_recorder</AssemblyName>
     <Product>World Recorder</Product>
     <Version>1.1.0</Version>
   </PropertyGroup>
-  <Import Project="../utils-lib/utils-lib.targets"/>
+
+  <ItemGroup>
+    <ProjectReference Include="../dodmodapi/dodmodapi.csproj" Private="false" />
+  </ItemGroup>
+  
+  <Import Project="../Plugin.Common.targets" />
 </Project>

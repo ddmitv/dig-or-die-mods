@@ -1,0 +1,968 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+
+// the packing algorithm:
+// [A_x] -> [A_x]
+// [A_x], [A_y] -> [A_xy]
+// [A_x, B], [A_y] -> [A_xy, B]
+// [A_x, B], [B_y] -> [A_x, B_y]
+// [A_x, B, C], [C_y] -> [A_x, B, C_y]
+// [A_x, B], [A_x] -> [A_x, B]
+// [A_x, B], [A_x, B, C] -> [A_x, B, C]
+// [A_x, B], [A_x, C] -> [A_x, B], [A_x, C]
+// [A_x, B], [B_y, C] -> [A_x, B_y, C]
+// [A_x, B, C], [B_y, C] -> [A_x, B_y, C]
+
+// [Surface]
+// Syntax: SURFACE {name} material={img} tops={img}
+// surface tops image must be either 128x128 or 128x64
+// the high part (128x64+0+0) is a main surface top
+// the lower part (128x64+0+64), if exists, is an alt surface top
+// Embedded output: surface's material as a seperate image + a single altas of all combined surface tops
+
+namespace DODModAPI.AssetPacker {
+    public sealed class PackSpriteSheet : Task {
+        [Required] public ITaskItem[] ConfigFiles { get; set; } = [];
+        [Required] public string IntermediateOutputPath { get; set; } = "";
+        [Required] public string AtlasClass { get; set; } = "";
+
+        [Output] public ITaskItem[] GeneratedCompile { get; set; } = [];
+        [Output] public ITaskItem[] GeneratedEmbeddedResource { get; set; } = [];
+
+        private const string ModTileType = "global::DODModAPI.ModTile";
+        private const string SpriteInfoType = "global::DODModAPI.ModSprite";
+        private const string CTilesListType = "global::CTilesList";
+
+        private readonly static PngEncoder PngEncoderSetting = new() {
+            CompressionLevel = PngCompressionLevel.BestCompression,
+            FilterMethod = PngFilterMethod.Adaptive,
+            InterlaceMethod = PngInterlaceMode.None,
+            IgnoreMetadata = true,
+        };
+
+        private readonly record struct AssetProcessorContext(
+            string AtlasClass,
+            string AtlasClassPrefix,
+            string IntermediateOutputPath,
+            List<ITaskItem> EmbeddedResources,
+            TaskLoggingHelper Log
+        );
+
+        private interface IAssetProcessor {
+            public string ConfigDirective { get; }
+            
+            public void Parse(List<ConfigTokenizer.Token> tokens, string baseDir, int lineNumber);
+            public void Process(AssetProcessorContext ctx, StringBuilder codeBuilder);
+        }
+
+        private readonly record struct AtlasTileSize(int TilesPerSide) {
+            public int Pixels => TilesPerSide * 128;
+        }
+
+        private struct Tile {
+            public required string path;
+            public required List<string> properties;
+
+            public uint mainColor;
+        }
+        private struct TileBlock() {
+            public List<Tile> tiles = [];
+
+            public int x;
+            public int y;
+        }
+
+        private struct SurfaceDef {
+            public required string name;
+            public required string materialPath;
+            public required string topPath;
+
+            public int surfaceTopTileX, surfaceTopTileY;
+        }
+
+        private struct SpriteDef {
+            public required string name;
+            public required string path;
+
+            public int x;
+            public int y;
+            public int width;
+            public int height;
+        }
+
+        private struct UnitDef {
+            public required string name;
+            public List<Animation> animations;
+
+            public int size;
+            public int totalTileCount;
+
+            public int startX;
+            public int startY;
+
+            public struct Animation {
+                public string name;
+                public List<string> paths;
+            }
+        }
+        private struct UnitAtlas {
+            public List<UnitDef> units;
+            public int textureSize;
+            public int tileSize;
+            public int tilesPerSide;
+        }
+
+        public override bool Execute() {
+            System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+            System.Threading.Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
+
+            if (ConfigFiles.Length == 0) {
+                Log.LogMessage(MessageImportance.Low, "AssetPackerTask: no config files to process.");
+                return true;
+            }
+
+            IAssetProcessor[] assetProcessors = [
+                new ItemAssetProcessor(),
+                new SurfaceAssetProcessor(),
+                new SpriteAssetProcessor(),
+                new UnitAssetProcessor(),
+            ];
+
+            try {
+                foreach (var configFile in ConfigFiles) {
+                    if (!ParseConfig(configFile.GetMetadata("FullPath"), assetProcessors)) {
+                        return false;
+                    }
+                }
+            } catch (ConfigException ex) {
+                Log.LogErrorFromException(ex);
+                return false;
+            }
+
+            Directory.CreateDirectory(IntermediateOutputPath);
+            string atlasClassPrefix = SanitizeIdentifier(AtlasClass.Replace('.', '_'));
+
+            var (classNs, className) = SplitFullTypeName(AtlasClass);
+            var codePath = Path.Combine(IntermediateOutputPath, $"{AtlasClass}.g.cs");
+            var sb = new StringBuilder();
+
+            sb.AppendLine("// <auto-generated />");
+            sb.AppendLine("#pragma warning disable");
+            sb.AppendLine();
+
+            if (!string.IsNullOrEmpty(classNs)) {
+                sb.AppendLine($"namespace {classNs} {{");
+            }
+            sb.AppendLine($"internal static class {className} {{");
+
+            AssetProcessorContext processorContext = new(AtlasClass, atlasClassPrefix, IntermediateOutputPath, [], Log);
+
+            try {
+                foreach (var assetProcessor in assetProcessors) {
+                    assetProcessor.Process(processorContext, sb);
+                }
+            } catch (AssetProcessorException ex) {
+                Log.LogErrorFromException(ex);
+                return false;
+            }
+            GeneratedEmbeddedResource = processorContext.EmbeddedResources.ToArray();
+
+            sb.AppendLine("}");
+            if (!string.IsNullOrEmpty(classNs)) {
+                sb.AppendLine("}");
+            }
+
+            File.WriteAllText(codePath, sb.ToString());
+            GeneratedCompile = [new TaskItem(codePath)];
+
+            return !Log.HasLoggedErrors;
+        }
+
+        private sealed class ItemAssetProcessor : IAssetProcessor {
+            private readonly List<TileBlock> tileBlocks = [];
+
+            public string ConfigDirective => "ITEM";
+
+            public void Parse(List<ConfigTokenizer.Token> tokens, string baseDir, int lineNumber) {
+                if (tokens.Count <= 1 || tokens[1] is not ConfigTokenizer.StringToken { Value: var itemName }) {
+                    throw new ConfigException($"Expected an item name string after ITEM directive (line {lineNumber})");
+                }
+
+                if (tokens.Count == 3 && tokens[2] is ConfigTokenizer.StringToken { Value: var mainTokenFile }) {
+                    var tiles = new List<Tile>();
+
+                    foreach (var rawFile in mainTokenFile.Split('+')) {
+                        var file = rawFile.Trim();
+                        if (string.IsNullOrWhiteSpace(file)) {
+                            throw new ConfigException($"Invalid or empty file path found in ITEM '{itemName}' main texture (line {lineNumber})");
+                        }
+
+                        var fullPath = Path.Combine(baseDir, file);
+                        if (!File.Exists(fullPath)) {
+                            throw new ConfigException($"Image file not found: '{fullPath}' for ITEM '{itemName}' main texture (line {lineNumber})");
+                        }
+                        tiles.Add(new() { path = fullPath, properties = [] });
+                    }
+                    if (tiles.Count == 0) {
+                        throw new ConfigException($"ITEM '{itemName}' tiles must have at least one valid tile (line {lineNumber})");
+                    }
+
+                    tiles[0].properties.Add(itemName);
+                    tileBlocks.Add(new() { tiles = tiles });
+                    return;
+                }
+
+                for (int i = 2; i < tokens.Count; ++i) {
+                    if (tokens[i] is not ConfigTokenizer.KeyValueToken { Key: var property, Value: var tokenFiles }) {
+                        throw new ConfigException($"Expected a key-value pair (e.g., property=filename.png) in ITEM '{itemName}', but found an invalid token (line {lineNumber})");
+                    }
+
+                    var tiles = new List<Tile>();
+                    
+                    foreach (var rawFile in tokenFiles.Split('+')) {
+                        var file = rawFile.Trim();
+                        if (string.IsNullOrWhiteSpace(file)) {
+                            throw new ConfigException($"Invalid or empty file path found in ITEM '{itemName}' property '{property}' (line {lineNumber})");
+                        }
+
+                        var fullPath = Path.Combine(baseDir, file);
+                        if (!File.Exists(fullPath)) {
+                            throw new ConfigException($"Image file not found: '{fullPath}' for ITEM '{itemName}' property '{property}' (line {lineNumber})");
+                        }
+                        tiles.Add(new() { path = fullPath, properties = [] });
+                    }
+                    if (tiles.Count == 0) {
+                        throw new ConfigException($"ITEM '{itemName}' property '{property}' sprites must have at least one sprite (line {lineNumber})");
+                    }
+                    tiles[0].properties.Add($"{itemName}_{property}");
+
+                    tileBlocks.Add(new() { tiles = tiles });
+                }
+            }
+
+            public void Process(AssetProcessorContext ctx, StringBuilder codeBuilder) {
+                if (tileBlocks.Count == 0) { return; }
+
+                var sw = Stopwatch.StartNew();
+
+                OptimizeTileBlocks(tileBlocks);
+
+                AtlasTileSize spritesheetSize = PackTiles(tileBlocks);
+
+                using var atlas = new Image<Rgba32>(spritesheetSize.Pixels, spritesheetSize.Pixels);
+
+                foreach (var block in tileBlocks) {
+                    for (int i = 0; i < block.tiles.Count; i++) {
+                        var tile = block.tiles[i];
+                        using var img = Image.Load<Rgba32>(tile.path);
+                        if (img.Width != 128 || img.Height != 128) {
+                            throw new AssetProcessorException($"Sprite at \"{tile.path}\" with size {img.Width}x{img.Height} does not equal to 128x128");
+                        }
+                        Rgba32 avgColor = CalculateAverageColor(img);
+                        tile.mainColor = PackColorToUint(avgColor);
+
+                        Point location = new(x: (block.x + i) * 128, y: block.y * 128);
+                        atlas.Mutate(ctx => ctx.DrawImage(img, location, 1f));
+                        block.tiles[i] = tile;
+                    }
+                }
+
+                var atlasLogicalName = $"{ctx.AtlasClassPrefix}_atlas";
+                var atlasPath = Path.Combine(ctx.IntermediateOutputPath, Path.ChangeExtension(atlasLogicalName, ".png"));
+                atlas.SaveAsPng(atlasPath, PngEncoderSetting);
+
+                var atlasItem = new TaskItem(atlasPath);
+                atlasItem.SetMetadata("LogicalName", atlasLogicalName);
+                ctx.EmbeddedResources.Add(atlasItem);
+
+                codeBuilder.AppendLine($"    public const string ResourceName = \"{atlasLogicalName}\";");
+                codeBuilder.AppendLine();
+
+                foreach (var block in tileBlocks) {
+                    for (int i = 0; i < block.tiles.Count; ++i) {
+                        var tile = block.tiles[i];
+                        foreach (var prop in tile.properties) {
+                            codeBuilder.AppendLine($"    public static readonly {ModTileType} {SanitizeIdentifier(prop)}" +
+                                $" = new {ModTileType}({block.x + i}, {block.y}, \"{atlasLogicalName}\", {tile.mainColor}U);");
+                        }
+                    }
+                }
+                codeBuilder.AppendLine();
+
+                sw.Stop();
+                ctx.Log.LogMessage(MessageImportance.High,
+                    $"AssetPacker: {tileBlocks.Count} item tiles -> {atlasLogicalName} ({spritesheetSize.Pixels}x{spritesheetSize.Pixels}) (elapsed {FormatElapsedTime(sw.Elapsed)})"
+                );
+            }
+        }
+
+        private sealed class SurfaceAssetProcessor : IAssetProcessor {
+            private readonly List<SurfaceDef> surfaces = [];
+
+            public string ConfigDirective => "SURFACE";
+
+            public void Parse(List<ConfigTokenizer.Token> tokens, string baseDir, int lineNumber) {
+                if (tokens.Count <= 1 || tokens[1] is not ConfigTokenizer.StringToken { Value: var surfaceName }) {
+                    throw new ConfigException($"Expected a surface name string after the SURFACE directive (line {lineNumber})");
+                }
+
+                string? materialPath = null;
+                string? topPath = null;
+                for (int i = 2; i < tokens.Count; ++i) {
+                    if (tokens[i] is not ConfigTokenizer.KeyValueToken { Key: var key, Value: var value }) {
+                        throw new ConfigException($"Expected a key-value pair (e.g., material=filename.png) in SURFACE '{surfaceName}', but found an invalid token (line {lineNumber})");
+                    }
+                    if (key == "material") {
+                        materialPath = value;
+                    } else if (key == "top") {
+                        topPath = value;
+                    } else {
+                        throw new ConfigException($"Invalid property '{key}' in SURFACE '{surfaceName}'. Only 'material' and 'top' are allowed (line {lineNumber})");
+                    }
+                }
+                if (materialPath is null || topPath is null) {
+                    throw new ConfigException($"SURFACE '{surfaceName}' requires both 'material' and 'top' properties to be defined (line {lineNumber})");
+                }
+
+                var fullMaterialPath = Path.Combine(baseDir, materialPath);
+                var fullTopPath = Path.Combine(baseDir, topPath);
+
+                if (!File.Exists(fullMaterialPath)) {
+                    throw new ConfigException($"Material image file not found: \"{fullMaterialPath}\" for SURFACE '{surfaceName}' (line {lineNumber})");
+                }
+                if (!File.Exists(fullTopPath)) {
+                    throw new ConfigException($"Top image file not found: \"{fullTopPath}\" for SURFACE '{surfaceName}' (line {lineNumber})");
+                }
+
+                surfaces.Add(new SurfaceDef() {
+                    name = SanitizeIdentifier(surfaceName),
+                    materialPath = fullMaterialPath,
+                    topPath = fullTopPath,
+                });
+            }
+
+            public void Process(AssetProcessorContext ctx, StringBuilder codeBuilder) {
+                if (surfaces.Count == 0) { return; }
+
+                var sw = Stopwatch.StartNew();
+
+                AtlasTileSize surfaceTopsAtlasSize = PackSurfaceTops(surfaces);
+                if (surfaceTopsAtlasSize.TilesPerSide <= 0) {
+                    return;
+                }
+                using var surfaceTopsAtlas = new Image<Rgba32>(surfaceTopsAtlasSize.Pixels, surfaceTopsAtlasSize.Pixels);
+                foreach (var surf in surfaces) {
+                    using var img = Image.Load<Rgba32>(surf.topPath);
+                    if ((img.Width != 128 || img.Height != 128) && (img.Width != 128 || img.Height != 64)) {
+                        throw new AssetProcessorException($"SURFACE {surf.name} top image must be 128x128 or 128x64, but was {img.Width}x{img.Height}.");
+                    }
+                    Point location = new(surf.surfaceTopTileX * 128, surf.surfaceTopTileY * 128);
+                    surfaceTopsAtlas.Mutate(ctx => ctx.DrawImage(img, location, 1f));
+
+                    var matItem = new TaskItem(surf.materialPath);
+                    matItem.SetMetadata("LogicalName", $"{ctx.AtlasClassPrefix}_{surf.name}_material");
+                    ctx.EmbeddedResources.Add(matItem);
+                }
+
+                string surfaceTopsLogicalName = $"{ctx.AtlasClassPrefix}_surface_tops";
+                var surfaceTopsAtlasPath = Path.Combine(ctx.IntermediateOutputPath, Path.ChangeExtension(surfaceTopsLogicalName, ".png"));
+                surfaceTopsAtlas.SaveAsPng(surfaceTopsAtlasPath, PngEncoderSetting);
+
+                var surfaceTopsAtlasItem = new TaskItem(surfaceTopsAtlasPath);
+                surfaceTopsAtlasItem.SetMetadata("LogicalName", surfaceTopsLogicalName);
+                ctx.EmbeddedResources.Add(surfaceTopsAtlasItem);
+
+                foreach (var surf in surfaces) {
+                    codeBuilder.AppendLine($"    public const string {surf.name}_surfaceMaterial = \"{ctx.AtlasClassPrefix}_{surf.name}_material\";");
+                }
+                codeBuilder.AppendLine($"    public const string SurfaceTops = \"{surfaceTopsLogicalName}\";");
+                codeBuilder.AppendLine();
+
+                foreach (var surf in surfaces) {
+                    int idxX = surf.surfaceTopTileX;
+                    int idxY = surf.surfaceTopTileY;
+                    codeBuilder.AppendLine($"    public static readonly {ModTileType} {surf.name}_surfaceTops" +
+                        $" = new {ModTileType}({idxX}, {idxY}, \"{surfaceTopsLogicalName}\");");
+                }
+                codeBuilder.AppendLine();
+
+                sw.Stop();
+                ctx.Log.LogMessage(MessageImportance.High,
+                    $"AssetPacker: {surfaces.Count} surfaces -> {surfaceTopsLogicalName} ({surfaceTopsAtlasSize.Pixels}x{surfaceTopsAtlasSize.Pixels}) (elapsed {FormatElapsedTime(sw.Elapsed)})"
+                );
+            }
+        }
+
+        private sealed class SpriteAssetProcessor : IAssetProcessor {
+            private readonly List<SpriteDef> sprites = [];
+
+            public string ConfigDirective => "SPRITE";
+
+            public void Parse(List<ConfigTokenizer.Token> tokens, string baseDir, int lineNumber) {
+                if (tokens.Count <= 1 || tokens[1] is not ConfigTokenizer.StringToken { Value: var spriteName }) {
+                    throw new ConfigException($"Expected a sprite name string after the SPRITE directive (line {lineNumber})");
+                }
+                if (tokens.Count <= 2 || tokens[2] is not ConfigTokenizer.StringToken { Value: var spritePath }) {
+                    throw new ConfigException($"Expected a sprite path after the name (line {lineNumber})");
+                }
+                var fullPath = Path.Combine(baseDir, spritePath);
+                if (!File.Exists(fullPath)) {
+                    throw new ConfigException($"Sprite file not found: \"{fullPath}\" for SPRITE '{spriteName}' (line {lineNumber})");
+                }
+                sprites.Add(new SpriteDef { name = spriteName, path = fullPath });
+            }
+
+            public void Process(AssetProcessorContext ctx, StringBuilder codeBuilder) {
+                if (sprites.Count == 0) { return; }
+
+                var sw = Stopwatch.StartNew();
+
+                int atlasSize = PackSprites(sprites);
+                if (atlasSize <= 0) { return; }
+
+                using var atlas = new Image<Rgba32>(atlasSize, atlasSize);
+                foreach (SpriteDef sprite in sprites) {
+                    using var img = Image.Load<Rgba32>(sprite.path);
+
+                    Point location = new(sprite.x, sprite.y);
+                    atlas.Mutate(ctx => ctx.DrawImage(img, location, 1f));
+                }
+
+                string atlasLogicalName = $"{ctx.AtlasClassPrefix}_sprites";
+                var atlasPath = Path.Combine(ctx.IntermediateOutputPath, Path.ChangeExtension(atlasLogicalName, ".png"));
+                atlas.SaveAsPng(atlasPath, PngEncoderSetting);
+
+                var atlasItem = new TaskItem(atlasPath);
+                atlasItem.SetMetadata("LogicalName", atlasLogicalName);
+                ctx.EmbeddedResources.Add(atlasItem);
+
+                codeBuilder.AppendLine($"    public const string SpritesAtlasResource = \"{atlasLogicalName}\";");
+                codeBuilder.AppendLine();
+
+                foreach (var sprite in sprites) {
+                    var id = SanitizeIdentifier(sprite.name);
+                    codeBuilder.AppendLine($"    public static readonly {SpriteInfoType} {id}" +
+                        $" = new {SpriteInfoType}(\"{atlasLogicalName}\", {sprite.x}, {sprite.y}, {sprite.width}, {sprite.height});");
+                }
+                codeBuilder.AppendLine();
+
+                sw.Stop();
+                ctx.Log.LogMessage(MessageImportance.High,
+                    $"AssetPacker: {sprites.Count} sprites -> {atlasLogicalName} ({atlasSize}x{atlasSize}) (elapsed {FormatElapsedTime(sw.Elapsed)})"
+                );
+            }
+        }
+
+        private sealed class UnitAssetProcessor : IAssetProcessor {
+            private readonly List<UnitDef> units = [];
+
+            private static readonly string[] UnitStateOrder = [
+                "stand", "run", "jump", "fight", "hurt", "dead",
+                "standWall", "runWall", "fightWall", "hurtWall"
+            ];
+
+            public string ConfigDirective => "UNIT";
+
+            public void Parse(List<ConfigTokenizer.Token> tokens, string baseDir, int lineNumber) {
+                if (tokens.Count <= 1 || tokens[1] is not ConfigTokenizer.StringToken { Value: var unitName }) {
+                    throw new ConfigException($"Expected a unit name string after UNIT directive (line {lineNumber})");
+                }
+                List<UnitDef.Animation> anims = [];
+                int? spriteSize = null;
+                int totalTileCount = 0;
+
+                for (int i = 2; i < tokens.Count; ++i) {
+                    if (tokens[i] is not ConfigTokenizer.KeyValueToken { Key: var animName, Value: var tokenPaths }) {
+                        throw new ConfigException($"Expected a key-value pair (e.g., stand=filename.png) in UNIT '{unitName}', but found an invalid token (line {lineNumber})");
+                    }
+                    if (!UnitStateOrder.Contains(animName)) {
+                        throw new ConfigException($"Invalid animation '{animName}' in UNIT '{unitName}'. Allowed animation: {string.Join(", ", UnitStateOrder)} (line {lineNumber})");
+                    }
+                    if (anims.Any(x => x.name == animName)) {
+                        throw new ConfigException($"Duplicate animation '{animName}' in UNIT '{unitName}' (line {lineNumber})");
+                    }
+
+                    var paths = tokenPaths.Split('+');
+                    var animsFullPaths = new List<string>();
+
+                    foreach (var rawPath in paths) {
+                        var path = rawPath.Trim();
+                        if (string.IsNullOrWhiteSpace(path)) { continue; }
+
+                        var fullPath = Path.Combine(baseDir, path);
+                        if (!File.Exists(fullPath)) {
+                            throw new ConfigException($"Image file not found: '{fullPath}' for UNIT '{unitName}' animation '{animName}' (line {lineNumber})");
+                        }
+                        var info = Image.Identify(fullPath);
+
+                        if (info.Width != info.Height) {
+                            throw new NotImplementedException();
+                        }
+
+                        if (spriteSize is null) {
+                            spriteSize = info.Width;
+                        } else if (spriteSize != info.Width) {
+                            throw new NotImplementedException();
+                        }
+                        totalTileCount += 1;
+                        animsFullPaths.Add(fullPath);
+                    }
+                    if (animsFullPaths.Count == 0) {
+                        throw new ConfigException($"UNIT '{unitName}' animation '{animName}' must have at least one sprite (line {lineNumber})");
+                    }
+
+                    anims.Add(new() { name = animName, paths = animsFullPaths });
+                }
+                if (anims.Count == 0 || spriteSize is null) {
+                    throw new ConfigException($"UNIT '{unitName}' must have at least one animation defined (line {lineNumber})");
+                }
+                var sortedAnims = anims.OrderBy(anim => Array.IndexOf(UnitStateOrder, anim.name)).ToList();
+
+                units.Add(new UnitDef() {
+                    name = SanitizeIdentifier(unitName),
+                    animations = sortedAnims,
+                    size = spriteSize.Value,
+                    totalTileCount = totalTileCount,
+                });
+            }
+
+            public void Process(AssetProcessorContext ctx, StringBuilder codeBuilder) {
+                if (units.Count == 0) { return; }
+
+                var sw = Stopwatch.StartNew();
+
+                List<UnitAtlas> unitAtlases = PackUnits(units);
+                if (unitAtlases.Count == 0) { return; }
+
+                foreach (var unitAtlas in unitAtlases) {
+                    var logicalName = $"{ctx.AtlasClassPrefix}_units_{unitAtlas.tileSize}";
+
+                    codeBuilder.AppendLine($"    public const string UnitsAtlasResource_{unitAtlas.tileSize} = \"{logicalName}\";");
+
+                    using var img = new Image<Rgba32>(unitAtlas.textureSize, unitAtlas.textureSize);
+                    foreach (var unit in unitAtlas.units) {
+                        int x = unit.startX;
+                        int y = unit.startY;
+
+                        Dictionary<string, int> animCount = UnitStateOrder.ToDictionary(x => x, _ => 0);
+
+                        foreach (var anim in unit.animations) {
+                            foreach (var path in anim.paths) {
+                                using var animImg = Image.Load<Rgba32>(path);
+                                Point location = new(x * unitAtlas.tileSize, y * unitAtlas.tileSize);
+                                img.Mutate(ctx => ctx.DrawImage(animImg, location, 1f));
+
+                                x += 1;
+                                if (x >= unitAtlas.tilesPerSide) {
+                                    x = 0;
+                                    y += 1;
+                                }
+                            }
+                            animCount[anim.name] += anim.paths.Count;
+                        }
+                        codeBuilder.AppendLine($"    public static readonly {CTilesListType} {unit.name}" +
+                            $" = new {CTilesListType}({unit.startX}, {unit.startY}, {unitAtlas.textureSize}, {unitAtlas.tileSize}, \"{logicalName}\", {animCount["stand"]}, {animCount["run"]}, {animCount["jump"]}, {animCount["fight"]}, {animCount["hurt"]}, {animCount["dead"]}, {animCount["standWall"]}, {animCount["runWall"]}, {animCount["fightWall"]}, {animCount["hurtWall"]});");
+                    }
+                    var atlasPath = Path.Combine(ctx.IntermediateOutputPath, Path.ChangeExtension(logicalName, ".png"));
+                    img.SaveAsPng(atlasPath, PngEncoderSetting);
+
+                    var atlasItem = new TaskItem(atlasPath);
+                    atlasItem.SetMetadata("LogicalName", logicalName);
+                    ctx.EmbeddedResources.Add(atlasItem);
+
+                    codeBuilder.AppendLine();
+                }
+
+                sw.Stop();
+                ctx.Log.LogMessage(MessageImportance.High, $"AssetPacker: {units.Count} units -> {unitAtlases.Count} unit atlases (elapsed {FormatElapsedTime(sw.Elapsed)})");
+            }
+        }
+
+        private static void OptimizeTileBlocks(List<TileBlock> tileBlocks) {
+            for (int i = 0; i < tileBlocks.Count; ++i) {
+                for (int j = 0; j < tileBlocks.Count; ++j) {
+                    if (i == j) { continue; }
+
+                    if (TryMerge(tileBlocks[i].tiles, tileBlocks[j].tiles)) {
+                        tileBlocks.RemoveAt(j);
+
+                        if (j < i) { i -= 1; }
+                        j = -1;
+                    }
+                }
+            }
+
+            static bool TryMerge(List<Tile> a, List<Tile> b) {
+                for (int i = -b.Count + 1; i < a.Count; ++i) {
+                    if (OverlapsAtPos(a, b, i)) {
+                        int startA = Math.Max(0, i);
+                        int endA = Math.Min(a.Count, i + b.Count);
+                        for (int aIdx = startA; aIdx < endA; ++aIdx) {
+                            int bIdx = aIdx - i;
+                            a[aIdx].properties.AddRange(b[bIdx].properties);
+                        }
+                        // need to firstly append before prepending to avoid making offsets wrong
+                        if (endA - i < b.Count) {
+                            a.AddRange(b.Skip(endA - i));
+                        }
+                        if (i < 0) {
+                            a.InsertRange(0, b.Take(-i));
+                        }
+
+                        return true;
+                    }
+                }
+                return false;
+            }
+            static bool OverlapsAtPos(List<Tile> a, List<Tile> b, int pos) {
+                int startA = Math.Max(0, pos);
+                int endA = Math.Min(a.Count, pos + b.Count);
+                for (int aIdx = startA; aIdx < endA; ++aIdx) {
+                    int bIdx = aIdx - pos;
+
+                    if (a[aIdx].path != b[bIdx].path) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+
+        private sealed class ConfigException(string message) : Exception(message);
+
+        private sealed class AssetProcessorException(string message) : Exception(message);
+
+        private class ConfigTokenizer {
+            public abstract record Token;
+            public record StringToken(string Value) : Token;
+            public record KeyValueToken(string Key, string Value) : Token;
+
+            private readonly StringBuilder valueBuilder = new();
+
+            public List<Token> Tokenize(string input, int lineNumber) {
+                var tokens = new List<Token>();
+                if (string.IsNullOrWhiteSpace(input)) { return tokens; }
+
+                int i = 0;
+                while (i < input.Length) {
+                    while (i < input.Length && char.IsWhiteSpace(input[i])) {
+                        i += 1;
+                    }
+
+                    bool inQuotes = false;
+                    bool isKeyValue = false;
+                    string? keyPart = null;
+
+                    while (i < input.Length) {
+                        char c = input[i];
+                        if (c == '"') {
+                            inQuotes ^= true;
+                            i += 1;
+                            continue;
+                        }
+                        if (!inQuotes && char.IsWhiteSpace(c)) {
+                            break;
+                        }
+                        if (!inQuotes && c == '=') {
+                            if (isKeyValue) {
+                                throw new ConfigException($"Invalid token: multiple unquoted '=' characters are not allowed (at {lineNumber}:{i + 1}, with key \"{keyPart}\")");
+                            }
+                            if (valueBuilder.Length == 0) {
+                                throw new ConfigException($"Invalid token: empty key is not allowed (at {lineNumber}:{i + 1})");
+                            }
+                            isKeyValue = true;
+                            keyPart = valueBuilder.ToString();
+                            valueBuilder.Clear();
+                            i += 1;
+                            continue;
+                        }
+                        valueBuilder.Append(c);
+                        i += 1;
+                    }
+                    if (inQuotes) {
+                        throw new ConfigException($"Invalid token: unclosed quote (at {lineNumber}:{i + 1})");
+                    }
+
+                    string finalValue = valueBuilder.ToString();
+                    valueBuilder.Clear();
+
+                    if (isKeyValue) {
+                        tokens.Add(new KeyValueToken(keyPart!, finalValue));
+                    } else {
+                        tokens.Add(new StringToken(finalValue));
+                    }
+                }
+                return tokens;
+            }
+        }
+
+        private bool ParseConfig(string configPath, IAssetProcessor[] assetProcessors) {
+            string baseDir = Path.GetDirectoryName(configPath) ?? "";
+            var tokenizer = new ConfigTokenizer();
+            int lineNumber = 0;
+
+            var directiveMap = assetProcessors.ToDictionary(x => x.ConfigDirective);
+
+            foreach (var rawLine in File.ReadLines(configPath)) {
+                lineNumber += 1;
+                var line = rawLine.Trim();
+                if (line.Length == 0 || line.StartsWith("#")) { continue; }
+
+                var tokens = tokenizer.Tokenize(line, lineNumber);
+                if (tokens.Count == 0) {
+                    throw new ConfigException($"Directive is missing (line {lineNumber})");
+                }
+                if (tokens[0] is not ConfigTokenizer.StringToken { Value: var directive}) {
+                    throw new ConfigException($"Direcive must be a string (line {lineNumber})");
+                }
+
+                if (directiveMap.TryGetValue(directive, out IAssetProcessor processor)) {
+                    processor.Parse(tokens, baseDir, lineNumber);
+                } else {
+                    Log.LogWarning($"Unknown directive '{directive}'");
+                }
+            }
+            return true;
+        }
+
+        private static AtlasTileSize PackTiles(List<TileBlock> tileBlocks) {
+            if (tileBlocks.Count == 0) { return new AtlasTileSize(1); }
+
+            // tileBlocks[0] - block with largest width, tileBlocks[^1] - block with smallest width
+            tileBlocks.Sort((a, b) => b.tiles.Count.CompareTo(a.tiles.Count));
+
+            int maxBlockWidth = tileBlocks[0].tiles.Count;
+            int spritesheetSize = RoundUpToPowerOf2(maxBlockWidth);
+
+            List<int> shelfsOffset = [0];
+            int nonEmptyShelfIdx = 0; // skip full shelfs (rows)
+
+            for (int blockIdx = 0; blockIdx < tileBlocks.Count; ++blockIdx) {
+                int blockWidth = tileBlocks[blockIdx].tiles.Count;
+
+                int freeShelfIdx = -1;
+refind_free_shelf:
+                for (int i = nonEmptyShelfIdx; i < shelfsOffset.Count; ++i) {
+                    if (shelfsOffset[i] + blockWidth <= spritesheetSize) {
+                        freeShelfIdx = i;
+                        break;
+                    }
+                }
+                if (freeShelfIdx == -1 && shelfsOffset.Count >= spritesheetSize) {
+                    spritesheetSize *= 2;
+                    nonEmptyShelfIdx = 0;
+
+                    goto refind_free_shelf;
+                }
+                if (freeShelfIdx == -1) {
+                    freeShelfIdx = shelfsOffset.Count;
+                    shelfsOffset.Add(0);
+                }
+
+                tileBlocks[blockIdx] = tileBlocks[blockIdx] with {
+                    x = shelfsOffset[freeShelfIdx],
+                    y = freeShelfIdx,
+                };
+                shelfsOffset[freeShelfIdx] += blockWidth;
+
+                if (freeShelfIdx == nonEmptyShelfIdx && shelfsOffset[nonEmptyShelfIdx] >= spritesheetSize) {
+                    nonEmptyShelfIdx += 1;
+                }
+            }
+            return new AtlasTileSize(spritesheetSize);
+        }
+
+        private static AtlasTileSize PackSurfaceTops(List<SurfaceDef> surfaces) {
+            if (surfaces.Count == 0) { return new AtlasTileSize(0); }
+
+            int sideTiles = 1;
+            int shift = 0;
+            while (sideTiles * sideTiles < surfaces.Count) {
+                sideTiles *= 2;
+                shift += 1;
+            }
+            int mask = sideTiles - 1; 
+
+            for (int i = 0; i < surfaces.Count; i++) {
+                surfaces[i] = surfaces[i] with {
+                    surfaceTopTileX = i & mask, // i % sideTiles
+                    surfaceTopTileY = i >> shift // i / sideTiles
+                };
+            }
+
+            return new AtlasTileSize(sideTiles);
+        }
+
+        private static int PackSprites(List<SpriteDef> sprites) {
+            if (sprites.Count == 0) { return 0; }
+
+            int atlasAreaHeuristic = 0;
+            for (int i = 0; i < sprites.Count; i++) {
+                SpriteDef sprite = sprites[i];
+
+                var info = Image.Identify(sprite.path);
+                sprite.width = info.Width;
+                sprite.height = info.Height;
+
+                atlasAreaHeuristic += sprite.width * sprite.height;
+
+                sprites[i] = sprite;
+            }
+            sprites.Sort((a, b) => b.height.CompareTo(a.height));
+
+            int currentAtlasSize = RoundUpToPowerOf2((int)Math.Ceiling(Math.Sqrt(atlasAreaHeuristic))); // lower bound
+
+retryWithLargerAtlas:
+            int currentY = 0;
+            int currentX = 0;
+            int shelfHeight = 0;
+
+            for (int i = 0; i < sprites.Count; ++i) {
+                SpriteDef sprite = sprites[i];
+
+                if (currentX + sprite.width > currentAtlasSize) {
+                    // next shelf
+                    currentY += shelfHeight;
+                    currentX = 0;
+                    shelfHeight = 0;
+                }
+                if (currentY + sprite.height > currentAtlasSize) {
+                    // sprite doesn't fit inside atlas
+                    currentAtlasSize *= 2;
+                    goto retryWithLargerAtlas;
+                }
+                sprite.x = currentX;
+                sprite.y = currentY;
+
+                currentX += sprite.width;
+                shelfHeight = Math.Max(shelfHeight, sprite.height);
+                sprites[i] = sprite;
+            }
+            return currentAtlasSize;
+        }
+
+        private static List<UnitAtlas> PackUnits(List<UnitDef> units) {
+            List<UnitAtlas> unitAtlases = [];
+            if (units.Count == 0) { return unitAtlases; }
+
+            Dictionary<int, List<UnitDef>> unitsBySize = units
+                .GroupBy(u => u.size)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            foreach (var kvp in unitsBySize) {
+                int tileSize = kvp.Key;
+                var groppedUnits = kvp.Value;
+
+                int totalTiles = 0;
+                foreach (var unit in groppedUnits) {
+                    totalTiles += unit.totalTileCount;
+                }
+                int tilesPerSide = RoundUpToPowerOf2((int)Math.Ceiling(Math.Sqrt(totalTiles)));
+                int textureSize = tilesPerSide * tileSize;
+
+                int currentX = 0;
+                int currentY = 0;
+                for (int i = 0; i < groppedUnits.Count; ++i) {
+                    var unit = groppedUnits[i];
+                    unit.startX = currentX;
+                    unit.startY = currentY;
+
+                    currentX += unit.totalTileCount;
+                    if (currentX >= tilesPerSide) {
+                        // since a unit can have more than a single rows of animation tiles we need to do some math
+                        currentY += currentX / tilesPerSide;
+                        currentX %= tilesPerSide;
+                    }
+                    groppedUnits[i] = unit;
+                }
+                unitAtlases.Add(new UnitAtlas() {
+                    units = groppedUnits, textureSize = textureSize, tileSize = tileSize, tilesPerSide = tilesPerSide
+                });
+            }
+            return unitAtlases;
+        }
+
+        private static string SanitizeIdentifier(string name) {
+            if (string.IsNullOrEmpty(name)) { return "_"; }
+
+            var chars = name.Select(c => char.IsLetterOrDigit(c) ? c : '_');
+
+            return char.IsDigit(name[0]) ? "_" + string.Concat(chars) : string.Concat(chars);
+        }
+
+        private static (string Namespace, string Class) SplitFullTypeName(string fullTypeName) {
+            int lastDot = fullTypeName.LastIndexOf('.');
+            if (lastDot == -1) { return ("", fullTypeName); }
+            return (fullTypeName.Substring(0, lastDot), fullTypeName.Substring(lastDot + 1));
+        }
+
+        private static int RoundUpToPowerOf2(int x) {
+            if (x == 0) { return 1; }
+            x -= 1;
+            x |= x >> 1;
+            x |= x >> 2;
+            x |= x >> 4;
+            x |= x >> 8;
+            x |= x >> 16;
+            return x + 1;
+        }
+
+        private static Rgba32 CalculateAverageColor(Image<Rgba32> image) {
+            long totalR = 0;
+            long totalG = 0;
+            long totalB = 0;
+            long totalAlpha = 0;
+
+            for (int y = 0; y < image.Height; ++y) {
+                for (int x = 0; x < image.Width; ++x) {
+                    Rgba32 pixel = image[x, y];
+
+                    if (pixel.A > 0) {
+                        totalR += pixel.R * pixel.A;
+                        totalG += pixel.G * pixel.A;
+                        totalB += pixel.B * pixel.A;
+                        totalAlpha += pixel.A;
+                    }
+                }
+            }
+
+            if (totalAlpha == 0) {
+                return new Rgba32(0, 0, 0, 0);
+            }
+            byte avgR = (byte)(totalR / totalAlpha);
+            byte avgG = (byte)(totalG / totalAlpha);
+            byte avgB = (byte)(totalB / totalAlpha);
+            return new Rgba32(avgR, avgG, avgB);
+        }
+
+        // the game incorrectly convert ARGB (uint) to normalized RGB color (UnityEngine.Color) - divides by 256 instead of 255
+        // each color component (see SMisc.GetColor function)
+        // pre-compensates color bytes so the incorrect color convertion logic produces accurate UnityEngine.Color color
+        private static uint PackColorToUint(Rgba32 color) {
+            byte r = (byte)((color.R * 256 + 127) / 255);
+            byte g = (byte)((color.G * 256 + 127) / 255);
+            byte b = (byte)((color.B * 256 + 127) / 255);
+            return (uint)((r << 16) | (g << 8) | b);
+        }
+
+        private static string FormatElapsedTime(TimeSpan elapsed) {
+            return elapsed switch {
+                { TotalMilliseconds: < 1, Ticks: var ticks } => $"{ticks * 100} ns",
+                { TotalMilliseconds: < 1000 and var ms } => $"{ms:F2} ms",
+                { TotalSeconds: < 60 and var s } => $"{s:F2} s",
+                { TotalMinutes: < 60, Minutes: var m, Seconds: var s } => $"{m}m {s}s",
+                { TotalHours: var h } => $"{h:F2} hrs",
+            };
+        }
+    }
+}

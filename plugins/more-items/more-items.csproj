@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../Plugin.Common.props" />
 
   <PropertyGroup>
     <AssemblyName>more_items</AssemblyName>
@@ -6,19 +7,15 @@
     <Version>1.2.0</Version>
   </PropertyGroup>
   
-  <Import Project="../utils-lib/utils-lib.targets" />
-  
-  <Target Name="MakeTextures" BeforeTargets="BeforeBuild">
-    <Exec
-      Command="%WINDIR%\System32\WindowsPowerShell\v1.0\powershell.exe -NonInteractive -noprofile -executionpolicy Unrestricted .\make-textures.ps1"
-      LogStandardErrorAsError="True" ContinueOnError="False" WorkingDirectory="$(MSBuildProjectDirectory)"/>
-    <Message Text="Creating sprite sheet (make-textures.ps1)" Importance="high" />
-  </Target>
-  
   <ItemGroup>
-    <EmbeddedResource Include="textures/combined_textures.png" />
-    <EmbeddedResource Include="textures/surfaces/surface_fertileDirt.png" />
-    <EmbeddedResource Include="textures/surfaces/surface_tops.png" />
-    <EmbeddedResource Include="textures/combined_particles.png" />
+    <ProjectReference Include="../dodmodapi/dodmodapi.csproj" Private="false" />
+    <PackageReference Include="DigOrDie.DODModAPI.AssetPacker" Version="0.1.0-re.*" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ModSprites Include="textures/sprites.cfg" AtlasName="Textures" />
+  </ItemGroup>
+  
+  <Import Project="../Plugin.Common.targets" />
 </Project>
+ 

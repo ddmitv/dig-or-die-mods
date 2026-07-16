@@ -1,14 +1,15 @@
 using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
-using ModUtils;
-using ModUtils.Extensions;
+using DODModAPI;
+using DODModAPI.Extensions;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection.Emit;
 
 [BepInPlugin("player-name-changer", ThisPluginInfo.Name, ThisPluginInfo.Version)]
+[BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class PlayerNameChanger : BaseUnityPlugin {
     private static ConfigEntry<string> configPlayerName = null;
     private static ConfigEntry<bool> configEnable = null;
@@ -32,7 +33,7 @@ public class PlayerNameChanger : BaseUnityPlugin {
         };
 
         var harmony = new Harmony(Info.Metadata.GUID);
-        
+
         harmony.Patch(typeof(SNetwork).Method("get_MySteamName"),
             prefix: new HarmonyMethod(typeof(PlayerNameChanger).Method("SNetwork_get_MySteamName")));
 
@@ -54,17 +55,17 @@ public class PlayerNameChanger : BaseUnityPlugin {
         return false;
     }
     private static IEnumerable<CodeInstruction> CPlayer_Load(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        return new CodeMatcher(instructions, generator)
-            .MatchForward(useEnd: true,
+        return new CodeCursor(instructions, generator)
+            .FindNextEnd(
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldarg_1),
                 new(OpCodes.Callvirt, typeof(BinaryReader).Method("ReadString", [])),
                 new(OpCodes.Stfld, typeof(CPlayer).Field("m_name")))
-            .ThrowIfInvalid("(1)")
+            .Advance(-1)
             .Insert(
                 Transpilers.EmitDelegate(static (string oldName) => {
                     return SNetwork.MySteamName;
                 }))
-            .Instructions();
+            .Finish();
     }
 }

@@ -1,11 +1,13 @@
 using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
-using ModUtils.Extensions;
+using DODModAPI.Extensions;
 using System.Collections.Generic;
 using System.Reflection.Emit;
+using DODModAPI;
 
 [BepInPlugin("max-threads", ThisPluginInfo.Name, ThisPluginInfo.Version)]
+[BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class CellPicker : BaseUnityPlugin {
     private static ConfigEntry<uint> configOverrideThreadsNumber = null;
 
@@ -32,12 +34,11 @@ public class CellPicker : BaseUnityPlugin {
             }
             return System.Environment.ProcessorCount;
         }
-        return new CodeMatcher(instructions, generator)
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Ldc_I4_4),
                 new(OpCodes.Call, typeof(SWorldDll).Method("DllInit")))
-            .ThrowIfInvalid("(1)")
-            .SetInstruction(Transpilers.EmitDelegate(GetThreadsCount))
-            .Instructions();
+            .Replace(offset: 0, Transpilers.EmitDelegate(GetThreadsCount), out _)
+            .Finish();
     }
 }

@@ -1,12 +1,14 @@
 using BepInEx;
 using HarmonyLib;
-using ModUtils.Extensions;
+using DODModAPI.Extensions;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
 using UnityEngine;
+using DODModAPI;
 
 [BepInPlugin("skip-launcher", ThisPluginInfo.Name, ThisPluginInfo.Version)]
+[BepInDependency(DODModAPIPlugin.GUID)]
 public class SkipLauncher : BaseUnityPlugin {
     private static int resolutionWidth;
     private static int resolutionHeight;
@@ -56,14 +58,14 @@ public class SkipLauncher : BaseUnityPlugin {
             SScreenOptions.Inst.SetDisplayParams();
             SScreenHome.Inst.Activate();
         }
-        return new CodeMatcher(instructions, generator).End()
-            .MatchBack(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .MoveToEnd()
+            .FindPrevious(
                 new(OpCodes.Call, typeof(SSingletonScreen<SScreenLauncher>).Method("get_Inst")),
                 new(OpCodes.Ldc_I4_0),
                 new(OpCodes.Callvirt, typeof(SScreen).Method("Activate")))
-            .ThrowIfInvalid("(1)")
-            .ReplaceInstructionAndAdvance(Transpilers.EmitDelegate(OnScreenLauncherActivate))
-            .RemoveInstructions(2)
-            .Instructions();
+            .Replace(offset: 0, Transpilers.EmitDelegate(OnScreenLauncherActivate), out _)
+            .Remove(2)
+            .Finish();
     }
 }

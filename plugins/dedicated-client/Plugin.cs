@@ -1,18 +1,18 @@
-using BepInEx;
-using BepInEx.Configuration;
-using BepInEx.Logging;
-using HarmonyLib;
-
-using ModUtils;
-using ModUtils.Extensions;
-using Steamworks;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection.Emit;
 using System.Text;
+using BepInEx;
+using BepInEx.Configuration;
+using BepInEx.Logging;
+using DODModAPI;
+using DODModAPI.Extensions;
+using HarmonyLib;
+using Steamworks;
 
 #pragma warning disable IDE0051
 
@@ -289,18 +289,11 @@ internal static class Patches {
         __result = fakeHostPlayer;
         return false;
     }
-    [HarmonyPatch(typeof(SNetworkMessages), nameof(SNetworkMessages.OnInit))]
-    [HarmonyPostfix]
-    private static void SNetworkMessages_OnInit(SNetworkMessages __instance) {
-        void RegisterMessage(SMessageBase msg, byte id) {
-            msg.m_messageId = id;
-            __instance.m_listMessages[id] = msg;
-        }
-        RegisterMessage(CustomMessagePlayerSession.Inst, 46);
-    }
 }
 
 internal sealed class CustomMessagePlayerSession : SMessageSingleton<CustomMessagePlayerSession> {
+    public CustomMessagePlayerSession() => m_messageId = 46;
+
     public override int GetBodySize() => -1;
 
     public void Send() {
@@ -336,6 +329,7 @@ internal sealed class CustomMessagePlayerSession : SMessageSingleton<CustomMessa
 }
 
 [BepInPlugin("dedicated-client", ThisPluginInfo.Name, ThisPluginInfo.Version)]
+[BepInDependency(DODModAPIPlugin.GUID)]
 public class DedicatedClient : BaseUnityPlugin {
     public static CGuiButton btJoinDedicated = null;
 
@@ -371,7 +365,7 @@ public class DedicatedClient : BaseUnityPlugin {
 
     public static void OnConnectCallback() {
         string epStr = SScreenPopup.Inst.GetInput();
-        if (!Utils.TryParseIPEndPoint(epStr, out IPEndPoint endPoint)) {
+        if (!TryParseIPEndPoint(epStr, out IPEndPoint endPoint)) {
             SScreenPopup.Inst.Show(callback: null, messageId: "DEDICATED_CLIENT_INVALID_IP");
             return;
         }
@@ -410,11 +404,13 @@ public class DedicatedClient : BaseUnityPlugin {
             return;
         }
 
-        Utils.AddLocalizationText("DEDICATED_CLIENT_ENTER_IP", "Enter server IP:");
-        Utils.AddLocalizationText("DEDICATED_CLIENT_CONNECT", "CONNECT");
-        Utils.AddLocalizationText("DEDICATED_CLIENT_INVALID_IP", "Invalid IP");
-        Utils.AddLocalizationText("DEDICATED_CLIENT_CONNECTION_FAILED", "Connection failed:\n{1}");
-        Utils.AddLocalizationText("DEDICATED_CLIENT_CONNECTION_DISCONNECTED", "The connection to the server has been disconnected");
+        Misc.AddLocalizationText("DEDICATED_CLIENT_ENTER_IP", "Enter server IP:");
+        Misc.AddLocalizationText("DEDICATED_CLIENT_CONNECT", "CONNECT");
+        Misc.AddLocalizationText("DEDICATED_CLIENT_INVALID_IP", "Invalid IP");
+        Misc.AddLocalizationText("DEDICATED_CLIENT_CONNECTION_FAILED", "Connection failed:\n{1}");
+        Misc.AddLocalizationText("DEDICATED_CLIENT_CONNECTION_DISCONNECTED", "The connection to the server has been disconnected");
+
+        DODModAPI.NetworkManager.Register(CustomMessagePlayerSession.Inst);
 
         var harmony = new Harmony(Info.Metadata.GUID);
         harmony.PatchAll(typeof(Patches));
@@ -423,5 +419,31 @@ public class DedicatedClient : BaseUnityPlugin {
     void OnDistroy() {
         client?.Close();
         client = null;
+    }
+
+    private static bool TryParseIPEndPoint(string s, out IPEndPoint result) {
+        // https://github.com/dotnet/runtime/blob/9d5a6a9aa463d6d10b0b0ba6d5982cc82f363dc3/src/libraries/System.Net.Primitives/src/System/Net/IPEndPoint.cs#L97C13-L127C26
+        const int MaxPort = 0x0000FFFF;
+
+        int addressLength = s.Length;
+        int lastColonPos = s.LastIndexOf(':');
+
+        if (lastColonPos > 0) {
+            if (s[lastColonPos - 1] == ']') {
+                addressLength = lastColonPos;
+            } else if (s.Substring(0, lastColonPos).LastIndexOf(':') == -1) {
+                addressLength = lastColonPos;
+            }
+        }
+        if (IPAddress.TryParse(s.Substring(0, addressLength), out IPAddress address)) {
+            uint port = 0;
+            if (addressLength == s.Length ||
+                (uint.TryParse(s.Substring(addressLength + 1), NumberStyles.None, CultureInfo.InvariantCulture, out port) && port <= MaxPort)) {
+                result = new IPEndPoint(address, (int)port);
+                return true;
+            }
+        }
+        result = null;
+        return false;
     }
 }

@@ -1,8 +1,8 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
-using ModUtils;
-using ModUtils.Extensions;
+using DODModAPI;
+using DODModAPI.Extensions;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reflection.Emit;
@@ -28,10 +28,8 @@ internal static class PreciseTimePatch {
             return $"{str} ({timeStr})";
         }
 
-        var codeMatcher = new CodeMatcher(instructions);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(SScreenMessages).Field("m_guiEnvironment")),
                 new(OpCodes.Ldstr, "ENV_EXPECTED"),
@@ -39,10 +37,9 @@ internal static class PreciseTimePatch {
                 new(OpCodes.Ldstr, "ENV_"),
                 new(OpCodes.Ldloc_0),
                 new(OpCodes.Ldfld, typeof(CDesc).Field("m_id")))
-            .ThrowIfInvalid("(1)")
             .Advance(27)
             .Insert(Transpilers.EmitDelegate(ChangeEnvExpectedStr))
-            .MatchForward(useEnd: false,
+            .FindNext(
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(SScreenMessages).Field("m_guiEnvironment")),
                 new(OpCodes.Ldstr, "ENV_ONGOING"),
@@ -50,11 +47,9 @@ internal static class PreciseTimePatch {
                 new(OpCodes.Ldstr, "ENV_"),
                 new(OpCodes.Ldloc_0),
                 new(OpCodes.Ldfld, typeof(CDesc).Field("m_id")))
-            .ThrowIfInvalid("(2)")
             .Advance(27)
-            .Insert(Transpilers.EmitDelegate(ChangeEnvOnGoingStr));
-
-        return codeMatcher.Instructions();
+            .Insert(Transpilers.EmitDelegate(ChangeEnvOnGoingStr))
+            .Finish();
     }
 
 
@@ -105,6 +100,7 @@ public enum TimeFormat {
 }
 
 [BepInPlugin("precise-clock", ThisPluginInfo.Name, ThisPluginInfo.Version)]
+[BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class PreciseClock : BaseUnityPlugin {
     public static ConfigEntry<UnityEngine.Color> configColor = null;
     public static ConfigEntry<ClockPosition> configClockPosition = null;
@@ -118,7 +114,7 @@ public class PreciseClock : BaseUnityPlugin {
 
         if (configTimeFormat.Value == TimeFormat.H12AmPm) {
             var hour = clock * 24f;
-            return $"{Utils.PosMod((int)hour - 1, 12) + 1}:{(int)((hour % 1f) * 60f):00} {(hour < 12f ? "AM" : "PM")}";
+            return $"{Misc.PosMod((int)hour - 1, 12) + 1}:{(int)((hour % 1f) * 60f):00} {(hour < 12f ? "AM" : "PM")}";
         } else if (configTimeFormat.Value == TimeFormat.Decimal) {
             return $"{(int)(clock * 10f)}.{(int)(clock * 1000f) % 100:00}";
         } else if (configTimeFormat.Value == TimeFormat.Unit) {

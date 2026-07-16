@@ -1,17 +1,52 @@
-using ModUtils;
-using ModUtils.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DODModAPI;
+using DODModAPI.Extensions;
 using UnityEngine;
 
-public sealed class ModCTile : CTile {
-    public const string texturePath = "mod-more-items";
-    public static Texture2D texture = null;
+internal static class ItemHelpers {
+    public static void DoShockWave(Vector2 center, float radius, float damage, float knockbackTarget) {
+        float radiusSqr = radius * radius;
+        foreach (CUnit unit in SUnits.Units) {
+            if (unit is null || !unit.IsAlive()) { continue; }
+            if ((unit.PosCenter - center).sqrMagnitude > radiusSqr) { continue; }
 
-    public ModCTile(int i, int j, int images = 1, int sizeX = 128, int sizeY = 128)
-        : base(i, j, images, sizeX, sizeY) {
-        base.m_textureName = texturePath;
+            var distanceFactor = Mathf.Clamp01(1f - Misc.Sqr((unit.PosCenter - center).magnitude / radius));
+
+            var appliedDamage = Mathf.Max(1f, damage * distanceFactor * unit.GetArmorMult() - unit.GetArmor());
+            unit.Damage(appliedDamage, attacker: null, showDamage: true, damageCause: "");
+            unit.Push((unit.PosCenter - center).normalized * knockbackTarget * distanceFactor);
+        }
+    }
+    public static int2 FindInCircleClamped(int range, int2 pos, Func<int, int, bool> fn) {
+        int sqrRange = range * range;
+        int minX = Math.Max(pos.x - range, 0), maxX = Math.Min(pos.x + range, SWorld.Gs.x - 1);
+        int minY = Math.Max(pos.y - range, 0), maxY = Math.Min(pos.y + range, SWorld.Gs.y - 1);
+        for (int i = minX; i <= maxX; ++i) {
+            for (int j = minY; j <= maxY; ++j) {
+                int2 relative = new int2(i, j) - pos;
+                if (relative.sqrMagnitude <= sqrRange) {
+                    if (fn(i, j)) {
+                        return new int2(i, j);
+                    }
+                }
+            }
+        }
+        return int2.negative;
+    }
+    public static void ForEachInCircleClamped(int range, int2 pos, Action<int, int> fn) {
+        int sqrRange = range * range;
+        int minX = Math.Max(pos.x - range, 0), maxX = Math.Min(pos.x + range, SWorld.Gs.x - 1);
+        int minY = Math.Max(pos.y - range, 0), maxY = Math.Min(pos.y + range, SWorld.Gs.y - 1);
+        for (int i = minX; i <= maxX; ++i) {
+            for (int j = minY; j <= maxY; ++j) {
+                int2 relative = new int2(i, j) - pos;
+                if (relative.sqrMagnitude <= sqrRange) {
+                    fn(i, j);
+                }
+            }
+        }
     }
 }
 
@@ -50,18 +85,28 @@ public sealed class ExtCItem_Explosive : CItem_Defense {
     public float explosionFlashIntensity = 0f;
     public float explosionFireAroundRadius = 0f;
 
-    public static Dictionary<ushort, float> lastTimeMap = new Dictionary<ushort, float>();
+    public static WeakTable<CUnitDefense, float> lastTimeWeakTable = [];
 
     public void DoFireAround(Vector2 pos) {
         if (this.explosionFireAroundRadius <= 0f) { return; }
 
         SWorld.SetFireAround(pos, this.explosionFireAroundRadius);
-        Utils.SetUnitBurningAround(pos, this.explosionFireAroundRadius);
+
+        var radiusSqr = this.explosionFireAroundRadius * this.explosionFireAroundRadius;
+        foreach (CUnit unit in SUnits.Units) {
+            if (unit is null || !unit.IsAlive() || unit.m_uDesc.m_immuneToFire) {
+                continue;
+            }
+            if ((unit.PosCenter - pos).sqrMagnitude <= radiusSqr
+                && SMiscCols.CheckCol_SegmentGround(pos, unit.PosCenter) == Vector2.zero) {
+                unit.m_burnStartTime = GVars.SimuTime;
+            }
+        }
     }
     public void DoShockWave(Vector2 pos) {
         if (this.shockWaveRange <= 0f) { return; }
 
-        Utils.DoShockWave(pos, this.shockWaveRange, this.shockWaveDamage, this.shockWaveKnockback);
+        ItemHelpers.DoShockWave(pos, this.shockWaveRange, this.shockWaveDamage, this.shockWaveKnockback);
     }
     public void DoFlashEffect(Vector2 pos) {
         if (this.explosionFlashIntensity <= 0f) { return; }
@@ -73,7 +118,7 @@ public sealed class ExtCItem_Explosive : CItem_Defense {
     public void DoExplosionLavaRelease(ref CCell currentCell) {
         if (this.lavaReleaseTime >= 0f) { return; }
 
-        Utils.AddLava(ref currentCell, this.lavaQuantity);
+        Misc.AddLava(ref currentCell, this.lavaQuantity);
     }
     public void DoExplosionBgChange(int2 posCell) {
         var range = this.destroyBackgroundRadius + this.explosionBasaltBgRadius;
@@ -86,7 +131,7 @@ public sealed class ExtCItem_Explosive : CItem_Defense {
                 if (relative.sqrMagnitude > range * range) {
                     continue;
                 }
-                if (!Utils.IsValidCell(i, j)) { return; }
+                if (!Misc.IsInWorld(i, j)) { return; }
 
                 ref var cell = ref SWorld.Grid[i, j];
                 if (!cell.IsPassable()) { continue; }
@@ -126,11 +171,66 @@ public sealed class ExtCItem_Explosive : CItem_Defense {
             SSingleton<SWorld>.Inst.DestroyCell(posCell - int2.up, loot: 0);
         }
     }
-}
-public sealed class ExtCBulletDesc : CBulletDesc {
-    public ExtCBulletDesc(string spriteTextureName, string spriteName, float radius, float dispersionAngleRad, float speedStart, float speedEnd, uint light = 0)
-        : base(spriteTextureName, spriteName, radius, dispersionAngleRad, speedStart, speedEnd, light) { }
+    public static void ExplosiveLogic(CUnitDefense self) {
+        if (self.GetLastFireTime() <= 0f) {
+            return;
+        }
+        var item = (ExtCItem_Explosive)self.m_item;
 
+        ref var currentCell = ref SWorld.Grid[self.PosCell.x, self.PosCell.y];
+
+        if (item.lavaReleaseTime >= 0
+            && GVars.SimuTime >= self.GetLastFireTime() + item.lavaReleaseTime
+            && GVars.SimuTime > ExtCItem_Explosive.lastTimeWeakTable.GetValueOrDefault(self)
+        ) {
+            const float dt = ExtCItem_Explosive.deltaTime;
+            ExtCItem_Explosive.lastTimeWeakTable.AddOrUpdate(self, GVars.SimuTime + dt);
+
+            float releaseTime = GVars.SimuTime - (self.GetLastFireTime() + item.lavaReleaseTime);
+            float completionPercentage = releaseTime / (item.explosionTime - item.lavaReleaseTime);
+
+            Misc.AddLava(ref currentCell, item.lavaQuantity * Mathf.Pow(3f, releaseTime));
+
+            var fireRange = Mathf.Lerp(0f, item.m_attack.m_range * 5f, completionPercentage);
+            SWorld.SetFireAround(self.PosCell, fireRange);
+
+            var evaporationRange = Mathf.Lerp(0f, item.m_attack.m_range * 4f, completionPercentage);
+            EvaporateWaterAround(Mathf.CeilToInt(evaporationRange), self.PosCell, evaporationRate: 0.6f);
+
+            var destructionRange = Mathf.CeilToInt(Mathf.Lerp(0f, item.m_attack.m_range / 3f, completionPercentage));
+            SWorld.DoDamageAOE(self.Pos, destructionRange, Misc.CeilDiv(item.m_attack.m_damage, 20));
+        }
+        if (GVars.m_simuTimeD <= (double)(self.GetLastFireTime() + item.explosionTime)) {
+            return;
+        }
+        item.DestoryItself(self.PosCell);
+        item.DoDamageAround(self.PosCenter, item.m_attack);
+        item.PlayExplosionSound(item.m_attack.Sound, self.PosCenter);
+        item.StartVolcanoEruption();
+        item.DoExplosionBgChange(self.PosCell);
+        item.DoExplosionLavaRelease(ref currentCell);
+        item.DoFlashEffect(self.PosCenter);
+        item.DoShockWave(self.m_pos);
+        item.DoFireAround(self.m_pos);
+    }
+
+    private static void EvaporateWaterAround(int range, int2 pos, float evaporationRate) {
+        int sqrRange = range * range;
+        RectInt rect = Misc.ClampRect(new RectInt(pos.x - range, pos.y - range, range * 2, range * 2), 0, 0, SWorld.Gs.x, SWorld.Gs.y);
+        for (int i = rect.x; i <= rect.xMax; ++i) {
+            for (int j = rect.y; j <= rect.yMax; ++j) {
+                if ((new int2(i, j) - pos).sqrMagnitude <= sqrRange) {
+                    ref var cell = ref SWorld.Grid[i, j];
+                    if (!cell.IsLava() && cell.m_water > 0) {
+                        cell.m_water = Mathf.Max(0f, cell.m_water - SMain.SimuDeltaTime * evaporationRate);
+                    }
+                }
+            }
+        }
+    }
+}
+
+public sealed class ExtCBulletDesc : ModBulletDesc {
     public int explosionBasaltBgRadius = 0;
     public bool emitLavaBurstParticles = true;
     public float shockWaveRange = 0f;
@@ -140,15 +240,20 @@ public sealed class ExtCBulletDesc : CBulletDesc {
     public float explosionEnergyRadius = 0f;
     public float explosionEnergyDamage = 0f;
 
+    public ExtCBulletDesc(ModSprite sprite, float radius, float dispersionAngleRad, float speedStart, float speedEnd, uint light = 0)
+        : base(sprite, radius, dispersionAngleRad, speedStart, speedEnd, light) {}
+
     public void DoEnergyExplosion(CBullet bullet) {
         SUnits.DoDamageAOE(bullet.m_pos, explosionEnergyRadius, explosionEnergyDamage,
             strikeMode: SItems.LightningStrikeMode.Big);
     }
 }
+
 public sealed class ExtCItem_IndestructibleMineral : CItem_Mineral {
     public ExtCItem_IndestructibleMineral(CTile tile, CTile tileIcon, ushort hpMax, uint mainColor, CSurface surface, bool isReplacable = false)
         : base(tile, tileIcon, hpMax, mainColor, surface, isReplacable) { }
 }
+
 public sealed class ExtCItem_FertileMineralDirt : CItem_MineralDirt {
     public ExtCItem_FertileMineralDirt(
         CTile tile, CTile tileIcon, ushort hpMax, uint mainColor, CSurface surface, CLifeConditions grassConditions = null
@@ -166,12 +271,14 @@ public sealed class ExtCItem_FertileMineralDirt : CItem_MineralDirt {
     public float plantGrowChange;
     public CItem_Mineral[] inheritedPlantsSupported = null;
 }
+
 public sealed class ExtCItem_ConditionalMachineAutoBuilder : CItem_MachineAutoBuilder {
     public ExtCItem_ConditionalMachineAutoBuilder(CTile tile, CTile tileIcon) : base(tile, tileIcon) { }
 
     public override void Init() {
         // skip creating a sprite for m_tileAlternative
-        Utils.GetBaseMethod<Action, CItemCell>(this, "Init").Invoke();
+        var citemCellInitFn = Misc.CreateNonVirtualDelegate<Action, CItemCell>(this, typeof(CItemCell).Method("Init"));
+        citemCellInitFn();
     }
 
     public delegate bool CheckConditionFn(int x, int y);
@@ -194,7 +301,7 @@ public sealed class ExtCItem_ConsumableWeapon : CItem_Weapon {
 }
 public sealed class ExtCItem_JetpackDevice : CItem_Device {
     public ExtCItem_JetpackDevice(CTile tile, CTile tileIcon, bool isInfinite = false)
-        : base(tile, tileIcon, CItemDeviceGroupIds.jetpack, CItem_Device.Type.Passive, isInfinite ? 1f : 0f) { }
+        : base(tile, tileIcon, DODModAPI.DeviceGroupIds.jetpack, CItem_Device.Type.Passive, isInfinite ? 1f : 0f) { }
 
     public float jetpackEnergyUsageMultiplier = 0.19f;
     public float jetpackFlyForce = 85f;
@@ -207,20 +314,17 @@ public sealed class ExtCItem_ImpactShield : CItem_Device {
 }
 public sealed class ExtCUnitWaterVaporizer : CUnit {
     private ExtCUnitWaterVaporizer(CDesc desc, Vector2 pos)
-        : base(desc, pos) {
-        m_hp = (float)SWorld.Grid[(int)pos.x, (int)pos.y].m_contentHP;
-    }
+        : base(desc, pos) {}
 
     public override bool Update() {
         ref var cell = ref SWorld.Grid[PosCell.x, PosCell.y];
-        waterVaporizerItem ??= (ExtCItem_WaterVaporizer)cell.GetContent();
+        if (cell.GetContent() is not ExtCItem_WaterVaporizer waterVaporizerItem) { return false; }
 
         if (cell.IsPowered() && !cell.IsLava()) {
             cell.m_water = Mathf.Max(cell.m_water - waterVaporizerItem.evaporationRate * SMain.SimuDeltaTime, 0f);
         }
         return true;
     }
-    public ExtCItem_WaterVaporizer waterVaporizerItem = null;
 
     public new class CDesc : CUnit.CDesc {
         public CDesc(int tier, float speed, Vector2 size, int hpMax, int armor)
@@ -247,7 +351,7 @@ public sealed class ExtCItem_SpikesTurret : CItem_Defense {
 }
 public sealed class ExtCItem_MetalDetector : CItem_Device {
     public ExtCItem_MetalDetector(CTile tile, float range)
-        : base(tile, tile, CItemDeviceGroupIds.metalDetector, CItem_Device.Type.Activable, range) { }
+        : base(tile, tile, DeviceGroupIds.metalDetector, CItem_Device.Type.Activable, range) { }
 
     public CItemCell[] detectableItems = [];
 
@@ -297,7 +401,7 @@ public sealed class ExtCItem_MetalDetector : CItem_Device {
         int detectionRange = Mathf.CeilToInt(range);
         SMisc.DrawRect(SWorld.GridRectCam, Color.red, 1f);
 
-        RectInt scanRect = Utils.CreateCenterRectInt(unitPlayer.PosCell, detectionRange).Intersection(Utils.GridRectCamInt);
+        RectInt scanRect = Misc.RectIntIntersection(Misc.MakeCenterRectInt(unitPlayer.PosCell, detectionRange), Misc.WorldIntRects.GridRectCamInt);
         byte tag = (byte)(Time.frameCount & 255);
 
         for (int x = scanRect.x; x <= scanRect.xMax; x++) {
@@ -343,5 +447,4 @@ public sealed class ExtDuoCAttackDesc : CAttackDesc {
     public ExtDuoCAttackDesc(float range, int damage, int nbAttacks = 0, float cooldown = 0f, float knockbackOwn = 0f, float knockbackTarget = 0f, CBulletDesc projDesc = null, string sound = null)
         : base(range, damage, nbAttacks, cooldown, knockbackOwn, knockbackTarget, projDesc, sound) { }
 
-    
 }

@@ -1,25 +1,14 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
-using System;
 using UnityEngine;
-
-[Serializable]
-public class InvalidCommandArgument : Exception {
-    public int? argIndex = null;
-
-    public InvalidCommandArgument(string message) : base(message) {}
-
-    public InvalidCommandArgument(string message, int argIndex) : base(message) {
-        this.argIndex = argIndex;
-    }
-}
 
 // expression evaluator test string:
 // $(((3 + 4 * 2 - (10 % 3) + (5 - 3 - 1) * (-3^2) / 0.5) ^ (2 % 3)) % 100 + (12 / 3 * 4 - 12 / (3 * 4)) * (3.5 / 0.5) - (2.1 + 3.2 - 1.5) * (2 ^ -3 ^ 2 * 100) + ((10.5 % 3) * (3 ^ -2) / (5 - 3 - 1)) + (-5 + 3) * (-4^2) - (100 / (2 + 3)^2) + ((2 ^ -3) ^ 2) * 1000)
 // this should return ~212.0494
 
 [BepInPlugin("extra-commands", ThisPluginInfo.Name, ThisPluginInfo.Version)]
+[BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class BetterChat : BaseUnityPlugin {
     public static ConfigEntry<KeyboardShortcut> configRepeatLastCommand = null;
     public static ConfigEntry<string> configChatExpressionEvaluatorPrefix = null;
@@ -55,9 +44,8 @@ public class BetterChat : BaseUnityPlugin {
         expressionEvaluator.AddBuiltinFunctions();
 
         var harmony = new Harmony(Info.Metadata.GUID);
-        harmony.PatchAll(typeof(CustomCommandsPatch));
         if (configChatExpressionEvaluatorEnable.Value) {
-            harmony.PatchAll(typeof(ChatExpressionEvaluationPatch));
+            DODModAPI.CommandManager.RegisterChatPreprocessor(priority: 0, ExpressionEvaluator.ChatMessagePreprocessor);
         }
         if (configFullChatHistory.Value) {
             harmony.PatchAll(typeof(FullChatHistoryPatch)); // must be after ChatExpressionEvaluationPatch
@@ -69,6 +57,10 @@ public class BetterChat : BaseUnityPlugin {
         harmony.PatchAll(typeof(ClockCommandPatch));
 
         CustomCommands.AddCustomCommands();
+        DODModAPI.CommandManager.RegisterChatPreprocessor(priority: -1, (ref string text) => {
+
+            return true;
+        });
     }
 }
 

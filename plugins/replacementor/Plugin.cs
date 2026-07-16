@@ -1,10 +1,10 @@
 using BepInEx;
 using HarmonyLib;
-using ModUtils.Extensions;
-using System;
+using DODModAPI.Extensions;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
+using DODModAPI;
 
 internal static class Patches {
     private static readonly HashSet<CItemCell> logicComponentItems = [
@@ -52,41 +52,39 @@ internal static class Patches {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SScreenInventory), nameof(SScreenInventory.TryPlaceItemOnCell))]
     private static IEnumerable<CodeInstruction> SScreenInventory_TryPlaceItemOnCell(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        return new CodeMatcher(instructions, generator)
-            .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Ldloc_S).LocalIndex(12),
+        return new CodeCursor(instructions, generator)
+            .FindNext(
+                new(OpCodes.Ldloc_S, 12),
                 new(OpCodes.Ldloc_1),
                 new(OpCodes.Beq),
 
-                new CodeMatch(OpCodes.Ldloc_S).LocalIndex(12),
+                new(OpCodes.Ldloc_S, 12),
                 new(OpCodes.Brfalse),
 
-                new CodeMatch(OpCodes.Ldloc_S).LocalIndex(13),
+                new(OpCodes.Ldloc_S, 13),
                 new(OpCodes.Brfalse),
 
-                new CodeMatch(OpCodes.Ldloc_S).LocalIndex(5),
+                new(OpCodes.Ldloc_S, 5),
                 new(OpCodes.Brtrue), // <-- offset 8
 
-                new CodeMatch(OpCodes.Ldloc_S).LocalIndex(6),
+                new(OpCodes.Ldloc_S, 6),
                 new(OpCodes.Brfalse))
-            .ThrowIfInvalid("(1)")
-            .GetOperandAtOffset(8, out Label successLabel) // brtrue <LABEL>
+            .GetOperand(offset: 8, out Label successLabel) // brtrue <LABEL>
             .Advance(3)
-            .InsertAndAdvance(
+            .Insert(
                 new(OpCodes.Ldloc_S, (byte)12),
                 new(OpCodes.Ldloc_0),
                 Transpilers.EmitDelegate(AreBothReplaceable),
                 new(OpCodes.Brtrue, successLabel))
 
-            .MatchForward(useEnd: false,
+            .FindNext(
                 new(OpCodes.Call, typeof(SSingleton<SWorld>).Method("get_Inst")),
                 new(OpCodes.Ldarg_2),
                 new(OpCodes.Ldloc_1),
-                new CodeMatch(OpCodes.Ldloc_S).LocalIndex(6),
+                new(OpCodes.Ldloc_S, 6),
                 new(OpCodes.Callvirt, typeof(SWorld).Method<int2, CItemCell, bool>("SetContent")))
-            .ThrowIfInvalid("(2)")
-            .InjectAndAdvance(OpCodes.Ldarg_2)
-            .InsertAndAdvance(
+            .Inject(
+                new(OpCodes.Ldarg_2), 
                 new(OpCodes.Ldloc_S, (byte)12),
                 new(OpCodes.Ldloc_0),
                 Transpilers.EmitDelegate(static (int2 p, CItemCell oldItem, CItemCell newItem) => {
@@ -95,22 +93,21 @@ internal static class Patches {
                     }
                 }
             ))
-            .Instructions();
+            .Finish();
     }
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SMessageRequestBuild), nameof(SMessageRequestBuild.OnReceived))]
     private static IEnumerable<CodeInstruction> SMessageRequestBuild_OnReceived(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        return new CodeMatcher(instructions, generator)
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Call, typeof(SSingleton<SWorld>).Method("get_Inst")),
                 new(OpCodes.Ldloc_1),
                 new(OpCodes.Call, typeof(ushort2).Method<ushort2>("op_Implicit")),
                 new(OpCodes.Ldloc_3),
-                new CodeMatch(OpCodes.Ldloc_S).LocalIndex(7),
+                new(OpCodes.Ldloc_S, 7),
                 new(OpCodes.Callvirt, typeof(SWorld).Method<int2, CItemCell, bool>("SetContent")))
-            .ThrowIfInvalid("(1)")
-            .InjectAndAdvance(OpCodes.Ldloc_1)
-            .InsertAndAdvance(
+            .Inject(
+                new(OpCodes.Ldloc_1),
                 new(OpCodes.Ldloc_S, (byte)6),
                 new(OpCodes.Ldloc_S, (byte)4),
                 Transpilers.EmitDelegate(static (ushort2 p, CItemCell oldItem, CItemCell newItem) => {
@@ -119,18 +116,16 @@ internal static class Patches {
                     }
                 }
             ))
-            .Instructions();
+            .Finish();
     }
 
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CItemCell), nameof(CItemCell.CanItemBeAncheredAt))]
     private static IEnumerable<CodeInstruction> CItemCell_CanItemBeAncheredAt(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        return new CodeMatcher(instructions, generator)
-            .MatchForward(useEnd: true,
+        return new CodeCursor(instructions, generator)
+            .FindNextEnd(
                 new(OpCodes.Call, typeof(CCell[,]).Method<int, int>("Get")),
                 new(OpCodes.Stloc_0))
-            .ThrowIfInvalid("(1)")
-            .Advance(1)
             .Insert(
                 new(OpCodes.Ldloca, (byte)0),
                 new(OpCodes.Ldarg_2),
@@ -141,7 +136,7 @@ internal static class Patches {
                         cell.m_contentId = 0;
                     }
                 }))
-            .Instructions();
+            .Finish();
     }
 }
 
@@ -156,6 +151,7 @@ public enum ReplaceType {
 }
 
 [BepInPlugin("replacementor", ThisPluginInfo.Name, ThisPluginInfo.Version)]
+[BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class Replacementor : BaseUnityPlugin {
     // Plugin API (must be non-static)
     public void AddReplaceableItem(CItemCell item, ReplaceType type) {

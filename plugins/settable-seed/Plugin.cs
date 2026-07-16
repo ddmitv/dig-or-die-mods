@@ -1,10 +1,10 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
-using ModUtils;
-using ModUtils.Extensions;
+using DODModAPI.Extensions;
 using System.Collections.Generic;
 using System.Reflection.Emit;
+using DODModAPI;
 
 internal static class InputSeedPatch {
     private static CGuiOptionInput multiGuiSeed = null;
@@ -96,28 +96,25 @@ internal static class InputSeedPatch {
     [HarmonyPatch(typeof(SGameStartEnd), nameof(SGameStartEnd.StartNewGame_Coroutine), MethodType.Enumerator)]
     [HarmonyTranspiler]
     private static IEnumerable<CodeInstruction> SGameStartEnd_StartNewGame_Coroutine(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Call, typeof(SOutgame).Method("get_Params")),
                 new(OpCodes.Ldc_I4_0),
                 new(OpCodes.Ldc_I4, 100000),
                 new(OpCodes.Call, typeof(UnityEngine.Random).Method<int, int>("Range")),
                 new(OpCodes.Stfld, typeof(CParams).Field("m_seed")))
-            .ThrowIfNotMatch("(1)")
-            .CollapseInstructionsTo(5, out List<Label> labels)
+            .RemoveAndCollectLabels(count: 5, out List<Label> labels)
             .Insert(
                 new(OpCodes.Call, typeof(SOutgame).Method("get_Params")),
                 new(OpCodes.Ldfld, typeof(CParams).Field("m_seed")),
                 new(OpCodes.Call, typeof(UnityEngine.Random).Method("InitState")))
-            .AddLabels(labels);
-
-        return codeMatcher.Instructions();
+            .AddLabels(labels)
+            .Finish();
     }
 }
 
 [BepInPlugin("settable-seed", ThisPluginInfo.Name, ThisPluginInfo.Version)]
+[BepInDependency(DODModAPIPlugin.GUID)]
 public class SettableSeed : BaseUnityPlugin {
     private static ConfigEntry<int> configMaxSeed = null;
 
@@ -137,7 +134,7 @@ public class SettableSeed : BaseUnityPlugin {
             new ConfigDescription("", new AcceptableValueRange<int>(0, int.MaxValue))
         );
 
-        Utils.AddLocalizationText("SETTABLE_SEED_OPTIONS_SEED", "Seed:");
+        Misc.AddLocalizationText("SETTABLE_SEED_OPTIONS_SEED", "Seed:");
 
         var harmony = new Harmony(Info.Metadata.GUID);
         harmony.PatchAll(typeof(InputSeedPatch));

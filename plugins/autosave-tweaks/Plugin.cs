@@ -1,8 +1,7 @@
 using BepInEx;
 using BepInEx.Configuration;
+using DODModAPI.Extensions;
 using HarmonyLib;
-using ModUtils;
-using ModUtils.Extensions;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,41 +10,17 @@ using System.Text;
 using UnityEngine;
 
 internal class ScreenOnQuitPopup : SSingletonScreen<ScreenOnQuitPopup> {
-    public CGuiBitmap bmpBack = new();
-    public CGuiPanel panel = new();
-    public CGuiText txtConfirm = new();
-    public CGuiButton btBack = new();
-    public CGuiButton btSave = new();
-    public CGuiButton btQuit = new();
-
+    public CGuiBitmap bmpBack = new() { m_sprite = DODModAPI.GameAssets.UI.Black75p, m_scale = new(200f, 200f) };
+    public CGuiPanel panel = new() { m_width = 1000, m_height = 500 };
+    public CGuiText txtConfirm = new() { m_x = 0, m_y = 60 };
+    public CGuiButton btBack = new() { m_x = 350, m_y = -160, m_width = 250, m_textId = "AUTOSAVE_TWEAKS_BACK" };
+    public CGuiButton btSave = new() { m_x = 50, m_y = -160, m_width = 300, m_textId = "AUTOSAVE_TWEAKS_SAVE" };
+    public CGuiButton btQuit = new() { m_x = -300, m_y = -160, m_width = 350, m_textId = "AUTOSAVE_TWEAKS_QUIT" };
+    
     public static bool hasBeenActive = false;
 
     public override void OnInit() {
         m_isModal = true;
-
-        bmpBack.m_sprite = SResources.GetSprite("UI/gui", "Black75p").Sprite;
-        bmpBack.m_scale = new(200f, 200f);
-
-        panel.m_width = 1000;
-        panel.m_height = 500;
-
-        txtConfirm.m_x = 0;
-        txtConfirm.m_y = 60;
-
-        btBack.m_x = 350;
-        btBack.m_y = -160;
-        btBack.m_width = 250;
-        btBack.m_textId = "AUTOSAVE_TWEAKS_BACK";
-
-        btSave.m_x = 50;
-        btSave.m_y = -160;
-        btSave.m_width = 300;
-        btSave.m_textId = "AUTOSAVE_TWEAKS_SAVE";
-
-        btQuit.m_x = -300;
-        btQuit.m_y = -160;
-        btQuit.m_width = 350;
-        btQuit.m_textId = "AUTOSAVE_TWEAKS_QUIT";
     }
 
     public override void OnUpdate() {
@@ -97,6 +72,7 @@ internal class ScreenOnQuitPopup : SSingletonScreen<ScreenOnQuitPopup> {
 }
 
 [BepInPlugin("autosave-tweaks", ThisPluginInfo.Name, ThisPluginInfo.Version)]
+[BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class AutosaveTweaks : BaseUnityPlugin {
     public static ConfigEntry<bool> configQuickSaveIsDefault;
     public static ConfigEntry<float> configUnsavedTimeThreshold;
@@ -137,12 +113,14 @@ public class AutosaveTweaks : BaseUnityPlugin {
             defaultValue: true, description: "When 'SAVE AND QUIT' button with Shift modifier is pressed, the game immediately exits instead of opening the home menu"
         );
 
-        Utils.AddLocalizationText("AUTOSAVE_TWEAKS_QUIT", "QUIT WITHOUT SAVE");
-        Utils.AddLocalizationText("AUTOSAVE_TWEAKS_SAVE", "SAVE AND QUIT");
-        Utils.AddLocalizationText("AUTOSAVE_TWEAKS_BACK", "BACK");
+        DODModAPI.Misc.AddLocalizationText("AUTOSAVE_TWEAKS_QUIT", "QUIT WITHOUT SAVE");
+        DODModAPI.Misc.AddLocalizationText("AUTOSAVE_TWEAKS_SAVE", "SAVE AND QUIT");
+        DODModAPI.Misc.AddLocalizationText("AUTOSAVE_TWEAKS_BACK", "BACK");
 
         var harmony = new Harmony(Info.Metadata.GUID);
         harmony.PatchAll(typeof(AutosaveTweaks));
+
+        DODModAPI.ScreenManager.Register<ScreenOnQuitPopup>();
     }
 
     [HarmonyPostfix]
@@ -170,17 +148,6 @@ public class AutosaveTweaks : BaseUnityPlugin {
         lastSaveTime = Time.time;
     }
 
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(SScreen), nameof(SScreen.InitScreens))]
-    private static void SScreen_InitScreens() {
-        var screensParent = GameObject.Find("_Screens").transform;
-
-        var screenObj = new GameObject("150_ScreenOnQuitPopup");
-        screenObj.transform.SetParent(screensParent, worldPositionStays: false);
-
-        screenObj.AddComponent<ScreenOnQuitPopup>();
-    }
-
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SScreenPause), nameof(SScreenPause.OnUpdate))]
     private static IEnumerable<CodeInstruction> SScreenPause_OnUpdate(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
@@ -196,9 +163,9 @@ public class AutosaveTweaks : BaseUnityPlugin {
                 SScreenPause.Inst.OnQuitConfirmed();
             }
         }
-
-        return new CodeMatcher(instructions, generator).End()
-            .MatchBack(useEnd: false,
+        return new DODModAPI.CodeCursor(instructions, generator)
+            .MoveToEnd()
+            .FindPrevious(out uint instrNum,
                 new(OpCodes.Call, typeof(SSingletonScreen<SScreenPopup>).Method("get_Inst")),
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldftn, typeof(SScreenPause).Method("OnQuitConfirmed")),
@@ -210,10 +177,9 @@ public class AutosaveTweaks : BaseUnityPlugin {
                 new(OpCodes.Ldnull),
                 new(OpCodes.Ldnull),
                 new(OpCodes.Callvirt, typeof(SScreenPopup).Method("Show")))
-            .ThrowIfInvalid("(1)")
-            .RemoveInstructions(11)
+            .Remove(instrNum)
             .Insert(Transpilers.EmitDelegate(OnQuit))
-            .Instructions();
+            .Finish();
     }
 
     [HarmonyPrefix]

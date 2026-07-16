@@ -1,36 +1,33 @@
 ﻿using BepInEx;
 using HarmonyLib;
-using ModUtils;
-using ModUtils.Extensions;
+using DODModAPI.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
+using DODModAPI;
 
 internal static class PlayersDamagePlayersPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CBullet), nameof(CBullet.CheckColWithUnits))]
     private static IEnumerable<CodeInstruction> CBullet_CheckColWithUnits(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-        
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Call, typeof(Vector2).Method("get_zero")),
                 new(OpCodes.Stloc_S))
-            .ThrowIfInvalid("(1)")
-            .CreateLabel(out var successLabel);
-        
-        codeMatcher.Start()
-            .MatchForward(useEnd: true,
+            .CreateLabel(offset: 0, out var successLabel)
+
+            //     if (cunit2 != null && cunit2.IsAlive() && (this.m_unitsHit == null || !this.m_unitsHit.Contains(cunit2)) && ((!flag && cunitMonster != null) || (flag && (cunitPlayer != null || cunitDefense != null))))
+            //                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            .MoveToStart()
+            .FindNextEnd(
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CBullet).Field("m_unitsHit")),
                 new(OpCodes.Ldloc_2),
                 new(OpCodes.Callvirt, typeof(List<CUnit>).Method("Contains")),
                 new(OpCodes.Brtrue))
-            .ThrowIfInvalid("(2)")
-            .Advance(1)
-            .InjectAndAdvance(OpCodes.Ldarg_0)
-            .CreateLabel(out var failLabel)
+            .InjectInstruction(OpCodes.Ldarg_0)
+            .CreateLabel(offset: 0, out var failLabel)
             .Insert(
                 new(OpCodes.Ldfld, typeof(CBullet).Field("m_attacker")),
                 new(OpCodes.Isinst, typeof(CUnitPlayer)),
@@ -41,9 +38,8 @@ internal static class PlayersDamagePlayersPatch {
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CBullet).Field("m_attacker")),
                 new(OpCodes.Ldloc_2),
-                new(OpCodes.Bne_Un, successLabel)); // `m_attacker` != `cunit2`
-
-        return codeMatcher.Instructions();
+                new(OpCodes.Bne_Un, successLabel)) // `m_attacker` != `cunit2`
+            .Finish();
     }
 }
 
@@ -51,105 +47,84 @@ internal static class DoDamageAOEToPlayers {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SUnits), nameof(SUnits.DoDamageAOE))]
     private static IEnumerable<CodeInstruction> SUnits_DoDamageAOE(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Ldarg_S, (byte)8),
                 new(OpCodes.Ldc_R4, -3.4028235E+38f),
                 new(OpCodes.Beq))
-            .ThrowIfInvalid("(1)")
-            .CreateLabel(out var successLabel);
+            .CreateLabel(offset: 0, out var successLabel)
 
-        codeMatcher.Start()
-            .MatchForward(useEnd: true,
+            .FindNextEnd(
                 new(OpCodes.Ldarg_S, (byte)6),
                 new(OpCodes.Brfalse))
-            .ThrowIfInvalid("(2)")
-            .Advance(1)
-            .InjectAndAdvance(OpCodes.Ldloc_2)
-            .Insert(
+            .Inject(
+                new(OpCodes.Ldloc_2),
                 new(OpCodes.Isinst, typeof(CUnitPlayer)),
-                new(OpCodes.Brtrue, successLabel));
-
-        return codeMatcher.Instructions();
+                new(OpCodes.Brtrue, successLabel))
+            .Finish();
     }
 }
 
 internal static class HidePlayerNamesPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SScreenHudWorld), nameof(SScreenHudWorld.OnUpdate))]
-    private static IEnumerable<CodeInstruction> SScreenHudWorld_OnUpdate(IEnumerable<CodeInstruction> instructions) {
-        var codeMatcher = new CodeMatcher(instructions);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+    private static IEnumerable<CodeInstruction> SScreenHudWorld_OnUpdate(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldc_I4_0),
                 new(OpCodes.Call, typeof(CMesh<CMeshText>).Method<SScreen, bool>("Get")))
-            .ThrowIfInvalid("(1)")
-            .SetAndAdvance(OpCodes.Nop, null)
-            .RemoveInstructions(28);
-        codeMatcher
-            .MatchForward(useEnd: false,
+            .Replace(offset: 0, new(OpCodes.Nop), out _)
+            .Remove(28)
+
+            .MoveToStart()
+            .FindNext(
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldc_I4_0),
                 new(OpCodes.Call, typeof(CMesh<CMeshText>).Method<SScreen, bool>("Get")),
                 new(OpCodes.Ldloc_S),
                 new(OpCodes.Ldfld, typeof(CPlayer).Field("m_lastChat")),
                 new(OpCodes.Ldloca_S))
-            .ThrowIfInvalid("(2)")
-            .SetAndAdvance(OpCodes.Nop, null)
-            .RemoveInstructions(22);
+            .Replace(offset: 0, new(OpCodes.Nop, null), out _)
+            .Remove(22)
 
-        return codeMatcher.Instructions();
+            .Finish();
     }
 }
 
 internal static class HideMinimapPlayers_Patch {
-    private static void HideMinimapPlayerIcon(CodeMatcher codeMatcher) {
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(SMinimap), nameof(SMinimap.OnUpdate))]
+    private static IEnumerable<CodeInstruction> SMinimap_OnUpdate(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        return new CodeCursor(instructions, generator)
+            // hide minimap player icons
+            .FindNext(
                 new(OpCodes.Ldloc_S),
                 new(OpCodes.Callvirt, typeof(CPlayer).Method("HasUnitPlayer")),
                 new(OpCodes.Brtrue))
-            .ThrowIfInvalid("(1)");
 
-        codeMatcher.Clone()
-            .MatchForward(useEnd: false, new CodeMatch(OpCodes.Br))
-            .ThrowIfInvalid("(2)")
-            .GetOperand(out Label failLabel);
+            .GetPos(out int pos)
+            .FindNext(new CodeInstruction(OpCodes.Br))
+            .GetOperand(offset: 0, out Label failLabel)
+            .SetPos(pos)
 
-        codeMatcher
-            .GetOperand(out LocalBuilder playerVar)
+            .GetOperand(offset: 0, out LocalBuilder playerVar)
             .Insert(
                 new(OpCodes.Ldloc_S, playerVar),
                 new(OpCodes.Call, typeof(CPlayer).Method("IsMe")),
-                new(OpCodes.Brfalse, failLabel));
-    }
-    private static void HideLiveViewPixels(CodeMatcher codeMatcher) {
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Callvirt, typeof(Texture2D).Method("SetPixels32", [typeof(int), typeof(int), typeof(int), typeof(int), typeof(Color32[])])))
-            .ThrowIfInvalid("(3)")
+                new(OpCodes.Brfalse, failLabel))
+
+            // hide live view pixels
+            .FindNext(
+                new CodeInstruction(OpCodes.Callvirt, typeof(Texture2D).Method("SetPixels32", [typeof(int), typeof(int), typeof(int), typeof(int), typeof(Color32[])])))
             .Advance(1)
-            .CreateLabel(out Label skipLabel)
+            .CreateLabel(offset: 0, out Label skipLabel)
             .Advance(-13)
             .Insert(
                 new(OpCodes.Ldloc_1),
                 new(OpCodes.Call, typeof(CPlayer).Method("IsMe")),
-                new(OpCodes.Brfalse, skipLabel));
-    }
-
-    [HarmonyTranspiler]
-    [HarmonyPatch(typeof(SMinimap), nameof(SMinimap.OnUpdate))]
-    private static IEnumerable<CodeInstruction> SMinimap_OnUpdate(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
-        HideMinimapPlayerIcon(codeMatcher);
-        HideLiveViewPixels(codeMatcher);
-
-        return codeMatcher.Instructions();
+                new(OpCodes.Brfalse, skipLabel))
+            .Finish();
     }
 }
 
@@ -157,22 +132,19 @@ internal static class PlayerDamageToGroundPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CBullet), nameof(CBullet.CheckColWithGround))]
     private static IEnumerable<CodeInstruction> CBullet_CheckColWithGround(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CBullet).Field("m_attacker")),
                 new(OpCodes.Isinst, typeof(CUnitMonster)),
                 new(OpCodes.Brfalse))
-            .CreateLabelAtOffset(4, out Label successLabel)
-            .InjectAndAdvance(OpCodes.Ldarg_0)
-            .Insert(
+            .CreateLabel(offset: 4, out Label successLabel)
+            .Inject(
+                new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CBullet).Field("m_attacker")),
                 new(OpCodes.Isinst, typeof(CUnitPlayer)),
-                new(OpCodes.Brtrue, successLabel));
-
-        return codeMatcher.Instructions();
+                new(OpCodes.Brtrue, successLabel))
+            .Finish();
     }
 }
 
@@ -180,29 +152,25 @@ internal static class DefenseDamagePlayersPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CBullet), nameof(CBullet.CheckColWithUnits))]
     private static IEnumerable<CodeInstruction> CBullet_CheckColWithUnits(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
         // (Start of collision check, end of unit type check)
         // call Vector2::get_zero()
         // stloc.s V_7
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Call, typeof(Vector2).Method("get_zero")),
                 new(OpCodes.Stloc_S))
-            .ThrowIfInvalid("(1)")
-            .CreateLabel(out Label successLabel);
+            .CreateLabel(offset: 0, out Label successLabel)
 
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+            .MoveToStart()
+            .FindNext(
                 new(OpCodes.Ldloc_S),
                 new(OpCodes.Brtrue))
-            .ThrowIfInvalid("(2)")
             // if (m_attacker is CUnitDefense && 
             //     cunit2 is CUnitPlayer && 
             //     m_attacker != cunit2) 
             //     -> jump to success (bypass original checks)
-            .InjectAndAdvance(OpCodes.Ldarg_0)
-            .CreateLabel(out Label failLabel)
+            .InjectInstruction(OpCodes.Ldarg_0)
+            .CreateLabel(offset: 0, out Label failLabel)
             .Insert(
                 new(OpCodes.Ldfld, typeof(CBullet).Field("m_attacker")),
                 new(OpCodes.Isinst, typeof(CUnitDefense)),
@@ -213,9 +181,8 @@ internal static class DefenseDamagePlayersPatch {
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CBullet).Field("m_attacker")),
                 new(OpCodes.Ldloc_2),
-                new(OpCodes.Bne_Un, successLabel));
-
-        return codeMatcher.Instructions();
+                new(OpCodes.Bne_Un, successLabel))
+            .Finish();
 
         //          [ if (... && (m_unitsHit == null || ...) && ...) ]
         // ldarg.0
@@ -261,9 +228,8 @@ internal static class DeathMessageKilledByPlayerPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SNetworkCommands), nameof(SNetworkCommands.ProcessCommand))]
     private static IEnumerable<CodeInstruction> SNetworkCommands_ProcessCommand(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-        codeMatcher
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Ldloc_2),
                 new(OpCodes.Ldc_I4_0),
                 new(OpCodes.Ldelem_Ref),
@@ -276,15 +242,14 @@ internal static class DeathMessageKilledByPlayerPatch {
                 new(OpCodes.Ldc_I4_1),
                 new(OpCodes.Ldelem_Ref),
                 new(OpCodes.Br))
-            .ThrowIfInvalid("(1)")
-            .InjectAndAdvance(OpCodes.Ldloc_2)
-            .Insert(
+            .Inject(
+                new(OpCodes.Ldloc_2),
                 Transpilers.EmitDelegate(static (string[] args) => {
                     if (args[0] == MagicChatMessageSystemArg) {
                         args[0] = "CHAT_DEATH_KILLED";
                     }
-                }));
-        return codeMatcher.Instructions();
+                }))
+            .Finish();
     }
 
     [HarmonyReversePatch]
@@ -313,6 +278,7 @@ internal static class DeathMessageKilledByPlayerPatch {
 }
 
 [BepInPlugin("friendly-fire", ThisPluginInfo.Name, ThisPluginInfo.Version)]
+[BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class FriendlyFire : BaseUnityPlugin {
     private void Start() {
         var configEnabled = Config.Bind<bool>(
@@ -339,15 +305,7 @@ public class FriendlyFire : BaseUnityPlugin {
             section: "FriendlyFire", key: "DefenseDamagePlayers", defaultValue: false,
             description: "Allows defense units (turrrets) to do damage to players"
         );
-        var configUniqualizeVersionBuild = Config.Bind<bool>(
-            section: "General", key: "UniqualizeVersionBuild", defaultValue: false,
-            description: "Safe guard to prevent joining to server with different mod version"
-        );
         if (!configEnabled.Value) { return; }
-
-        if (configUniqualizeVersionBuild.Value) {
-            Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
-        }
 
         var harmony = new Harmony(Info.Metadata.GUID);
 

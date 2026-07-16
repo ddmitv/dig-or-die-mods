@@ -1,12 +1,12 @@
 using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
-using ModUtils;
-using ModUtils.Extensions;
+using DODModAPI.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
+using DODModAPI;
 
 internal static class Patches {
     private static void TraceFlashLight(CUnitPlayer unit, CItem_Device itemDevice) {
@@ -30,12 +30,12 @@ internal static class Patches {
         for (int i = 0; i <= steps; i++) {
             int2 cellPos = int2.FromVector2Rounded(pos);
 
-            if (!Utils.IsInWorld(cellPos)) { break; }
+            if (!Misc.IsInWorld(cellPos)) { break; }
 
             if (SWorld.Grid[cellPos.x, cellPos.y].IsPassable()) {
                 float intensity = 0.5f + 0.5f * Mathf.Cos((float)i / steps * Mathf.PI);
                 SWorld.Grid[cellPos.x, cellPos.y].m_light.IncreaseTo(color * intensity);
-            } else if (!Utils.IsInWorld(cellPos + sideOffset) || !SWorld.Grid[cellPos.x + sideOffset.x, cellPos.y + sideOffset.y].IsPassable()) {
+            } else if (!Misc.IsInWorld(cellPos + sideOffset) || !SWorld.Grid[cellPos.x + sideOffset.x, cellPos.y + sideOffset.y].IsPassable()) {
                 break;
             }
             pos += step;
@@ -45,8 +45,8 @@ internal static class Patches {
     [HarmonyPatch(typeof(SWorld), nameof(SWorld.ProcessLighting_DynamicUnits))]
     [HarmonyTranspiler]
     private static IEnumerable<CodeInstruction> ProcessLighting_DynamicUnits(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        return new CodeMatcher(instructions, generator)
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(out uint n,
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldloc_3),
                 new(OpCodes.Callvirt, typeof(CUnit).Method("get_PosCenter")),
@@ -62,17 +62,17 @@ internal static class Patches {
                 new(OpCodes.Call, typeof(Color24).Method("op_Multiply")),
                 new(OpCodes.Call, typeof(SWorld).Method("LightZone"))
             )
-            .ThrowIfInvalid("(1)")
-            .RemoveInstructions(14)
+            .Remove(n)
             .Insert(
                 new(OpCodes.Ldloc_3),
                 new(OpCodes.Ldloc_S, (byte)5),
                 Transpilers.EmitDelegate(TraceFlashLight))
-            .Instructions();
+            .Finish();
     }
 }
 
 [BepInPlugin("focused-flashlight", ThisPluginInfo.Name, ThisPluginInfo.Version)]
+[BepInDependency(DODModAPIPlugin.GUID)]
 public class FocusedFlashlight : BaseUnityPlugin {
     public static ConfigEntry<float> configLightDistanceMultipler = null;
     public static ConfigEntry<Color> configLightColor = null;

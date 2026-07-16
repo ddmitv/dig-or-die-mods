@@ -1,8 +1,8 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
-using ModUtils;
-using ModUtils.Extensions;
+using DODModAPI;
+using DODModAPI.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
@@ -23,25 +23,21 @@ internal static class PermanentMistPatch {
     [HarmonyPatch(typeof(CBackground), nameof(CBackground.DrawBackgrounds))]
     [HarmonyPatch(typeof(SDrawWorld), nameof(SDrawWorld.OnUpdate))]
     [HarmonyPatch(typeof(SWorld), nameof(SWorld.ProcessLighting_DynamicUnits))]
-    private static IEnumerable<CodeInstruction> AlwaysMistTranspiler(IEnumerable<CodeInstruction> instructions) {
-        var codeMatcher = new CodeMatcher(instructions);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: true,
+    private static IEnumerable<CodeInstruction> AlwaysMistTranspiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        return new CodeCursor(instructions, generator)
+            .FindNextEnd(
                 new(OpCodes.Call, typeof(SEnvironment).Method("GetEnvironmentCurrent")),
                 new(OpCodes.Ldfld, typeof(CEnvironment).Field("m_mist")),
                 new(OpCodes.Brfalse))
-            .ThrowIfInvalid("(1)")
-            .SetAndAdvance(OpCodes.Pop, null)
-            .MatchForward(useEnd: false,
+            .Advance(-1)
+            .Replace(OpCodes.Pop)
+            .FindNext(
                 new(OpCodes.Call, typeof(SEnvironment).Method("GetEnvironmentCurrent")),
                 new(OpCodes.Ldc_R4, 5f),
                 new(OpCodes.Callvirt, typeof(CEnvironment).Method("GetBeginEndSmoothingValue")))
-            .ThrowIfInvalid("(2)")
-            .SetAndAdvance(OpCodes.Ldc_R4, 1f)
-            .RemoveInstructions(2);
-
-        return codeMatcher.Instructions();
+            .Replace(OpCodes.Ldc_R4, 1f)
+            .Remove(2)
+            .Finish();
     }
 }
 internal static class PermanentDarknessPatch {
@@ -68,44 +64,37 @@ internal static class PermanentDarknessPatch {
     }
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CModeSolo), nameof(CModeSolo.CreateInitialPlayerItems))]
-    private static IEnumerable<CodeInstruction> CModeSolo_CreateInitialPlayerItems(IEnumerable<CodeInstruction> instructions) {
-        var codeMatcher = new CodeMatcher(instructions);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+    private static IEnumerable<CodeInstruction> CModeSolo_CreateInitialPlayerItems(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Ldarg_1),
                 new(OpCodes.Ldfld, typeof(CPlayer).Field("m_inventory")),
                 new(OpCodes.Ldsfld, typeof(GItems).StaticField("gunRifle")))
-            .ThrowIfInvalid("(1)")
             .Insert(
                 new CodeInstruction(OpCodes.Ldarg_1),
                 Transpilers.EmitDelegate(static (CPlayer player) => {
                     player.m_inventory.AddToInventory(GItems.lightSun);
-                }));
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+                }))
+
+            .MoveToStart()
+            .FindNext(
                 new(OpCodes.Ldsfld, typeof(GItems).StaticField("gunRifle")),
                 new(OpCodes.Ldc_R4, 1f))
-            .ThrowIfInvalid("(2)")
             .Insert(
                 Transpilers.EmitDelegate(static () => {
                     SPickups.CreatePickup(GItems.lightSun, nb: 1f, pos: G.m_player.PosCenter + 6.5f * Vector2.right, withSpeed: false);
-                }));
-
-        return codeMatcher.Instructions();
+                }))
+            .Finish();
     }
 }
 internal static class NoRainPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SWorld), nameof(SWorld.OnUpdateSimu))]
-    private static IEnumerable<CodeInstruction> SWorld_OnUpdateSimu(IEnumerable<CodeInstruction> instructions) {
-        var codeMatcher = new CodeMatcher(instructions);
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Ldc_I4_1))
-            .ThrowIfInvalid("Match failed")
-            .Set(OpCodes.Ldc_I4_0, null);
-        return codeMatcher.Instructions();
+    private static IEnumerable<CodeInstruction> SWorld_OnUpdateSimu(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        return new CodeCursor(instructions, generator)
+            .FindNext(new CodeInstruction(OpCodes.Ldc_I4_1))
+            .Replace(OpCodes.Ldc_I4_0)
+            .Finish();
     }
 }
 internal static class InverseNightPatch {
@@ -124,16 +113,14 @@ internal static class InverseNightPatch {
 internal static class PermanentAcidWaterPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CUnit), nameof(CUnit.Update))]
-    private static IEnumerable<CodeInstruction> CUnit_Update(IEnumerable<CodeInstruction> instructions) {
-        var codeMatcher = new CodeMatcher(instructions);
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+    private static IEnumerable<CodeInstruction> CUnit_Update(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Call, typeof(SEnvironment).Method("GetEnvironmentCurrent")),
                 new(OpCodes.Ldfld, typeof(CEnvironment).Field("m_acidWater")),
                 new(OpCodes.Brfalse))
-            .ThrowIfInvalid("Match failed")
-            .CollapseInstructions(3);
-        return codeMatcher.Instructions();
+            .RemovePreservingLabels(3)
+            .Finish();
     }
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CEnvironment), nameof(CEnvironment.GetWaterAcidRatio))]
@@ -164,7 +151,7 @@ internal static class NoQuickSavesPatch {
 internal static class ContinuousEventsPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SEnvironment), nameof(SEnvironment.OnUpdateSimu))]
-    private static IEnumerable<CodeInstruction> SEnvironment_OnUpdateSimu(IEnumerable<CodeInstruction> instructions) {
+    private static IEnumerable<CodeInstruction> SEnvironment_OnUpdateSimu(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         static void RemoveImpossibleEvents(List<CEnvironment> events) {
             bool hasPermanentMist = UltraHardcorePlugin.configPermanentMist.Value;
             bool hasPermanentAcidWater = UltraHardcorePlugin.configPermanentAcidWater.Value;
@@ -182,10 +169,9 @@ internal static class ContinuousEventsPatch {
             });
         }
 
-        var codeMatcher = new CodeMatcher(instructions);
-        codeMatcher.Start()
+        return new CodeCursor(instructions, generator)
             // list[global::UnityEngine.Random.Range(0, list.Count)];
-            .MatchForward(useEnd: false,
+            .FindNext(
                 new(OpCodes.Ldloc_S),
                 new(OpCodes.Ldloc_S),
                 new(OpCodes.Ldc_I4_0),
@@ -194,22 +180,20 @@ internal static class ContinuousEventsPatch {
                 new(OpCodes.Call),
                 new(OpCodes.Callvirt),
                 new(OpCodes.Stfld))
-            .GetOperandAtOffset(1, out LocalBuilder listVar)
-            .InjectAndAdvance(OpCodes.Ldloc, listVar)
-            .Insert(Transpilers.EmitDelegate(RemoveImpossibleEvents));
+            .GetOperand(offset: 1, out LocalBuilder listVar)
+            .Inject(
+                new(OpCodes.Ldloc, listVar),
+                Transpilers.EmitDelegate(RemoveImpossibleEvents))
 
-        codeMatcher
-            .MatchForward(useEnd: false,
+            .FindNext(
                 new(OpCodes.Ldloc_S),
                 new(OpCodes.Ldfld),
                 new(OpCodes.Ldfld, typeof(CEnvironment).Field("m_isNightEnv")),
                 new(OpCodes.Brfalse))
-            .RemoveInstructions(51)
-            .Insert(
-                new(OpCodes.Call, typeof(GVars).Method("get_SimuTime")),
-                new(OpCodes.Stsfld, typeof(GVars).StaticField("m_eventStartTime")));
-
-        return codeMatcher.Instructions();
+            .Remove(51)
+            .Insert(new(OpCodes.Call, typeof(GVars).Method("get_SimuTime")),
+                new(OpCodes.Stsfld, typeof(GVars).StaticField("m_eventStartTime")))
+            .Finish();
     }
 }
 internal static class InstantDrowning {
@@ -218,9 +202,8 @@ internal static class InstantDrowning {
     private static IEnumerable<CodeInstruction> CUnit_Update(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
         // Patch the amount of damage when the player is drowning (m_air <= 0) to maximum possible damage (int.MaxValue)
 
-        var codeMatcher = new CodeMatcher(instructions, generator);
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Call, typeof(GVars).Method("get_SimuTime")),
                 new(OpCodes.Stfld, typeof(CUnit).Field("m_lastAirHit")),
@@ -230,10 +213,9 @@ internal static class InstantDrowning {
                 new(OpCodes.Brfalse),
                 new(OpCodes.Ldc_I4_5), // overwrite this to "ldc.i4 int.MaxValue"
                 new(OpCodes.Br))
-            .ThrowIfInvalid("(1)")
             .Advance(6)
-            .Set(OpCodes.Ldc_I4, int.MaxValue);
-        return codeMatcher.Instructions();
+            .Replace(OpCodes.Ldc_I4, int.MaxValue)
+            .Finish();
     }
 }
 // public static class EnemyNoDetourPathing {
@@ -261,17 +243,15 @@ internal static class UnitInstantObservation {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CUnitMonster), nameof(CUnitMonster.UpdateTarget))]
     private static IEnumerable<CodeInstruction> CUnitMonster_UpdateTarget(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CUnitMonster).Field("m_target")),
                 new(OpCodes.Brtrue))
-            .ThrowIfInvalid("(1)")
-            .RemoveInstructions(2)
-            .SetOpcode(OpCodes.Br)
+            .Remove(2)
+            .ReplaceOpcode(offset: 0, OpCodes.Br, out _)
 
-            .MatchForward(useEnd: false,
+            .FindNext(
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CUnitMonster).Field("m_target")),
                 new(OpCodes.Brtrue),
@@ -281,10 +261,9 @@ internal static class UnitInstantObservation {
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CUnitMonster).Field("m_isNightSpawn")),
                 new(OpCodes.Brfalse))
-            .ThrowIfInvalid("(2)")
             .Advance(3)
-            .RemoveInstructions(5);
-        return codeMatcher.Instructions();
+            .Remove(5)
+            .Finish();
     }
 }
 internal static class HideClockPatch {
@@ -337,6 +316,7 @@ internal static class OnEndOfNightPatch {
 }
 
 [BepInPlugin("ultra-hardcore", ThisPluginInfo.Name, ThisPluginInfo.Version)]
+[BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class UltraHardcorePlugin : BaseUnityPlugin {
     public static ConfigEntry<float> configPlayerHpMax;
     public static ConfigEntry<bool> configPermanentMist;
@@ -413,14 +393,6 @@ public class UltraHardcorePlugin : BaseUnityPlugin {
             section: "UltraHardcore", key: "MonsterHpMultPerNight", defaultValue: 1f,
             description: "On the end of night multiplies monster health by provided value"
         );
-
-        var configUniqualizeVersionBuild = Config.Bind<bool>(
-            section: "General", key: "UniqualizeVersionBuild", defaultValue: false,
-            description: "Safe guard to prevent joining to server with different mod version"
-        );
-        if (configUniqualizeVersionBuild.Value) {
-            Utils.UniqualizeVersionBuild(ref G.m_versionBuild, this);
-        }
 
         var harmony = new Harmony(Info.Metadata.GUID);
 

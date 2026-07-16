@@ -1,8 +1,6 @@
 using BepInEx;
 using HarmonyLib;
 using System.IO;
-using System.Linq;
-using System;
 
 [BepInPlugin("save-dialog", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 public class SaveDialog : BaseUnityPlugin {

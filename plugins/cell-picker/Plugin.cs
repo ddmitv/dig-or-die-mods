@@ -1,7 +1,6 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
-using ModUtils;
 using UnityEngine;
 
 internal static class PickCellPatch {
@@ -46,6 +45,7 @@ internal static class PickCellPatch {
 }
 
 [BepInPlugin("cell-picker", ThisPluginInfo.Name, ThisPluginInfo.Version)]
+[BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class CellPicker : BaseUnityPlugin {
     public static SInputs.KeyBinding pickCell = null;
     public static ConfigEntry<bool> configIgnoreEmptyItem = null;
@@ -60,7 +60,7 @@ public class CellPicker : BaseUnityPlugin {
 
         if (!configEnabled.Value) { return; }
 
-        Utils.AddLocalizationText("INPUT_CELL_PICKER_PickCell", "Pick Cell");
+        DODModAPI.Misc.AddLocalizationText("INPUT_CELL_PICKER_PickCell", "Pick Cell");
         pickCell = new(name: "CELL_PICKER_PickCell", defaultKey0: KeyCode.Mouse2);
 
         var harmony = new Harmony(Info.Metadata.GUID);

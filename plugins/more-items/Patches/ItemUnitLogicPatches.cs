@@ -1,27 +1,12 @@
+using DODModAPI;
 using HarmonyLib;
-using ModUtils;
-using ModUtils.Extensions;
-using System;
+using DODModAPI.Extensions;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
 
 [HarmonyPatch]
 internal static class CUnitPlayerPatches {
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(SUnits), nameof(SUnits.OnInit))]
-    private static void SUnits_OnInit() {
-        foreach (var uDescField in typeof(CustomUnits).GetFields(BindingFlags.Static | BindingFlags.Public)) {
-            var uDesc = (CUnit.CDesc)uDescField.GetValue(null);
-            if (uDesc.m_codeName is null) { throw new InvalidOperationException($"{uDescField.DeclaringType.FullName}.{uDescField.Name}.m_codeName is null"); }
-            uDesc.m_id = (byte)GUnits.UDescs.Count;
-            GUnits.UDescs.Add(uDesc);
-            if (GUnits.UDescs.Count >= 255) {
-                throw new InvalidOperationException($"GUnits.UDescs can only have 255 elements");
-            }
-        }
-    }
 
     [HarmonyPatch(typeof(CUnitPlayer), nameof(CUnitPlayer.Damage_Local))]
     [HarmonyPrefix]
@@ -29,9 +14,9 @@ internal static class CUnitPlayerPatches {
         if (damageCause is not ("hit_up" or "hit_down" or "hit_side")) { return; }
 
         var player = __instance.GetPlayer();
-        var impactShield = (ExtCItem_ImpactShield)player?.m_inventory?.GetBestActiveOfGroup(ExtCItem_ImpactShield.GroupId);
-        if (impactShield is null) { return; }
-        damage *= 1f - impactShield.m_customValue;
+        if (player?.m_inventory?.GetBestActiveOfGroup(ExtCItem_ImpactShield.GroupId) is ExtCItem_ImpactShield impactShield) {
+            damage *= 1f - impactShield.m_customValue;
+        }
     }
 
     [HarmonyPatch(typeof(CUnitPlayerLocal), nameof(CUnitPlayerLocal.Update))]
@@ -47,36 +32,32 @@ internal static class CUnitPlayerPatches {
 
             return jetpack.jetpackFlyForce;
         }
-
-        var codeMatcher = new CodeMatcher(instructions, generator);
-        codeMatcher.Start()
-            .MatchForward(useEnd: true,
+        return new CodeCursor(instructions, generator)
+            .FindNextEnd(
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldflda, typeof(CUnit).Field("m_forces")),
                 new(OpCodes.Dup),
                 new(OpCodes.Ldfld, typeof(Vector2).Field("y")),
-                new(OpCodes.Ldc_R4, 85f)) // advance after this
-            .ThrowIfInvalid("(1)")
-            .Advance(1)
+                new(OpCodes.Ldc_R4, 85f)
+                // insert here
+                )
             .Insert(
                 new(OpCodes.Ldloc_1),
-                Transpilers.EmitDelegate(ModifyJetpackFlyForce));
-
-        codeMatcher // continue after previous patch 
-            .MatchForward(useEnd: false,
-                new CodeMatch(OpCodes.Ldloc_S).LocalIndex(6),
+                Transpilers.EmitDelegate(ModifyJetpackFlyForce))
+            // continue after previous patch 
+            .FindNext(
+                new(OpCodes.Ldloc_S, 6),
                 new(OpCodes.Ldc_R4, 0.0f),
-                new(OpCodes.Ldc_R4, 0.19f), // advance after this
+                new(OpCodes.Ldc_R4, 0.19f),
+                // insert here
                 new(OpCodes.Call, typeof(SMain).Method("get_SimuDeltaTime")),
                 new(OpCodes.Mul))
-            .ThrowIfInvalid("(2)")
-            .GetInstruction(out CodeInstruction inst)
             .Advance(3)
             .Insert(
                 new(OpCodes.Ldloc_1),
-                Transpilers.EmitDelegate(ModifyJetpackPowerUsage));
+                Transpilers.EmitDelegate(ModifyJetpackPowerUsage))
+            .Finish();
 
-        return codeMatcher.Instructions();
         // ldarg.0
         // ldflda CUnit::m_forces
         // dup
@@ -120,14 +101,11 @@ internal static class CUnitPlayerPatches {
             SWorld.Grid[unit.PosCell.x, unit.PosCell.y].m_temp.r = tag;
         }
         foreach (CPlayer player in SNetwork.Players) {
-            RectInt updateRect = Utils.ClampRect(player.GetRectAroundScreen(12), 0, 0, SWorld.Gs.x, SWorld.Gs.y);
+            RectInt updateRect = DODModAPI.Misc.ClampRect(player.GetRectAroundScreen(12), 0, 0, SWorld.Gs.x, SWorld.Gs.y);
             for (int x = updateRect.x; x < updateRect.xMax; x++) {
                 for (int y = updateRect.y; y < updateRect.yMax; y++) {
-                    if (SWorld.Grid[x, y].GetContent() is ExtCItem_WaterVaporizer waterVaporizerItem
-                        && SWorld.Grid[x, y].m_temp.r != tag) {
-                        var unit = (ExtCUnitWaterVaporizer)SUnits.SpawnUnit(
-                            uDesc: CustomUnits.unitDesc, new UnityEngine.Vector2(x + 0.5f, y));
-                        unit.waterVaporizerItem = waterVaporizerItem;
+                    if (SWorld.Grid[x, y].GetContent() is ExtCItem_WaterVaporizer && SWorld.Grid[x, y].m_temp.r != tag) {
+                        SUnits.SpawnUnit(uDesc: CustomUnits.waterVaporizer.UnitDesc, new Vector2(x + 0.5f, y));
                     }
                 }
             }
@@ -137,25 +115,22 @@ internal static class CUnitPlayerPatches {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SUnits), nameof(SUnits.OnUpdateSimu))]
     private static IEnumerable<CodeInstruction> SUnits_OnUpdateSimu_BossRespawnDelay(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        return new CodeMatcher(instructions, generator)
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(out uint firstRemoveNum,
                 new(OpCodes.Call, typeof(SOutgame).Method("get_Params")),
                 new(OpCodes.Ldfld, typeof(CParams).Field("m_bossRespawnDelay")),
                 new(OpCodes.Ldc_R4, 0f),
                 new(OpCodes.Blt_Un))
-            .ThrowIfInvalid("(1)")
-            .CollapseInstructions(4)
-            .MatchForward(useEnd: false,
+            .RemovePreservingLabels(firstRemoveNum)
+            .FindNext(out uint secondRemoveNum,
                 new(OpCodes.Call, typeof(SOutgame).Method("get_Params")),
                 new(OpCodes.Ldfld, typeof(CParams).Field("m_bossRespawnDelay")))
-            .ThrowIfInvalid("(2)")
-            .RemoveInstructions(2)
-            .Insert(
-                new CodeInstruction(OpCodes.Ldc_R4, MoreItemsPlugin.configBossRespawnDelay.Value))
-            .Instructions();
+            .Remove(secondRemoveNum)
+            .Insert(OpCodes.Ldc_R4, MoreItemsPlugin.configBossRespawnDelay.Value)
+            .Finish();
     }
 
-    private static readonly Dictionary<ushort, double> lastRadiationHitDict = new();
+    private static readonly WeakTable<CUnit, double> lastRadiationHitDict = [];
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(CUnit), nameof(CUnit.Damage_Local))]
@@ -169,11 +144,9 @@ internal static class CUnitPlayerPatches {
 
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CUnit), nameof(CUnit.Update))]
-    private static IEnumerable<CodeInstruction> UnclampUnitSpeed(IEnumerable<CodeInstruction> instructions) {
-        var codeMatcher = new CodeMatcher(instructions);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+    private static IEnumerable<CodeInstruction> UnclampUnitSpeed(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldflda, typeof(CUnit).Field("m_speed")),
                 new(OpCodes.Ldarg_0),
@@ -183,10 +156,8 @@ internal static class CUnitPlayerPatches {
                 new(OpCodes.Ldc_R4, 30f),
                 new(OpCodes.Call, typeof(UnityEngine.Mathf).Method<float, float, float>("Clamp")),
                 new(OpCodes.Stfld, typeof(UnityEngine.Vector2).Field("x")))
-            .ThrowIfInvalid("(1)")
-            .RemoveInstructions(18);
-
-        return codeMatcher.Instructions();
+            .Remove(18)
+            .Finish();
     }
 
     [HarmonyPrefix]
@@ -195,14 +166,16 @@ internal static class CUnitPlayerPatches {
         const int EffectRadius = 15;
         const float RadiationDamage = 10f;
 
-        if (!__instance.IsAlive() || GVars.m_simuTimeD <= lastRadiationHitDict.GetValueSafe(__instance.m_id)) { return; }
+        if (!__instance.IsAlive() || GVars.m_simuTimeD <= lastRadiationHitDict.GetValueOrDefault(__instance)) {
+            return;
+        }
 
-        int2 pos = Utils.FindInCircleClamped(range: EffectRadius, __instance.PosCell, (int x, int y) => {
-            return SWorld.Grid[x, y].GetContent() == CustomItems.RTG.Item;
+        int2 pos = ItemHelpers.FindInCircleClamped(range: EffectRadius, __instance.PosCell, static (int x, int y) => {
+            return SWorld.Grid[x, y].GetContent() == CustomItems.RTG.item;
         });
         if (pos == int2.negative) { return; }
 
-        lastRadiationHitDict[__instance.m_id] = GVars.m_simuTimeD + 0.5;
+        lastRadiationHitDict.AddOrUpdate(__instance, GVars.m_simuTimeD + 0.5);
 
         float distanceFactor = 1f - (pos - __instance.PosCell).sqrMagnitude / (float)(EffectRadius * EffectRadius);
         if (__instance is CUnitPlayer) {

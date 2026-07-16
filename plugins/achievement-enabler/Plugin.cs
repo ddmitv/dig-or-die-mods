@@ -4,8 +4,7 @@ using HarmonyLib;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection.Emit;
-using ModUtils.Extensions;
-using ModUtils;
+using DODModAPI.Extensions;
 
 internal static class WithEventsPatch {
     [HarmonyPrefix]
@@ -26,7 +25,8 @@ internal static class InCustomModePatch {
     [HarmonyPrefix]
     [HarmonyPatch(typeof(SGameStartEnd), nameof(SGameStartEnd.StartNewGame_Coroutine))]
     private static void SGameStartEnd_StartNewGame_Coroutine_Prefix(out string __state) {
-        __state = Utils.Exchange(ref SOutgame.Mode.m_name, "Solo");
+        __state = SOutgame.Mode.m_name;
+        SOutgame.Mode.m_name = "Solo";
     }
     [HarmonyPostfix]
     [HarmonyPatch(typeof(SGameStartEnd), nameof(SGameStartEnd.StartNewGame_Coroutine))]
@@ -38,6 +38,7 @@ internal static class InCustomModePatch {
 }
 
 [BepInPlugin("achievement-enabler", ThisPluginInfo.Name, ThisPluginInfo.Version)]
+[BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class AchievementEnabler : BaseUnityPlugin
 {
     private static ConfigEntry<bool> configInMultiplayer = null;
@@ -84,40 +85,33 @@ public class AchievementEnabler : BaseUnityPlugin
 
     [HarmonyPatch(typeof(SSteamStats), nameof(SSteamStats.SetStat))]
     [HarmonyTranspiler]
-    private static IEnumerable<CodeInstruction> SSteamStats_SetStat(IEnumerable<CodeInstruction> instructions) {
-        var codeMatcher = new CodeMatcher(instructions);
-
-        if (configInMultiplayer.Value) {
-            codeMatcher.Start()
-                .MatchForward(useEnd: false,
+    private static IEnumerable<CodeInstruction> SSteamStats_SetStat(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+        return new DODModAPI.CodeCursor(instructions, generator)
+            .When(configInMultiplayer.Value, c => c
+                .MoveToStart()
+                .FindNext(out uint n,
                     // if (... && !SNetwork.IsMulti(false))
                     new(OpCodes.Ldc_I4_0),
                     new(OpCodes.Call, typeof(SNetwork).Method("IsMulti")),
                     new(OpCodes.Brtrue))
-                .ThrowIfInvalid("(1)")
-                .RemoveInstructions(3);
-        }
-        if (configAfterCheats.Value) {
-            codeMatcher.Start()
-                .MatchForward(useEnd: false,
+                .Remove(n))
+            .When(configAfterCheats.Value, c => c
+                .MoveToStart()
+                .FindNext(out uint n,
                     // if (... && !GVars.m_achievementsLocked && ...)
                     new(OpCodes.Ldsfld, typeof(GVars).StaticField("m_achievementsLocked")),
                     new(OpCodes.Brtrue))
-                .ThrowIfInvalid("(2)")
-                .RemoveInstructions(2);
-        }
-        if (configInPostGameAlways.Value) {
-            codeMatcher.Start()
-                .MatchForward(useEnd: false,
+                .Remove(n))
+            .When(configInPostGameAlways.Value, c => c
+                .MoveToStart()
+                .FindNext(out uint n,
                     // if (... && (!skipInPostGame || !GVars.m_postGame) ...)
                     new(OpCodes.Ldarg_2), // parameter `skipInPostGame`
                     new(OpCodes.Brfalse),
 
                     new(OpCodes.Ldsfld, typeof(GVars).StaticField("m_postGame")),
                     new(OpCodes.Brtrue))
-                .ThrowIfInvalid("(3)")
-                .RemoveInstructions(4);
-        }
-        return codeMatcher.Instructions();
+                .Remove(n))
+            .Finish();
     }
 }

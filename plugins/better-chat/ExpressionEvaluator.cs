@@ -13,22 +13,19 @@
 // cellat({600,700}).hp => 50
 // cellat(500,500).water => 0.5
 
-using ModUtils;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using DODModAPI;
 
 public sealed class ExpressionEvaluator {
-    [Serializable]
     public sealed class EvaluationException : Exception {
         public EvaluationException(string message) : base(message) { }
     }
-    [Serializable]
     public sealed class ParsingException : Exception {
         public ParsingException(string message) : base(message) { }
     }
-    [Serializable]
     public sealed class TokenizingException : Exception {
         public TokenizingException(string message) : base(message) { }
     }
@@ -262,7 +259,7 @@ public sealed class ExpressionEvaluator {
                     return new IntValue(intValue);
                 }
             } else if (numStr.StartsWith("0b")) {
-                if (Utils.TryParseBinary(numStr.Substring(2), out long intValue)) {
+                if (Misc.TryParseBinary(numStr.Substring(2), out long intValue)) {
                     return new IntValue(intValue);
                 }
             } else {
@@ -471,7 +468,7 @@ public sealed class ExpressionEvaluator {
 
         IValue IExpression.Evaluate(EvaluationEnv env) {
             if (!env.Variables.TryGetValue(variableName, out IValue varValue)) {
-                string closestVarName = Utils.ClosestStringMatch(variableName, env.Variables.Keys);
+                string closestVarName = Misc.ClosestStringMatch(variableName, env.Variables.Keys);
                 throw new EvaluationException($"Undefined variable with name '{variableName}'. Did you mean '{closestVarName}'?");
             }
             return varValue;
@@ -483,7 +480,7 @@ public sealed class ExpressionEvaluator {
 
         IValue IExpression.Evaluate(EvaluationEnv env) {
             if (!env.Functions.TryGetValue(functionName, out var function)) {
-                string closestFuncName = Utils.ClosestStringMatch(functionName, env.Functions.Keys);
+                string closestFuncName = Misc.ClosestStringMatch(functionName, env.Functions.Keys);
                 throw new EvaluationException($"Undefined function with name '{functionName}'. Did you mean '{closestFuncName}'?");
             }
             var evalArguments = arguments.Select(expr => expr.Evaluate(env)).ToArray();
@@ -515,7 +512,7 @@ public sealed class ExpressionEvaluator {
             return val switch {
                 IntValue intVal => new IntValue(Math.Abs(intVal.Value)),
                 FloatValue floatVal => new FloatValue(Math.Abs(floatVal.Value)),
-                IntVectorValue intVectorVal => new FloatValue(Utils.Hypot(intVectorVal.Value)),
+                IntVectorValue intVectorVal => new FloatValue(Misc.Hypot(intVectorVal.Value)),
                 StringValue strVal => new IntValue(strVal.Value.Length),
                 _ => throw new EvaluationException($"Absoulte value operation is not supported for '{val.TypeName()}'"),
             };
@@ -532,7 +529,7 @@ public sealed class ExpressionEvaluator {
             }
             IValue fieldVal = val.ReadField(fieldName);
             if (fieldVal is null) {
-                string closestFieldName = Utils.ClosestStringMatch(fieldName, val.FieldNames());
+                string closestFieldName = Misc.ClosestStringMatch(fieldName, val.FieldNames());
                 throw new EvaluationException($"Type '{generalVal.TypeName()}' doesn't have field with name '{fieldName}'. Did you mean '{closestFieldName}'?");
             }
             return fieldVal;
@@ -796,7 +793,7 @@ public sealed class ExpressionEvaluator {
         evaluationEnv.Functions.Add("cellat", args => {
             if (args.Length == 2) {
                 if (args[0] is IntValue cellX && args[1] is IntValue cellY) {
-                    if (!Utils.IsInWorld((int)cellX.Value, (int)cellY.Value)) {
+                    if (!Misc.IsInWorld((int)cellX.Value, (int)cellY.Value)) {
                         throw new EvaluationException($"Cell position is not in the world grid");
                     }
                     return new CellValue(in SWorld.Grid[cellX.Value, cellY.Value]);
@@ -805,7 +802,7 @@ public sealed class ExpressionEvaluator {
             }
             if (args.Length == 1) {
                 if (args[0] is IntVectorValue cellPos) {
-                    if (!Utils.IsInWorld(cellPos.Value)) {
+                    if (!Misc.IsInWorld(cellPos.Value)) {
                         throw new EvaluationException($"Cell position is not in the world grid");
                     }
                     return new CellValue(in SWorld.Grid[cellPos.Value.x, cellPos.Value.y]);
@@ -826,7 +823,7 @@ public sealed class ExpressionEvaluator {
             if (args[0] is StringValue codeName) {
                 var unit = GUnits.UDescs.Skip(1).FirstOrDefault(x => x.m_codeName == codeName.Value);
                 if (unit is null) {
-                    var closestCodeName = Utils.ClosestStringMatch(codeName.Value, GUnits.UDescs.Skip(1).Select(x => x.m_codeName));
+                    var closestCodeName = Misc.ClosestStringMatch(codeName.Value, GUnits.UDescs.Skip(1).Select(x => x.m_codeName));
                     throw new EvaluationException($"Unknown unit code name. Did you mean '{closestCodeName}'?");
                 }
                 return new UnitValue(unit);
@@ -845,7 +842,7 @@ public sealed class ExpressionEvaluator {
             if (args[0] is StringValue codeName) {
                 var item = GItems.Items.Skip(1).FirstOrDefault(x => x.m_codeName == codeName.Value);
                 if (item is null) {
-                    var closestCodeName = Utils.ClosestStringMatch(codeName.Value, GItems.Items.Skip(1).Select(x => x.m_codeName));
+                    var closestCodeName = Misc.ClosestStringMatch(codeName.Value, GItems.Items.Skip(1).Select(x => x.m_codeName));
                     throw new EvaluationException($"Unknown item code name. Did you mean '{closestCodeName}'?");
                 }
                 return new ItemValue(item);
@@ -862,6 +859,71 @@ public sealed class ExpressionEvaluator {
                 _ => throw new EvaluationException($"Expected number in first argument")
             });
         });
+    }
+
+    public static bool ChatMessagePreprocessor(ref string text) {
+        string prefix = BetterChat.configChatExpressionEvaluatorPrefix.Value;
+
+        for (int i = 0; i < text.Length; ++i) {
+            if (string.Compare(text, i, prefix, 0, prefix.Length) != 0) {
+                continue;
+            }
+            if (i - 1 >= 0 && text[i - 1] == '\\') {
+                text = text.Remove(i - 1, 1);
+                i -= 1;
+                continue;
+            }
+            bool displayExpression = i + prefix.Length < text.Length && text[i + prefix.Length] == '=';
+
+            int leftParenthesisPos = i + prefix.Length + (displayExpression ? 1 : 0);
+            if (leftParenthesisPos >= text.Length || text[leftParenthesisPos] != '(') {
+                continue;
+            }
+
+            int start = i;
+            int exprStart = i + prefix.Length + 1 + (displayExpression ? 1 : 0);
+            i = FindEndParenthesis(text, exprStart) + 1;
+            if (i <= 0) {
+                Misc.SendChatMessageLocal("Expression evaluator has an unclosed parenthesis");
+                return false;
+            }
+
+            string exprString = text.Substring(exprStart, i - exprStart - 1); // also remove ending ')'
+            string exprResult;
+            try {
+                exprResult = BetterChat.expressionEvaluator.Evaluate(exprString);
+            } catch (EvaluationException evaluationException) {
+                Misc.SendChatMessageLocal($"Evaluation error: {evaluationException.Message}");
+                return false;
+            } catch (ParsingException parseingException) {
+                Misc.SendChatMessageLocal($"Parsing error: {parseingException.Message}");
+                return false;
+            } catch (TokenizingException tokenizingException) {
+                Misc.SendChatMessageLocal($"Tokenizing error: {tokenizingException.Message}");
+                return false;
+            }
+            text = text.Remove(start, i - start).Insert(start, exprResult);
+            i += -(i - start) + exprResult.Length; // adjust index for evaluated expression character difference
+            if (displayExpression) {
+                text = text.Insert(start, exprString + "=");
+                i += exprString.Length + 1;
+            }
+        }
+        return true;
+
+        static int FindEndParenthesis(string str, int start) {
+            int count = 0;
+            for (int i = start; i < str.Length; ++i) {
+                if (str[i] == '(') {
+                    count += 1;
+                }
+                if (str[i] == ')') {
+                    count -= 1;
+                    if (count < 0) { return i; }
+                }
+            }
+            return -1;
+        }
     }
 }
 

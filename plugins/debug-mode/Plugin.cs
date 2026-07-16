@@ -1,9 +1,8 @@
 ﻿using BepInEx;
 using HarmonyLib;
-using ModUtils.Extensions;
+using DODModAPI.Extensions;
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Reflection.Emit;
 using UnityEngine;
 
@@ -11,10 +10,8 @@ internal static class EnableDebugModePatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SScreenDebug), nameof(SScreenDebug.OnUpdate))]
     private static IEnumerable<CodeInstruction> SScreenDebug_OnUpdate(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+        return new DODModAPI.CodeCursor(instructions, generator)
+            .FindNext(out uint instrNum,
                 new(OpCodes.Call, typeof(Application).Method("get_isEditor")),
                 new(OpCodes.Brtrue),
 
@@ -25,10 +22,8 @@ internal static class EnableDebugModePatch {
                 new(OpCodes.Call, typeof(SNetwork).Method("get_MySteamID")),
                 new(OpCodes.Ldc_I8),
                 new(OpCodes.Bne_Un))
-            .ThrowIfInvalid("(1)")
-            .RemoveInstructions(8);
-
-        return codeMatcher.Instructions();
+            .Remove(instrNum)
+            .Finish();
     }
 }
 internal static class ApplicationIsEditorPatch {
@@ -42,37 +37,20 @@ internal static class NoWorldPresimulationPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SGameStartEnd), nameof(SGameStartEnd.GenerateWorld), MethodType.Enumerator)]
     private static IEnumerable<CodeInstruction> SGameStartEnd_GenerateWorld(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
-                new(OpCodes.Call, typeof(UnityEngine.Application).Method("get_isEditor")),
-                new(OpCodes.Brfalse),
-                new(OpCodes.Ldsfld, typeof(G).StaticField("m_autoCreateMode")),
-                new(OpCodes.Brfalse),
-                new(OpCodes.Ldsfld, typeof(G).StaticField("m_autoCreateMode_Fast")),
-                new(OpCodes.Brfalse),
-                new(OpCodes.Call, typeof(UnityEngine.Time).Method("get_time")),
-                new(OpCodes.Ldc_R4, 5.0f),
-                new(OpCodes.Bge_Un),
-                new(OpCodes.Br))
-            .ThrowIfInvalid("(1)")
-            .CollapseInstructions(9) // keep last `br` instruction to skip loop body
-            .MatchForward(useEnd: false,
-                new(OpCodes.Call, typeof(UnityEngine.Application).Method("get_isEditor")),
-                new(OpCodes.Brfalse),
-                new(OpCodes.Ldsfld, typeof(G).StaticField("m_autoCreateMode")),
-                new(OpCodes.Brfalse),
-                new(OpCodes.Ldsfld, typeof(G).StaticField("m_autoCreateMode_Fast")),
-                new(OpCodes.Brfalse),
-                new(OpCodes.Call, typeof(UnityEngine.Time).Method("get_time")),
-                new(OpCodes.Ldc_R4, 5.0f),
-                new(OpCodes.Bge_Un),
-                new(OpCodes.Br))
-            .ThrowIfInvalid("(2)")
-            .CollapseInstructions(9); // keep last `br` instruction to skip loop body
-
-        return codeMatcher.Instructions();
+        return new DODModAPI.CodeCursor(instructions, generator)
+            .RepeatNTimes(count: 2, cc =>
+                cc.FindNext(out uint instrNum,
+                    new(OpCodes.Call, typeof(UnityEngine.Application).Method("get_isEditor")),
+                    new(OpCodes.Brfalse),
+                    new(OpCodes.Ldsfld, typeof(G).StaticField("m_autoCreateMode")),
+                    new(OpCodes.Brfalse),
+                    new(OpCodes.Ldsfld, typeof(G).StaticField("m_autoCreateMode_Fast")),
+                    new(OpCodes.Brfalse),
+                    new(OpCodes.Call, typeof(UnityEngine.Time).Method("get_time")),
+                    new(OpCodes.Ldc_R4, 5.0f),
+                    new(OpCodes.Bge_Un)
+                ).Remove(instrNum))
+            .Finish();
     }
 }
 
@@ -149,16 +127,16 @@ internal static class DontIncrementVersionBuildPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(SMain), nameof(SMain.Awake))]
     private static IEnumerable<CodeInstruction> SMain_Awake(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        return new CodeMatcher(instructions, generator)
-            .MatchForward(useEnd: false,
+        return new DODModAPI.CodeCursor(instructions, generator)
+            .FindNext(out uint n,
                 new(OpCodes.Call, typeof(UnityEngine.Application).Method("get_isEditor")),
                 new(OpCodes.Brfalse),
                 new(OpCodes.Ldc_I4_0),
                 new(OpCodes.Br),
                 new(OpCodes.Ldc_I4_1),
                 new(OpCodes.Add))
-            .RemoveInstructions(6)
-            .Instructions();
+            .Remove(6)
+            .Finish();
     }
 }
 
@@ -166,43 +144,47 @@ internal static class ExtraDebugChecksPatch {
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(CUnitDefense), nameof(CUnitDefense.GetUnitTargetPos))]
     private static IEnumerable<CodeInstruction> CUnitDefense_GetUnitTargetPos(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        return new CodeMatcher(instructions, generator)
-            .MatchForward(useEnd: false,
+        return new DODModAPI.CodeCursor(instructions, generator)
+            .FindNext(
+                // insert here
                 new(OpCodes.Ldloc_S),
                 new(OpCodes.Call),
                 new(OpCodes.Ldloc_S),
                 new(OpCodes.Callvirt),
                 new(OpCodes.Call),
                 new(OpCodes.Call),
-                new(OpCodes.Call, typeof(UnityEngine.Debug).Method<Vector3, Vector3, Color>("DrawLine")))
-            .ThrowIfInvalid("(1)")
-            .CreateLabelAtOffset(7, out Label label1)
+                new(OpCodes.Call, typeof(UnityEngine.Debug).Method<Vector3, Vector3, Color>("DrawLine"))
+            // label1:
+            )
+            .CreateLabel(offset: 7, out Label label1)
             .Insert(
                 new(OpCodes.Ldsfld, typeof(G).StaticField("m_debugDefenses")),
                 new(OpCodes.Ldsfld, typeof(G).StaticField("m_debug")),
                 new(OpCodes.And),
                 new(OpCodes.Brfalse, label1))
             .Advance(7)
-            .MatchForward(useEnd: false,
+            .FindNext(
                 new(OpCodes.Ldloc_S),
                 new(OpCodes.Call),
                 new(OpCodes.Ldloc_S),
                 new(OpCodes.Callvirt),
                 new(OpCodes.Call),
                 new(OpCodes.Call),
-                new(OpCodes.Call, typeof(UnityEngine.Debug).Method<Vector3, Vector3, Color>("DrawLine")))
-            .ThrowIfInvalid("(2)")
-            .CreateLabelAtOffset(7, out Label label2)
-            .InjectAndAdvance(OpCodes.Ldsfld, typeof(G).StaticField("m_debugDefenses"))
-            .Insert(
+                new(OpCodes.Call, typeof(UnityEngine.Debug).Method<Vector3, Vector3, Color>("DrawLine"))
+            // label2:
+            )
+            .CreateLabel(offset: 7, out Label label2)
+            .Inject(
+                new(OpCodes.Ldsfld, typeof(G).StaticField("m_debugDefenses")),
                 new(OpCodes.Ldsfld, typeof(G).StaticField("m_debug")),
                 new(OpCodes.And),
                 new(OpCodes.Brfalse, label2))
-            .Instructions();
+            .Finish();
     }
 }
 
 [BepInPlugin("debug-mode", ThisPluginInfo.Name, ThisPluginInfo.Version)]
+[BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class DebugMode : BaseUnityPlugin {
 
     private void InitDebugVarsConfig() {
