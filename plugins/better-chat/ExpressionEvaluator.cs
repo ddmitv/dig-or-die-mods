@@ -57,7 +57,7 @@ public sealed class ExpressionEvaluator {
         return iValue.String();
     }
     private interface FieldAccessibleValue {
-        IValue ReadField(string name);
+        IValue? ReadField(string name);
         string[] FieldNames();
     }
 
@@ -87,7 +87,7 @@ public sealed class ExpressionEvaluator {
         string IValue.String() => $"{{{Value.x}, {Value.y}}}";
 
         string[] FieldAccessibleValue.FieldNames() { return ["x", "y"]; }
-        IValue FieldAccessibleValue.ReadField(string name) {
+        IValue? FieldAccessibleValue.ReadField(string name) {
             return name switch {
                 "x" => new IntValue(Value.x),
                 "y" => new IntValue(Value.y),
@@ -118,7 +118,7 @@ public sealed class ExpressionEvaluator {
         string[] FieldAccessibleValue.FieldNames() {
             return ["codename", "name", "id", "tier", "speed", "hp", "armor", "regen"];
         }
-        IValue FieldAccessibleValue.ReadField(string name) {
+        IValue? FieldAccessibleValue.ReadField(string name) {
             return name switch {
                 "codename" => CodeName,
                 "name" => Name,
@@ -149,7 +149,7 @@ public sealed class ExpressionEvaluator {
         string[] FieldAccessibleValue.FieldNames() {
             return ["flags", "hp", "water", "id", "force", "codename", "name"];
         }
-        IValue FieldAccessibleValue.ReadField(string name) {
+        IValue? FieldAccessibleValue.ReadField(string name) {
             return name switch {
                 "flags" => Flags,
                 "hp" => Hp,
@@ -176,7 +176,7 @@ public sealed class ExpressionEvaluator {
         string[] FieldAccessibleValue.FieldNames() {
             return ["id", "codename", "name", "desc", "textureIcon"];
         }
-        IValue FieldAccessibleValue.ReadField(string name) {
+        IValue? FieldAccessibleValue.ReadField(string name) {
             return name switch {
                 "id" => Id,
                 "codename" => Codename,
@@ -195,7 +195,7 @@ public sealed class ExpressionEvaluator {
 
     private struct Token {
         public TokenType Type;
-        public IValue Value = null;
+        public IValue? Value = null;
 
         public Token(TokenType type) { Type = type; }
         public Token(TokenType type, IValue value) {
@@ -418,8 +418,9 @@ public sealed class ExpressionEvaluator {
         private static long LongPow(long x, ulong pow) {
             long ret = 1;
             while (pow != 0) {
-                if ((pow & 1) == 1)
+                if ((pow & 1) == 1) {
                     ret *= x;
+                }
                 x *= x;
                 pow >>= 1;
             }
@@ -468,7 +469,7 @@ public sealed class ExpressionEvaluator {
 
         IValue IExpression.Evaluate(EvaluationEnv env) {
             if (!env.Variables.TryGetValue(variableName, out IValue varValue)) {
-                string closestVarName = Misc.ClosestStringMatch(variableName, env.Variables.Keys);
+                string? closestVarName = Misc.ClosestStringMatch(variableName, env.Variables.Keys);
                 throw new EvaluationException($"Undefined variable with name '{variableName}'. Did you mean '{closestVarName}'?");
             }
             return varValue;
@@ -480,7 +481,7 @@ public sealed class ExpressionEvaluator {
 
         IValue IExpression.Evaluate(EvaluationEnv env) {
             if (!env.Functions.TryGetValue(functionName, out var function)) {
-                string closestFuncName = Misc.ClosestStringMatch(functionName, env.Functions.Keys);
+                string? closestFuncName = Misc.ClosestStringMatch(functionName, env.Functions.Keys);
                 throw new EvaluationException($"Undefined function with name '{functionName}'. Did you mean '{closestFuncName}'?");
             }
             var evalArguments = arguments.Select(expr => expr.Evaluate(env)).ToArray();
@@ -527,9 +528,9 @@ public sealed class ExpressionEvaluator {
             if (generalVal is not FieldAccessibleValue val) {
                 throw new EvaluationException($"Type '{generalVal.TypeName()}' is not field accessible");
             }
-            IValue fieldVal = val.ReadField(fieldName);
+            IValue? fieldVal = val.ReadField(fieldName);
             if (fieldVal is null) {
-                string closestFieldName = Misc.ClosestStringMatch(fieldName, val.FieldNames());
+                string? closestFieldName = Misc.ClosestStringMatch(fieldName, val.FieldNames());
                 throw new EvaluationException($"Type '{generalVal.TypeName()}' doesn't have field with name '{fieldName}'. Did you mean '{closestFieldName}'?");
             }
             return fieldVal;
@@ -537,7 +538,7 @@ public sealed class ExpressionEvaluator {
     }
 
     private EvaluationEnv evaluationEnv = new();
-    private Tokenizer tokenizer = null;
+    private Tokenizer tokenizer = null!;
     private Token currentToken;
 
     private Token ConsumeToken() {
@@ -596,7 +597,7 @@ public sealed class ExpressionEvaluator {
             if (fieldName.Type != TokenType.Identifier) {
                 throw new ParsingException($"Expected identifier after field access operator, got '{fieldName.Type}'");
             }
-            left = new FieldAccessExpression(left, ((IdentifierValue)fieldName.Value).Identifier);
+            left = new FieldAccessExpression(left, ((IdentifierValue)fieldName.Value!).Identifier);
         }
         return left;
     }
@@ -604,11 +605,11 @@ public sealed class ExpressionEvaluator {
         Token primaryToken = ConsumeToken();
         switch (primaryToken.Type) {
         case TokenType.Value: {
-            return new LiteralExpression(primaryToken.Value);
+            return new LiteralExpression(primaryToken.Value!);
         }
         case TokenType.Identifier when currentToken.Type == TokenType.LeftParenthesis: {
             ConsumeToken();
-            string functionName = ((IdentifierValue)primaryToken.Value).Identifier;
+            string functionName = ((IdentifierValue)primaryToken.Value!).Identifier;
             List<IExpression> args = [];
             if (CheckAndConsumeToken(TokenType.RightParenthesis)) {
                 return new FunctionCallExpression(functionName, args);
@@ -624,7 +625,7 @@ public sealed class ExpressionEvaluator {
             return new FunctionCallExpression(functionName, args);
         }
         case TokenType.Identifier: {
-            return new VariableExpression(((IdentifierValue)primaryToken.Value).Identifier);
+            return new VariableExpression(((IdentifierValue)primaryToken.Value!).Identifier);
         }
         case TokenType.LeftParenthesis: {
             IExpression expr = ParseExpression();

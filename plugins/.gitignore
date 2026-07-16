@@ -1,8 +1,8 @@
 /*
 
 !.gitignore
-!Directory.Build.props
-!Directory.Build.targets
+!Plugin.Common.props
+!Plugin.Common.targets
 !create-plugin.ps1
 
 !debug-mode/

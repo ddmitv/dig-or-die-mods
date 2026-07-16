@@ -74,13 +74,13 @@ internal class ScreenOnQuitPopup : SSingletonScreen<ScreenOnQuitPopup> {
 [BepInPlugin("autosave-tweaks", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 [BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class AutosaveTweaks : BaseUnityPlugin {
-    public static ConfigEntry<bool> configQuickSaveIsDefault;
-    public static ConfigEntry<float> configUnsavedTimeThreshold;
-    public static ConfigEntry<bool> configShowQuitConfirmation;
-    public static ConfigEntry<int> configAutosaveSlots;
-    public static ConfigEntry<int> configQuicksaveSlots;
-    public static ConfigEntry<bool> configEnableRecoverySave;
-    public static ConfigEntry<bool> configExitOnShift;
+    public static ConfigEntry<bool> configQuickSaveIsDefault = null!;
+    public static ConfigEntry<float> configUnsavedTimeThreshold = null!;
+    public static ConfigEntry<bool> configShowQuitConfirmation = null!;
+    public static ConfigEntry<int> configAutosaveSlots = null!;
+    public static ConfigEntry<int> configQuicksaveSlots = null!;
+    public static ConfigEntry<bool> configEnableRecoverySave = null!;
+    public static ConfigEntry<bool> configExitOnShift = null!;
 
     public static float lastSaveTime;
 

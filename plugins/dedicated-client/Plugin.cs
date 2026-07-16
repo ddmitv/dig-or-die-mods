@@ -331,13 +331,13 @@ internal sealed class CustomMessagePlayerSession : SMessageSingleton<CustomMessa
 [BepInPlugin("dedicated-client", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 [BepInDependency(DODModAPIPlugin.GUID)]
 public class DedicatedClient : BaseUnityPlugin {
-    public static CGuiButton btJoinDedicated = null;
+    public static CGuiButton btJoinDedicated = null!;
 
-    public static TcpClient client = null;
-    internal static ManualLogSource Log = null;
+    public static TcpClient? client = null;
+    internal static ManualLogSource Log = null!;
 
-    public static ConfigEntry<bool> configLogSendPackets;
-    public static ConfigEntry<bool> configLogReceivedPackets;
+    public static ConfigEntry<bool> configLogSendPackets = null!;
+    public static ConfigEntry<bool> configLogReceivedPackets = null!;
 
     public static void Disconnect() {
         if (client == null) { return; }
@@ -365,7 +365,7 @@ public class DedicatedClient : BaseUnityPlugin {
 
     public static void OnConnectCallback() {
         string epStr = SScreenPopup.Inst.GetInput();
-        if (!TryParseIPEndPoint(epStr, out IPEndPoint endPoint)) {
+        if (!TryParseIPEndPoint(epStr, out IPEndPoint? endPoint)) {
             SScreenPopup.Inst.Show(callback: null, messageId: "DEDICATED_CLIENT_INVALID_IP");
             return;
         }
@@ -421,7 +421,7 @@ public class DedicatedClient : BaseUnityPlugin {
         client = null;
     }
 
-    private static bool TryParseIPEndPoint(string s, out IPEndPoint result) {
+    private static bool TryParseIPEndPoint(string s, out IPEndPoint? result) {
         // https://github.com/dotnet/runtime/blob/9d5a6a9aa463d6d10b0b0ba6d5982cc82f363dc3/src/libraries/System.Net.Primitives/src/System/Net/IPEndPoint.cs#L97C13-L127C26
         const int MaxPort = 0x0000FFFF;
 

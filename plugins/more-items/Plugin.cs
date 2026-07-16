@@ -8,7 +8,7 @@ using System.Reflection;
 using UnityEngine;
 
 public class FlashEffect : MonoBehaviour {
-    private static Texture2D flashTexture;
+    private static Texture2D flashTexture = null!;
     private static float flashIntensity = 0f;
 
     private void Start() {
@@ -52,7 +52,7 @@ public class TestEvent : ModEnvironment {
 public class MoreItemsPlugin : BaseUnityPlugin {
     private const string ReplacementorPluginGUID = "replacementor";
 
-    public static ConfigEntry<float> configBossRespawnDelay = null;
+    public static ConfigEntry<float> configBossRespawnDelay = null!;
 
     private void InitReplacementorDependency(PluginInfo pluginInfo) {
         try {

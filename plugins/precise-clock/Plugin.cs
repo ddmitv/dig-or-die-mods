@@ -53,7 +53,7 @@ internal static class PreciseTimePatch {
     }
 
 
-    private static CGuiText txtClockTime = null;
+    private static CGuiText txtClockTime = null!;
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(SScreenHud), nameof(SScreenHud.OnInit))]
@@ -102,9 +102,9 @@ public enum TimeFormat {
 [BepInPlugin("precise-clock", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 [BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class PreciseClock : BaseUnityPlugin {
-    public static ConfigEntry<UnityEngine.Color> configColor = null;
-    public static ConfigEntry<ClockPosition> configClockPosition = null;
-    private static ConfigEntry<TimeFormat> configTimeFormat = null;
+    public static ConfigEntry<UnityEngine.Color> configColor = null!;
+    public static ConfigEntry<ClockPosition> configClockPosition = null!;
+    private static ConfigEntry<TimeFormat> configTimeFormat = null!;
 
     public static string ToTimeString(float clock) {
         if (float.IsNaN(clock) || float.IsInfinity(clock)) {

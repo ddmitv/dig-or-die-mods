@@ -74,8 +74,8 @@ internal static class Patches {
 [BepInPlugin("focused-flashlight", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 [BepInDependency(DODModAPIPlugin.GUID)]
 public class FocusedFlashlight : BaseUnityPlugin {
-    public static ConfigEntry<float> configLightDistanceMultipler = null;
-    public static ConfigEntry<Color> configLightColor = null;
+    public static ConfigEntry<float> configLightDistanceMultipler = null!;
+    public static ConfigEntry<Color> configLightColor = null!;
 
     private void Awake() {
         var configEnabled = Config.Bind<bool>(

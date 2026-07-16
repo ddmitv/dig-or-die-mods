@@ -10,11 +10,12 @@ using UnityEngine;
 [BepInPlugin("extra-commands", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 [BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class BetterChat : BaseUnityPlugin {
-    public static ConfigEntry<KeyboardShortcut> configRepeatLastCommand = null;
-    public static ConfigEntry<string> configChatExpressionEvaluatorPrefix = null;
-    public static ConfigEntry<bool> configDisableAchievementsOnCommand = null;
+    public static ConfigEntry<KeyboardShortcut> configRepeatLastCommand = null!;
+    public static ConfigEntry<string> configChatExpressionEvaluatorPrefix = null!;
+    public static ConfigEntry<bool> configDisableAchievementsOnCommand = null!;
 
-    public static ExpressionEvaluator expressionEvaluator = null;
+    public static ExpressionEvaluator expressionEvaluator = null!;
+    internal static BetterChat instance = null!;
 
     private void Start() {
         configRepeatLastCommand = Config.Bind<KeyboardShortcut>(
@@ -55,6 +56,8 @@ public class BetterChat : BaseUnityPlugin {
         }
         harmony.PatchAll(typeof(FreecamModePatch));
         harmony.PatchAll(typeof(ClockCommandPatch));
+
+        instance = this;
 
         CustomCommands.AddCustomCommands();
         DODModAPI.CommandManager.RegisterChatPreprocessor(priority: -1, (ref string text) => {

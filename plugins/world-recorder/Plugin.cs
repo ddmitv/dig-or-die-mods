@@ -11,29 +11,29 @@ using UnityEngine;
 [BepInPlugin("world-recorder", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 [BepInDependency(DODModAPIPlugin.GUID)]
 public class WorldRecorder : BaseUnityPlugin {
-    private ConfigEntry<double> configFramePeriod;
-    private ConfigEntry<string> configOutputDir;
-    private ConfigEntry<KeyboardShortcut> configToggleKey;
-    private ConfigEntry<bool> configUseEncoder;
-    private ConfigEntry<uint> configEncoderFPS;
-    private ConfigEntry<string> configEncoderOutputContainer;
-    private ConfigEntry<string> configEncoderArgs;
-    private ConfigEntry<KeyboardShortcut> configForceCreateFrame;
-    private ConfigEntry<bool> configAsyncEncoding;
-    private ConfigEntry<CellRenderer.LightingMode> configLightingMode;
-    private ConfigEntry<KeyboardShortcut> configScreenshotWorld;
-    private ConfigEntry<KeyboardShortcut> configOpenOutputDir;
+    private ConfigEntry<double> configFramePeriod = null!;
+    private ConfigEntry<string> configOutputDir = null!;
+    private ConfigEntry<KeyboardShortcut> configToggleKey = null!;
+    private ConfigEntry<bool> configUseEncoder = null!;
+    private ConfigEntry<uint> configEncoderFPS = null!;
+    private ConfigEntry<string> configEncoderOutputContainer = null!;
+    private ConfigEntry<string> configEncoderArgs = null!;
+    private ConfigEntry<KeyboardShortcut> configForceCreateFrame = null!;
+    private ConfigEntry<bool> configAsyncEncoding = null!;
+    private ConfigEntry<CellRenderer.LightingMode> configLightingMode = null!;
+    private ConfigEntry<KeyboardShortcut> configScreenshotWorld = null!;
+    private ConfigEntry<KeyboardShortcut> configOpenOutputDir = null!;
 
     private bool _isRecording = false;
 
-    private string _localOutputDir;
+    private string _localOutputDir = null!;
     private uint _currentFrameIndex = 0;
 
-    private Process ffmpegProcess;
+    private Process? ffmpegProcess;
 
     private double _lastScreenshotTime = double.MinValue;
     private CCell[,] _worldCellsCopy = { { } };
-    private SingleThreadedWorker _worker;
+    private SingleThreadedWorker _worker = null!;
 
     private byte[] _frameBuffer = [];
 

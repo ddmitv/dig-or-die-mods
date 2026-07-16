@@ -7,8 +7,8 @@ using System.Reflection.Emit;
 using DODModAPI;
 
 internal static class InputSeedPatch {
-    private static CGuiOptionInput multiGuiSeed = null;
-    private static CGuiOptionInput singleGuiSeed = null;
+    private static CGuiOptionInput multiGuiSeed = null!;
+    private static CGuiOptionInput singleGuiSeed = null!;
 
     [HarmonyPatch(typeof(SScreenChooseMultiOptions), nameof(SScreenChooseMultiOptions.OnInit))]
     [HarmonyPostfix]
@@ -116,7 +116,7 @@ internal static class InputSeedPatch {
 [BepInPlugin("settable-seed", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 [BepInDependency(DODModAPIPlugin.GUID)]
 public class SettableSeed : BaseUnityPlugin {
-    private static ConfigEntry<int> configMaxSeed = null;
+    private static ConfigEntry<int> configMaxSeed = null!;
 
     public static int? SeedFromString(string str) {
         if (str.Length == 0) {

@@ -27,7 +27,7 @@ public static class CommandManager {
     private static Regex? _splitCmdArgsRegex = null;
 
     public delegate void CommandAction(CommandArgs args, CPlayer playerSender);
-    public delegate List<string> CommandCompletions(int argIndex);
+    public delegate List<string>? CommandCompletions(int argIndex);
     public delegate bool ChatPreprocessor(ref string text);
 
     private struct CommandEntry {
@@ -191,7 +191,7 @@ public static class CommandManager {
             }
             int argIndex = Math.Max(0, commandAndArgs.Length + (char.IsWhiteSpace(input[input.Length - 1]) ? 1 : 0) - 2);
 
-            List<string> completions = cmdInfo.tabCompleter(argIndex);
+            List<string>? completions = cmdInfo.tabCompleter(argIndex);
             if (completions is null || completions.Count == 0) {
                 __result = input;
                 return false;

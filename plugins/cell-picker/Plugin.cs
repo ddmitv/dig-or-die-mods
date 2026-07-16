@@ -8,20 +8,24 @@ internal static class PickCellPatch {
         CItemCell mouseCellContent = SGame.MouseCell.GetContent();
         if (mouseCellContent is null) {
             CItem_Wall backwallItem = SGame.MouseCell.GetBackwall();
-            if (backwallItem is null) { return; }
+            if (backwallItem is null) {
+                return;
+            }
             mouseCellContent = backwallItem;
         }
 
         var inventory = SItems.GetMyInventory();
         var stack = inventory?.GetStack(mouseCellContent);
-        if (CellPicker.configIgnoreEmptyItem.Value && stack is null) { return; }
+        if (inventory is null || (CellPicker.configIgnoreEmptyItem.Value && stack is null)) {
+            return;
+        }
 
         inventory.ItemSelected = stack;
     }
     private static void PickElectricWire() {
         var inventory = SItems.GetMyInventory();
         var stack = inventory?.GetStack(GItems.electricWire);
-        if (stack is null) { return; }
+        if (inventory is null || stack is null) { return; }
 
         inventory.ItemSelected = stack;
     }
@@ -47,10 +51,10 @@ internal static class PickCellPatch {
 [BepInPlugin("cell-picker", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 [BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class CellPicker : BaseUnityPlugin {
-    public static SInputs.KeyBinding pickCell = null;
-    public static ConfigEntry<bool> configIgnoreEmptyItem = null;
-    public static ConfigEntry<KeyboardShortcut> configPickWire = null;
-    public static ConfigEntry<KeyboardShortcut> configClearSelectedItem = null;
+    public static SInputs.KeyBinding pickCell = null!;
+    public static ConfigEntry<bool> configIgnoreEmptyItem = null!;
+    public static ConfigEntry<KeyboardShortcut> configPickWire = null!;
+    public static ConfigEntry<KeyboardShortcut> configClearSelectedItem = null!;
 
     private void Start() {
         configIgnoreEmptyItem = Config.Bind<bool>("General", "IgnoreEmptyItem", defaultValue: true);

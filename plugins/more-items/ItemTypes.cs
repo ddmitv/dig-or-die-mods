@@ -51,7 +51,7 @@ internal static class ItemHelpers {
 }
 
 public sealed class ExtCItem_Collector : CItem_Defense {
-    public ExtCItem_Collector(CTile tile, CTile tileIcon, ushort hpMax, uint mainColor, float rangeDetection, float angleMin, float angleMax, CAttackDesc attack, CTile tileUnit)
+    public ExtCItem_Collector(CTile? tile, CTile? tileIcon, ushort hpMax, uint mainColor, float rangeDetection, float angleMin, float angleMax, CAttackDesc attack, CTile tileUnit)
         : base(tile, tileIcon, hpMax, mainColor, rangeDetection, angleMin, angleMax, attack, tileUnit) {
         m_attack.m_damage = 0;
     }
@@ -60,7 +60,7 @@ public sealed class ExtCItem_Collector : CItem_Defense {
     public bool isBasaltCollector = false;
 }
 public sealed class ExtCItem_Explosive : CItem_Defense {
-    public ExtCItem_Explosive(CTile tile, CTile tileIcon, ushort hpMax, uint mainColor, float rangeDetection, float angleMin, float angleMax, CAttackDesc attack, CTile tileUnit)
+    public ExtCItem_Explosive(CTile? tile, CTile? tileIcon, ushort hpMax, uint mainColor, float rangeDetection, float angleMin, float angleMax, CAttackDesc attack, CTile? tileUnit)
         : base(tile, tileIcon, hpMax, mainColor, rangeDetection, angleMin, angleMax, attack, tileUnit) { }
 
     public const float deltaTime = 0.1f;
@@ -250,13 +250,13 @@ public sealed class ExtCBulletDesc : ModBulletDesc {
 }
 
 public sealed class ExtCItem_IndestructibleMineral : CItem_Mineral {
-    public ExtCItem_IndestructibleMineral(CTile tile, CTile tileIcon, ushort hpMax, uint mainColor, CSurface surface, bool isReplacable = false)
+    public ExtCItem_IndestructibleMineral(CTile? tile, CTile? tileIcon, ushort hpMax, uint mainColor, CSurface surface, bool isReplacable = false)
         : base(tile, tileIcon, hpMax, mainColor, surface, isReplacable) { }
 }
 
 public sealed class ExtCItem_FertileMineralDirt : CItem_MineralDirt {
     public ExtCItem_FertileMineralDirt(
-        CTile tile, CTile tileIcon, ushort hpMax, uint mainColor, CSurface surface, CLifeConditions grassConditions = null
+        CTile? tile, CTile? tileIcon, ushort hpMax, uint mainColor, CSurface surface, CLifeConditions? grassConditions = null
     ) : base(null, null, hpMax, mainColor, surface, grassConditions) {
         this.m_tile = tile;
         this.m_tileIcon = tileIcon;
@@ -269,11 +269,11 @@ public sealed class ExtCItem_FertileMineralDirt : CItem_MineralDirt {
     }
 
     public float plantGrowChange;
-    public CItem_Mineral[] inheritedPlantsSupported = null;
+    public CItem_Mineral[] inheritedPlantsSupported = null!;
 }
 
 public sealed class ExtCItem_ConditionalMachineAutoBuilder : CItem_MachineAutoBuilder {
-    public ExtCItem_ConditionalMachineAutoBuilder(CTile tile, CTile tileIcon) : base(tile, tileIcon) { }
+    public ExtCItem_ConditionalMachineAutoBuilder(CTile? tile, CTile? tileIcon) : base(tile, tileIcon) { }
 
     public override void Init() {
         // skip creating a sprite for m_tileAlternative
@@ -283,10 +283,10 @@ public sealed class ExtCItem_ConditionalMachineAutoBuilder : CItem_MachineAutoBu
 
     public delegate bool CheckConditionFn(int x, int y);
 
-    public CheckConditionFn checkCondition = null;
+    public CheckConditionFn? checkCondition = null;
 }
 public sealed class ExtCItem_ConsumableWeapon : CItem_Weapon {
-    public ExtCItem_ConsumableWeapon(CTile tile, CTile tileIcon, float heatingPerShot, bool isAuto, CAttackDesc attackDesc)
+    public ExtCItem_ConsumableWeapon(CTile? tile, CTile? tileIcon, float heatingPerShot, bool isAuto, CAttackDesc attackDesc)
         : base(tile, tileIcon, heatingPerShot, isAuto, attackDesc) { }
 
     public override void Use_Local(CPlayer player, Vector2 worldPos, bool isShift) {
@@ -300,7 +300,7 @@ public sealed class ExtCItem_ConsumableWeapon : CItem_Weapon {
     }
 }
 public sealed class ExtCItem_JetpackDevice : CItem_Device {
-    public ExtCItem_JetpackDevice(CTile tile, CTile tileIcon, bool isInfinite = false)
+    public ExtCItem_JetpackDevice(CTile? tile, CTile? tileIcon, bool isInfinite = false)
         : base(tile, tileIcon, DODModAPI.DeviceGroupIds.jetpack, CItem_Device.Type.Passive, isInfinite ? 1f : 0f) { }
 
     public float jetpackEnergyUsageMultiplier = 0.19f;
@@ -309,8 +309,8 @@ public sealed class ExtCItem_JetpackDevice : CItem_Device {
 public sealed class ExtCItem_ImpactShield : CItem_Device {
     public static readonly string GroupId = "more-items_ImpactShield";
 
-    public ExtCItem_ImpactShield(CTile tile, CTile tileIcon, float customValue = 0f)
-        : base(tile, tileIcon, GroupId, CItem_Device.Type.Passive, customValue) { }
+    public ExtCItem_ImpactShield(CTile tile, float customValue = 0f)
+        : base(tile, null, GroupId, CItem_Device.Type.Passive, customValue) { }
 }
 public sealed class ExtCUnitWaterVaporizer : CUnit {
     private ExtCUnitWaterVaporizer(CDesc desc, Vector2 pos)
@@ -334,7 +334,7 @@ public sealed class ExtCUnitWaterVaporizer : CUnit {
     }
 }
 public sealed class ExtCItem_WaterVaporizer : CItem_Machine {
-    public ExtCItem_WaterVaporizer(CTile tile, CTile tileIcon, ushort hpMax, uint mainColor)
+    public ExtCItem_WaterVaporizer(CTile? tile, CTile? tileIcon, ushort hpMax, uint mainColor)
         : base(tile, tileIcon, hpMax, mainColor, CItemCell.Anchor.Bottom_Small) { }
 
     public float evaporationRate;
@@ -444,7 +444,7 @@ public sealed class ExtCItem_MetalDetector : CItem_Device {
     private static readonly Queue<int2> _bfsQueue = new();
 }
 public sealed class ExtDuoCAttackDesc : CAttackDesc {
-    public ExtDuoCAttackDesc(float range, int damage, int nbAttacks = 0, float cooldown = 0f, float knockbackOwn = 0f, float knockbackTarget = 0f, CBulletDesc projDesc = null, string sound = null)
+    public ExtDuoCAttackDesc(float range, int damage, int nbAttacks = 0, float cooldown = 0f, float knockbackOwn = 0f, float knockbackTarget = 0f, CBulletDesc? projDesc = null, string? sound = null)
         : base(range, damage, nbAttacks, cooldown, knockbackOwn, knockbackTarget, projDesc, sound) { }
 
 }

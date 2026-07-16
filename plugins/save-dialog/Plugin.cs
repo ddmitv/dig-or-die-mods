@@ -4,8 +4,8 @@ using System.IO;
 
 [BepInPlugin("save-dialog", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 public class SaveDialog : BaseUnityPlugin {
-    private static CGuiButton btSaveLoadDialog;
-    private static string getSaveFolderReturnValue = null;
+    private static CGuiButton btSaveLoadDialog = null!;
+    private static string? getSaveFolderReturnValue = null;
 
     private const int SaveLoadDialogYOffset = 40;
     private const string SaveToTxt = "SAVE TO";
@@ -43,7 +43,7 @@ public class SaveDialog : BaseUnityPlugin {
     private static void SScreenSave_OnUpdate(SScreenSave __instance) {
         if (__instance.m_isSaveMode) {
             if (btSaveLoadDialog.IsClicked()) {
-                string path = FileDialogHelper.ShowSaveDialog(
+                string? path = FileDialogHelper.ShowSaveDialog(
                     title: "Save as", filter: "*.save", initialDir: SOutgame.GetSaveFolder(),
                     defaultExt: "save"
                 );
@@ -54,7 +54,7 @@ public class SaveDialog : BaseUnityPlugin {
             }
         } else {
             if (btSaveLoadDialog.IsClicked()) {
-                string path = FileDialogHelper.ShowOpenDialog(
+                string? path = FileDialogHelper.ShowOpenDialog(
                     title: "Select save file", filter: "*.save", initialDir: SOutgame.GetSaveFolder()
                 );
                 if (!string.IsNullOrEmpty(path)) {

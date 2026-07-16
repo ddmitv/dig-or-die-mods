@@ -318,12 +318,12 @@ internal static class OnEndOfNightPatch {
 [BepInPlugin("ultra-hardcore", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 [BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class UltraHardcorePlugin : BaseUnityPlugin {
-    public static ConfigEntry<float> configPlayerHpMax;
-    public static ConfigEntry<bool> configPermanentMist;
-    public static ConfigEntry<bool> configPermanentAcidWater;
-    public static ConfigEntry<uint> configIngredientMultiplier;
-    public static ConfigEntry<float> configMonsterDamageMultPerNight;
-    public static ConfigEntry<float> configMonsterHpMultPerNight;
+    public static ConfigEntry<float> configPlayerHpMax = null!;
+    public static ConfigEntry<bool> configPermanentMist = null!;
+    public static ConfigEntry<bool> configPermanentAcidWater = null!;
+    public static ConfigEntry<uint> configIngredientMultiplier = null!;
+    public static ConfigEntry<float> configMonsterDamageMultPerNight = null!;
+    public static ConfigEntry<float> configMonsterHpMultPerNight = null!;
 
     private void Start() {
         configPlayerHpMax = Config.Bind<float>(

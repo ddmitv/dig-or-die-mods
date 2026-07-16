@@ -9,7 +9,7 @@ using DODModAPI;
 [BepInPlugin("max-threads", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 [BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class CellPicker : BaseUnityPlugin {
-    private static ConfigEntry<uint> configOverrideThreadsNumber = null;
+    private static ConfigEntry<uint> configOverrideThreadsNumber = null!;
 
     private void Awake() {
         configOverrideThreadsNumber = Config.Bind<uint>(

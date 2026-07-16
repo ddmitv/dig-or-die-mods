@@ -11,8 +11,8 @@ using System.Reflection.Emit;
 [BepInPlugin("player-name-changer", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 [BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class PlayerNameChanger : BaseUnityPlugin {
-    private static ConfigEntry<string> configPlayerName = null;
-    private static ConfigEntry<bool> configEnable = null;
+    private static ConfigEntry<string> configPlayerName = null!;
+    private static ConfigEntry<bool> configEnable = null!;
 
     private static void UpdatePlayerName() {
         if (SOutgame.Params is not null) {

@@ -833,7 +833,7 @@ public static class CustomItems {
     public static readonly ModItem impactShieldMk1 = new(codeName: "impactShieldMk1",
         name: "Impact Shield MK1",
         description: "Kinetic dampener reduces fall and collision damage by 25%. Automatically activates upon high-velocity impacts with terrain or structures.",
-        item: new ExtCItem_ImpactShield(tile: Textures.impactShieldMk1, tileIcon: null,
+        item: new ExtCItem_ImpactShield(tile: Textures.impactShieldMk1,
             customValue: 0.25f
         ),
         recipe: new(groupId: "MK III") {
@@ -845,7 +845,7 @@ public static class CustomItems {
     public static readonly ModItem impactShieldMk2 = new(codeName: "impactShieldMk2",
         name: "Impact Shield MK2",
         description: "Enhanced stabilizer absorbs 50% of fall/collision damage. Reinforced field emitter prevents overload from repeated hard landings.",
-        item: new ExtCItem_ImpactShield(tile: Textures.impactShieldMk2, tileIcon: null,
+        item: new ExtCItem_ImpactShield(tile: Textures.impactShieldMk2,
             customValue: 0.5f
         ),
         recipe: new(groupId: "MK IV", isUpgrade: true) {

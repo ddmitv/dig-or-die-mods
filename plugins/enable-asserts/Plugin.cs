@@ -23,8 +23,8 @@ internal static class AssertPatch {
 
 [BepInPlugin("enable-asserts", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 public class EnableAsserts : BaseUnityPlugin {
-    public static ManualLogSource Log = null;
-    public static ConfigEntry<bool> configIsFatal = null;
+    public static ManualLogSource Log = null!;
+    public static ConfigEntry<bool> configIsFatal = null!;
 
     public static void AssertFail(string message) {
         var stacktrace = new System.Diagnostics.StackTrace(3, true);

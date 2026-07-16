@@ -65,7 +65,7 @@ internal static class DebugDrawLinePatch {
     }
 
     public class DebugLineRenderer : MonoBehaviour {
-        private Material _lineMaterial;
+        private Material _lineMaterial = null!;
 
         private void Start() {
             _lineMaterial = new Material(Shader.Find("Hidden/Internal-Colored")) {

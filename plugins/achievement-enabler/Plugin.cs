@@ -41,9 +41,9 @@ internal static class InCustomModePatch {
 [BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public class AchievementEnabler : BaseUnityPlugin
 {
-    private static ConfigEntry<bool> configInMultiplayer = null;
-    private static ConfigEntry<bool> configAfterCheats = null;
-    private static ConfigEntry<bool> configInPostGameAlways = null;
+    private static ConfigEntry<bool> configInMultiplayer = null!;
+    private static ConfigEntry<bool> configAfterCheats = null!;
+    private static ConfigEntry<bool> configInPostGameAlways = null!;
 
     private void Awake() {
         var configEnabled = Config.Bind<bool>(
