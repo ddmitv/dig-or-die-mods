@@ -1,6 +1,7 @@
 /*
 
 !AssetPacker
+!dodmodapi.csproj
 !.gitignore
 !AudioManager.cs
 !CodeCursor.cs
@@ -20,4 +21,4 @@
 !SpriteManager.cs
 !SurfaceManager.cs
 !UnitManager.cs
-WeakTable.cs
+!WeakTable.cs

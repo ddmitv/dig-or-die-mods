@@ -1,0 +1,30 @@
+<Project>
+  <PropertyGroup>
+    <_DODModAPIAsserPacker_TaskFolder Condition="'$(MSBuildRuntimeType)' == 'Core'">netstandard2.1</_DODModAPIAsserPacker_TaskFolder>
+    <_DODModAPIAsserPacker_TaskFolder Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_DODModAPIAsserPacker_TaskFolder>
+    <_DODModAPIAsserPacker_TaskAssembly>$(MSBuildThisFileDirectory)..\tasks\$(_DODModAPIAsserPacker_TaskFolder)\DODModAPI.AssetPacker.dll</_DODModAPIAsserPacker_TaskAssembly>
+  </PropertyGroup>
+
+  <UsingTask TaskName="DODModAPI.AssetPacker.PackSpriteSheet"
+             AssemblyFile="$(_DODModAPIAsserPacker_TaskAssembly)" />
+
+  <Target Name="PackSprites" BeforeTargets="BeforeBuild;CoreCompile">
+    <PackSpriteSheet
+      ConfigFiles="@(ModSprites)"
+      IntermediateOutputPath="$(IntermediateOutputPath)"
+      AtlasClass="%(ModSprites.AtlasName)">
+      <Output TaskParameter="GeneratedCompile" ItemName="Compile" />
+      <Output TaskParameter="GeneratedEmbeddedResource" ItemName="EmbeddedResource" />
+    </PackSpriteSheet>
+  </Target>
+
+  <ItemDefinitionGroup>
+    <ModSprites Visible="true">
+      <AtlasName />
+    </ModSprites>
+  </ItemDefinitionGroup>
+
+  <ItemGroup>
+    <AvailableItemName Include="ModSprites" />
+  </ItemGroup>
+</Project>

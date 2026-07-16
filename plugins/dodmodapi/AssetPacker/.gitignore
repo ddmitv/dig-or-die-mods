@@ -1,5 +1,6 @@
 /*
 
 !.gitignore
+!AssetPacker.csproj
 !PackSpritesheet.cs
-!build/DigOrDie.DODModAPI.AssetPacker.props
+!build/

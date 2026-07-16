@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../Plugin.Common.props" />
+
+  <PropertyGroup>
+    <AssemblyName>dodmodapi</AssemblyName>
+    <Product>DODModAPI</Product>
+    <PackageId>DigOrDie.DODModAPI</PackageId>
+    <RootNamespace>DODModAPI</RootNamespace>
+    <Version>1.0.0</Version>
+
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="AssetPacker/**/*" />
+  </ItemGroup>
+  <Import Project="../Plugin.Common.targets" />
+</Project>
