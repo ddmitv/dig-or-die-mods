@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <_DODModAPIAsserPacker_TaskFolder Condition="'$(MSBuildRuntimeType)' == 'Core'">netstandard2.1</_DODModAPIAsserPacker_TaskFolder>
+    <_DODModAPIAsserPacker_TaskFolder Condition="'$(MSBuildRuntimeType)' == 'Core'">netstandard2.0</_DODModAPIAsserPacker_TaskFolder>
     <_DODModAPIAsserPacker_TaskFolder Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_DODModAPIAsserPacker_TaskFolder>
     <_DODModAPIAsserPacker_TaskAssembly>$(MSBuildThisFileDirectory)..\tasks\$(_DODModAPIAsserPacker_TaskFolder)\DODModAPI.AssetPacker.dll</_DODModAPIAsserPacker_TaskAssembly>
   </PropertyGroup>

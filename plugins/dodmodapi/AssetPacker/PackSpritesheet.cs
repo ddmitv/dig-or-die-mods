@@ -11,25 +11,6 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
-// the packing algorithm:
-// [A_x] -> [A_x]
-// [A_x], [A_y] -> [A_xy]
-// [A_x, B], [A_y] -> [A_xy, B]
-// [A_x, B], [B_y] -> [A_x, B_y]
-// [A_x, B, C], [C_y] -> [A_x, B, C_y]
-// [A_x, B], [A_x] -> [A_x, B]
-// [A_x, B], [A_x, B, C] -> [A_x, B, C]
-// [A_x, B], [A_x, C] -> [A_x, B], [A_x, C]
-// [A_x, B], [B_y, C] -> [A_x, B_y, C]
-// [A_x, B, C], [B_y, C] -> [A_x, B_y, C]
-
-// [Surface]
-// Syntax: SURFACE {name} material={img} tops={img}
-// surface tops image must be either 128x128 or 128x64
-// the high part (128x64+0+0) is a main surface top
-// the lower part (128x64+0+64), if exists, is an alt surface top
-// Embedded output: surface's material as a seperate image + a single altas of all combined surface tops
-
 namespace DODModAPI.AssetPacker {
     public sealed class PackSpriteSheet : Task {
         [Required] public ITaskItem[] ConfigFiles { get; set; } = [];
@@ -836,7 +817,7 @@ retryWithLargerAtlas:
                     currentX = 0;
                     shelfHeight = 0;
                 }
-                if (currentY + sprite.height > currentAtlasSize) {
+                if (sprite.width > currentAtlasSize || currentY + sprite.height > currentAtlasSize) {
                     // sprite doesn't fit inside atlas
                     currentAtlasSize *= 2;
                     goto retryWithLargerAtlas;
@@ -949,9 +930,9 @@ retryWithLargerAtlas:
         // each color component (see SMisc.GetColor function)
         // pre-compensates color bytes so the incorrect color convertion logic produces accurate UnityEngine.Color color
         private static uint PackColorToUint(Rgba32 color) {
-            byte r = (byte)((color.R * 256 + 127) / 255);
-            byte g = (byte)((color.G * 256 + 127) / 255);
-            byte b = (byte)((color.B * 256 + 127) / 255);
+            byte r = (byte)Math.Min(255, (color.R * 256 + 127) / 255);
+            byte g = (byte)Math.Min(255, (color.G * 256 + 127) / 255);
+            byte b = (byte)Math.Min(255, (color.B * 256 + 127) / 255);
             return (uint)((r << 16) | (g << 8) | b);
         }
 
