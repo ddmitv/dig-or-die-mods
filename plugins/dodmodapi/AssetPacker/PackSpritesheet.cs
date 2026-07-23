@@ -16,6 +16,7 @@ namespace DODModAPI.AssetPacker {
         [Required] public ITaskItem[] ConfigFiles { get; set; } = [];
         [Required] public string IntermediateOutputPath { get; set; } = "";
         [Required] public string AtlasClass { get; set; } = "";
+        [Required] public string ModId { get; set; } = "";
 
         [Output] public ITaskItem[] GeneratedCompile { get; set; } = [];
         [Output] public ITaskItem[] GeneratedEmbeddedResource { get; set; } = [];
@@ -33,7 +34,7 @@ namespace DODModAPI.AssetPacker {
 
         private readonly record struct AssetProcessorContext(
             string AtlasClass,
-            string AtlasClassPrefix,
+            string Prefix,
             string IntermediateOutputPath,
             List<ITaskItem> EmbeddedResources,
             TaskLoggingHelper Log
@@ -92,8 +93,8 @@ namespace DODModAPI.AssetPacker {
             public int startY;
 
             public struct Animation {
-                public string name;
-                public List<string> paths;
+                public required string name;
+                public required List<string> paths;
             }
         }
         private struct UnitAtlas {
@@ -130,8 +131,14 @@ namespace DODModAPI.AssetPacker {
                 return false;
             }
 
-            Directory.CreateDirectory(IntermediateOutputPath);
-            string atlasClassPrefix = SanitizeIdentifier(AtlasClass.Replace('.', '_'));
+            try {
+                Directory.CreateDirectory(IntermediateOutputPath);
+            } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+                Log.LogError($"AssetPacker: Cannot create output directory \"{IntermediateOutputPath}\": {ex.Message}");
+                return false;
+            }
+
+            string uniqPrefix = $"{SanitizeIdentifier(ModId)}_{SanitizeIdentifier(AtlasClass.Replace('.', '_'))}";
 
             var (classNs, className) = SplitFullTypeName(AtlasClass);
             var codePath = Path.Combine(IntermediateOutputPath, $"{AtlasClass}.g.cs");
@@ -146,7 +153,7 @@ namespace DODModAPI.AssetPacker {
             }
             sb.AppendLine($"internal static class {className} {{");
 
-            AssetProcessorContext processorContext = new(AtlasClass, atlasClassPrefix, IntermediateOutputPath, [], Log);
+            AssetProcessorContext processorContext = new(AtlasClass, uniqPrefix, IntermediateOutputPath, [], Log);
 
             try {
                 foreach (var assetProcessor in assetProcessors) {
@@ -172,11 +179,11 @@ namespace DODModAPI.AssetPacker {
         private sealed class ItemAssetProcessor : IAssetProcessor {
             private readonly List<TileBlock> tileBlocks = [];
 
-            public string ConfigDirective => "ITEM";
+            public string ConfigDirective => "TILE";
 
             public void Parse(List<ConfigTokenizer.Token> tokens, string baseDir, int lineNumber) {
-                if (tokens.Count <= 1 || tokens[1] is not ConfigTokenizer.StringToken { Value: var itemName }) {
-                    throw new ConfigException($"Expected an item name string after ITEM directive (line {lineNumber})");
+                if (tokens.Count <= 1 || tokens[1] is not ConfigTokenizer.StringToken { Value: var tileName }) {
+                    throw new ConfigException($"Expected an tile name string after TILE directive (line {lineNumber})");
                 }
 
                 if (tokens.Count == 3 && tokens[2] is ConfigTokenizer.StringToken { Value: var mainTokenFile }) {
@@ -185,27 +192,27 @@ namespace DODModAPI.AssetPacker {
                     foreach (var rawFile in mainTokenFile.Split('+')) {
                         var file = rawFile.Trim();
                         if (string.IsNullOrWhiteSpace(file)) {
-                            throw new ConfigException($"Invalid or empty file path found in ITEM '{itemName}' main texture (line {lineNumber})");
+                            throw new ConfigException($"Invalid or empty file path found in TILE '{tileName}' main texture (line {lineNumber})");
                         }
 
                         var fullPath = Path.Combine(baseDir, file);
                         if (!File.Exists(fullPath)) {
-                            throw new ConfigException($"Image file not found: '{fullPath}' for ITEM '{itemName}' main texture (line {lineNumber})");
+                            throw new ConfigException($"Image file not found: '{fullPath}' for TILE '{tileName}' main texture (line {lineNumber})");
                         }
                         tiles.Add(new() { path = fullPath, properties = [] });
                     }
                     if (tiles.Count == 0) {
-                        throw new ConfigException($"ITEM '{itemName}' tiles must have at least one valid tile (line {lineNumber})");
+                        throw new ConfigException($"TILE '{tileName}' tiles must have at least one valid tile (line {lineNumber})");
                     }
 
-                    tiles[0].properties.Add(itemName);
+                    tiles[0].properties.Add(tileName);
                     tileBlocks.Add(new() { tiles = tiles });
                     return;
                 }
 
                 for (int i = 2; i < tokens.Count; ++i) {
                     if (tokens[i] is not ConfigTokenizer.KeyValueToken { Key: var property, Value: var tokenFiles }) {
-                        throw new ConfigException($"Expected a key-value pair (e.g., property=filename.png) in ITEM '{itemName}', but found an invalid token (line {lineNumber})");
+                        throw new ConfigException($"Expected a key-value pair (e.g., property=filename.png) in TILE '{tileName}', but found an invalid token (line {lineNumber})");
                     }
 
                     var tiles = new List<Tile>();
@@ -213,19 +220,19 @@ namespace DODModAPI.AssetPacker {
                     foreach (var rawFile in tokenFiles.Split('+')) {
                         var file = rawFile.Trim();
                         if (string.IsNullOrWhiteSpace(file)) {
-                            throw new ConfigException($"Invalid or empty file path found in ITEM '{itemName}' property '{property}' (line {lineNumber})");
+                            throw new ConfigException($"Invalid or empty file path found in TILE '{tileName}' property '{property}' (line {lineNumber})");
                         }
 
                         var fullPath = Path.Combine(baseDir, file);
                         if (!File.Exists(fullPath)) {
-                            throw new ConfigException($"Image file not found: '{fullPath}' for ITEM '{itemName}' property '{property}' (line {lineNumber})");
+                            throw new ConfigException($"Image file not found: '{fullPath}' for TILE '{tileName}' property '{property}' (line {lineNumber})");
                         }
                         tiles.Add(new() { path = fullPath, properties = [] });
                     }
                     if (tiles.Count == 0) {
-                        throw new ConfigException($"ITEM '{itemName}' property '{property}' sprites must have at least one sprite (line {lineNumber})");
+                        throw new ConfigException($"TILE '{tileName}' property '{property}' sprites must have at least one sprite (line {lineNumber})");
                     }
-                    tiles[0].properties.Add($"{itemName}_{property}");
+                    tiles[0].properties.Add($"{tileName}_{property}");
 
                     tileBlocks.Add(new() { tiles = tiles });
                 }
@@ -245,7 +252,7 @@ namespace DODModAPI.AssetPacker {
                 foreach (var block in tileBlocks) {
                     for (int i = 0; i < block.tiles.Count; i++) {
                         var tile = block.tiles[i];
-                        using var img = Image.Load<Rgba32>(tile.path);
+                        using var img = LoadImage<Rgba32>(tile.path, "TILE sprite");
                         if (img.Width != 128 || img.Height != 128) {
                             throw new AssetProcessorException($"Sprite at \"{tile.path}\" with size {img.Width}x{img.Height} does not equal to 128x128");
                         }
@@ -258,15 +265,15 @@ namespace DODModAPI.AssetPacker {
                     }
                 }
 
-                var atlasLogicalName = $"{ctx.AtlasClassPrefix}_atlas";
+                var atlasLogicalName = $"{ctx.Prefix}_tile_spritesheet";
                 var atlasPath = Path.Combine(ctx.IntermediateOutputPath, Path.ChangeExtension(atlasLogicalName, ".png"));
-                atlas.SaveAsPng(atlasPath, PngEncoderSetting);
+                SaveImage(atlas, atlasPath, $"Atlas '{atlasLogicalName}'");
 
                 var atlasItem = new TaskItem(atlasPath);
                 atlasItem.SetMetadata("LogicalName", atlasLogicalName);
                 ctx.EmbeddedResources.Add(atlasItem);
 
-                codeBuilder.AppendLine($"    public const string ResourceName = \"{atlasLogicalName}\";");
+                codeBuilder.AppendLine($"    public const string TileSpritesheetResource = \"{atlasLogicalName}\";");
                 codeBuilder.AppendLine();
 
                 foreach (var block in tileBlocks) {
@@ -282,7 +289,7 @@ namespace DODModAPI.AssetPacker {
 
                 sw.Stop();
                 ctx.Log.LogMessage(MessageImportance.High,
-                    $"AssetPacker: {tileBlocks.Count} item tiles -> {atlasLogicalName} ({spritesheetSize.Pixels}x{spritesheetSize.Pixels}) (elapsed {FormatElapsedTime(sw.Elapsed)})"
+                    $"AssetPacker: {tileBlocks.Count} tiles -> {atlasLogicalName} ({spritesheetSize.Pixels}x{spritesheetSize.Pixels}) (elapsed {FormatElapsedTime(sw.Elapsed)})"
                 );
             }
         }
@@ -343,7 +350,7 @@ namespace DODModAPI.AssetPacker {
                 }
                 using var surfaceTopsAtlas = new Image<Rgba32>(surfaceTopsAtlasSize.Pixels, surfaceTopsAtlasSize.Pixels);
                 foreach (var surf in surfaces) {
-                    using var img = Image.Load<Rgba32>(surf.topPath);
+                    using var img = LoadImage<Rgba32>(surf.topPath, $"SURFACE '{surf.name}' top");
                     if ((img.Width != 128 || img.Height != 128) && (img.Width != 128 || img.Height != 64)) {
                         throw new AssetProcessorException($"SURFACE {surf.name} top image must be 128x128 or 128x64, but was {img.Width}x{img.Height}.");
                     }
@@ -351,22 +358,22 @@ namespace DODModAPI.AssetPacker {
                     surfaceTopsAtlas.Mutate(ctx => ctx.DrawImage(img, location, 1f));
 
                     var matItem = new TaskItem(surf.materialPath);
-                    matItem.SetMetadata("LogicalName", $"{ctx.AtlasClassPrefix}_{surf.name}_material");
+                    matItem.SetMetadata("LogicalName", $"{ctx.Prefix}_{surf.name}_material");
                     ctx.EmbeddedResources.Add(matItem);
                 }
 
-                string surfaceTopsLogicalName = $"{ctx.AtlasClassPrefix}_surface_tops";
+                string surfaceTopsLogicalName = $"{ctx.Prefix}_surface_tops";
                 var surfaceTopsAtlasPath = Path.Combine(ctx.IntermediateOutputPath, Path.ChangeExtension(surfaceTopsLogicalName, ".png"));
-                surfaceTopsAtlas.SaveAsPng(surfaceTopsAtlasPath, PngEncoderSetting);
+                SaveImage(surfaceTopsAtlas, surfaceTopsAtlasPath, $"Atlas '{surfaceTopsLogicalName}'");
 
                 var surfaceTopsAtlasItem = new TaskItem(surfaceTopsAtlasPath);
                 surfaceTopsAtlasItem.SetMetadata("LogicalName", surfaceTopsLogicalName);
                 ctx.EmbeddedResources.Add(surfaceTopsAtlasItem);
 
                 foreach (var surf in surfaces) {
-                    codeBuilder.AppendLine($"    public const string {surf.name}_surfaceMaterial = \"{ctx.AtlasClassPrefix}_{surf.name}_material\";");
+                    codeBuilder.AppendLine($"    public const string {surf.name}_surfaceMaterial = \"{ctx.Prefix}_{surf.name}_material\";");
                 }
-                codeBuilder.AppendLine($"    public const string SurfaceTops = \"{surfaceTopsLogicalName}\";");
+                codeBuilder.AppendLine($"    public const string SurfaceTopsResource = \"{surfaceTopsLogicalName}\";");
                 codeBuilder.AppendLine();
 
                 foreach (var surf in surfaces) {
@@ -413,15 +420,15 @@ namespace DODModAPI.AssetPacker {
 
                 using var atlas = new Image<Rgba32>(atlasSize, atlasSize);
                 foreach (SpriteDef sprite in sprites) {
-                    using var img = Image.Load<Rgba32>(sprite.path);
+                    using var img = LoadImage<Rgba32>(sprite.path, $"SPRITE '{sprite.name}'");
 
                     Point location = new(sprite.x, sprite.y);
                     atlas.Mutate(ctx => ctx.DrawImage(img, location, 1f));
                 }
 
-                string atlasLogicalName = $"{ctx.AtlasClassPrefix}_sprites";
+                string atlasLogicalName = $"{ctx.Prefix}_sprites_atlas";
                 var atlasPath = Path.Combine(ctx.IntermediateOutputPath, Path.ChangeExtension(atlasLogicalName, ".png"));
-                atlas.SaveAsPng(atlasPath, PngEncoderSetting);
+                SaveImage(atlas, atlasPath, $"Atlas '{atlasLogicalName}'");
 
                 var atlasItem = new TaskItem(atlasPath);
                 atlasItem.SetMetadata("LogicalName", atlasLogicalName);
@@ -526,7 +533,7 @@ namespace DODModAPI.AssetPacker {
                 if (unitAtlases.Count == 0) { return; }
 
                 foreach (var unitAtlas in unitAtlases) {
-                    var logicalName = $"{ctx.AtlasClassPrefix}_units_{unitAtlas.tileSize}";
+                    var logicalName = $"{ctx.Prefix}_units_{unitAtlas.tileSize}";
 
                     codeBuilder.AppendLine($"    public const string UnitsAtlasResource_{unitAtlas.tileSize} = \"{logicalName}\";");
 
@@ -539,7 +546,7 @@ namespace DODModAPI.AssetPacker {
 
                         foreach (var anim in unit.animations) {
                             foreach (var path in anim.paths) {
-                                using var animImg = Image.Load<Rgba32>(path);
+                                using var animImg = LoadImage<Rgba32>(path, $"UNIT '{unit.name}' animation '{anim.name}'");
                                 Point location = new(x * unitAtlas.tileSize, y * unitAtlas.tileSize);
                                 img.Mutate(ctx => ctx.DrawImage(animImg, location, 1f));
 
@@ -555,7 +562,7 @@ namespace DODModAPI.AssetPacker {
                             $" = new {CTilesListType}({unit.startX}, {unit.startY}, {unitAtlas.textureSize}, {unitAtlas.tileSize}, \"{logicalName}\", {animCount["stand"]}, {animCount["run"]}, {animCount["jump"]}, {animCount["fight"]}, {animCount["hurt"]}, {animCount["dead"]}, {animCount["standWall"]}, {animCount["runWall"]}, {animCount["fightWall"]}, {animCount["hurtWall"]});");
                     }
                     var atlasPath = Path.Combine(ctx.IntermediateOutputPath, Path.ChangeExtension(logicalName, ".png"));
-                    img.SaveAsPng(atlasPath, PngEncoderSetting);
+                    SaveImage(img, atlasPath, $"Atlas '{logicalName}'");
 
                     var atlasItem = new TaskItem(atlasPath);
                     atlasItem.SetMetadata("LogicalName", logicalName);
@@ -637,6 +644,8 @@ namespace DODModAPI.AssetPacker {
                 int i = 0;
                 while (i < input.Length) {
                     while (i < input.Length && char.IsWhiteSpace(input[i])) {
+                        if (input[i] == '#') { return tokens; }
+
                         i += 1;
                     }
 
@@ -646,6 +655,8 @@ namespace DODModAPI.AssetPacker {
 
                     while (i < input.Length) {
                         char c = input[i];
+                        if (c == '#') { return tokens; }
+
                         if (c == '"') {
                             inQuotes ^= true;
                             i += 1;
@@ -694,7 +705,16 @@ namespace DODModAPI.AssetPacker {
 
             var directiveMap = assetProcessors.ToDictionary(x => x.ConfigDirective);
 
-            foreach (var rawLine in File.ReadLines(configPath)) {
+            IEnumerable<string> lines;
+            try {
+                lines = File.ReadLines(configPath);
+            } catch (FileNotFoundException) {
+                throw new ConfigException($"Config file not found: \"{configPath}\"");
+            } catch (IOException ex) {
+                throw new ConfigException($"Cannot read config file \"{configPath}\": {ex.Message}");
+            }
+
+            foreach (var rawLine in lines) {
                 lineNumber += 1;
                 var line = rawLine.Trim();
                 if (line.Length == 0 || line.StartsWith("#")) { continue; }
@@ -871,6 +891,34 @@ retryWithLargerAtlas:
                 });
             }
             return unitAtlases;
+        }
+
+        private static Image<T> LoadImage<T>(string path, string context) where T : unmanaged, IPixel<T> {
+            try {
+                return Image.Load<T>(path);
+            } catch (UnknownImageFormatException ex) {
+                throw new AssetProcessorException(
+                    $"{context}: unsupported image format for \"{path}\". " +
+                    $"Ensure the file is a valid PNG/JPEG/BMP. ({ex.Message})");
+            } catch (InvalidImageContentException ex) {
+                throw new AssetProcessorException(
+                    $"{context}: image file is corrupt or truncated: \"{path}\". ({ex.Message})");
+            } catch (FileNotFoundException) {
+                throw new AssetProcessorException(
+                    $"{context}: image file not found: \"{path}\".");
+            } catch (IOException ex) {
+                throw new AssetProcessorException(
+                    $"{context}: I/O error reading image \"{path}\": {ex.Message}");
+            }
+        }
+
+        private static void SaveImage<T>(Image<T> img, string path, string context) where T : unmanaged, IPixel<T> {
+            try {
+                img.SaveAsPng(path, PngEncoderSetting);
+            } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+                throw new AssetProcessorException(
+                    $"{context}: failed to save image to \"{path}\": {ex.Message}");
+            }
         }
 
         private static string SanitizeIdentifier(string name) {

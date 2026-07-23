@@ -7,7 +7,7 @@
     
     <PackageId>DigOrDie.DODModAPI.AssetPacker</PackageId>
     <AssemblyName>DODModAPI.AssetPacker</AssemblyName>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>ddmitv</Authors>
     <Description>MSBuild task for generating C# bindings and optimized sprite atlases for DODModAPI</Description>
     <PackageTags>DigOrDie;Modding;GameModding;MSBuild</PackageTags>

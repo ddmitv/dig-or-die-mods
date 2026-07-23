@@ -12,7 +12,8 @@
     <PackSpriteSheet
       ConfigFiles="@(ModSprites)"
       IntermediateOutputPath="$(IntermediateOutputPath)"
-      AtlasClass="%(ModSprites.AtlasName)">
+      AtlasClass="%(ModSprites.AtlasName)"
+      ModId="$(MSBuildProjectName)">
       <Output TaskParameter="GeneratedCompile" ItemName="Compile" />
       <Output TaskParameter="GeneratedEmbeddedResource" ItemName="EmbeddedResource" />
     </PackSpriteSheet>
