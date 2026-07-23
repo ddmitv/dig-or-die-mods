@@ -289,6 +289,11 @@ public static class Misc {
         }
     }
 
+    public static T ShallowClone<T>(T source) where T : class {
+        var memberwiseCloneMethod = typeof(object).GetMethod("MemberwiseClone", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        return (T)memberwiseCloneMethod.Invoke(source, null);
+    }
+
     public static RectInt MakeCenterRectInt(int2 center, int range) => new(center.x - range, center.y - range, range << 1, range << 1);
     public static RectInt MakeCenterRectInt(int x, int y, int range) => new(x - range, y - range, range << 1, range << 1);
     public static RectInt MakeMinMaxRectInt(int xMin, int yMin, int xMax, int yMax) => new(xMin, yMin, xMax - xMin, yMax - yMin);
