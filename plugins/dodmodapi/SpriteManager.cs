@@ -36,13 +36,15 @@ public sealed class ModTile : CTile {
 }
 
 public static class SpriteManager {
-    private static readonly Dictionary<string, Texture2D> _textures = new();
+    private static readonly Dictionary<string, TextureEntry> _textures = new();
+
+    private readonly record struct TextureEntry(Assembly Assembly, string ResourceName);
 
     public static void RegisterTexture(string resourceName) {
-        _textures.Add(resourceName, LoadTexture(Assembly.GetCallingAssembly(), resourceName));
+        _textures.Add(resourceName, new(Assembly.GetCallingAssembly(), resourceName));
     }
     public static void RegisterTexture(Assembly assembly, string resourceName) {
-        _textures.Add(resourceName, LoadTexture(assembly, resourceName));
+        _textures.Add(resourceName, new(assembly, resourceName));
     }
 
     public static Texture2D LoadTexture(Assembly assembly, string resourceName) {
@@ -75,7 +77,8 @@ public static class SpriteManager {
         [HarmonyPrefix]
         [HarmonyPatch(typeof(CAssetTexture), nameof(CAssetTexture.Texture), MethodType.Getter)]
         private static bool CAssetTexture_get_Texture(CAssetTexture __instance, ref Texture __result) {
-            if (_textures.TryGetValue(__instance.m_filename, out Texture2D texture)) {
+            if (_textures.TryGetValue(__instance.m_filename, out TextureEntry entry)) {
+                var texture = LoadTexture(entry.Assembly, entry.ResourceName);
                 __instance.m_asset = texture;
                 __instance.m_lastUseTime = Time.realtimeSinceStartup;
                 __result = texture;
