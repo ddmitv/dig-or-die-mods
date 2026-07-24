@@ -63,6 +63,9 @@ public static class ItemManager {
     private static bool _itemsLocked = false;
     private static bool _recipeGroupsLocked = false;
 
+    public static event Action? OnPostModItemsInit;
+    public static event Action? OnPostItemsInit;
+
     public static void RegisterItem(ModItem modItem) {
         LateRegistrationException.ThrowIfLocked(_itemsLocked);
         _items.Add(modItem);
@@ -127,6 +130,8 @@ public static class ItemManager {
         [HarmonyPostfix]
         [HarmonyPatch(typeof(SItems), nameof(SItems.OnInit))]
         private static void SItems_OnInit() {
+            OnPostItemsInit?.Invoke();
+
             foreach (var modItem in _items) {
                 CItem item = modItem.item;
                 item.m_id = (ushort)GItems.Items.Count;
@@ -141,6 +146,8 @@ public static class ItemManager {
                 // (don't really need to do this since m_name and m_desc are inited at this point)
                 SLoc.Inst.m_dico.Add(item.m_locTextId, new SLoc.CSentence(item.m_locTextId, $"{item.m_name}|{item.m_desc}"));
             }
+            OnPostModItemsInit?.Invoke();
+
             _itemsLocked = true;
             DODModAPIPlugin.Log.LogInfo($"Added {_items.Count} custom items");
         }
