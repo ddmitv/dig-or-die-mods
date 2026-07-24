@@ -9,7 +9,7 @@
   
   <ItemGroup>
     <ProjectReference Include="../dodmodapi/dodmodapi.csproj" Private="false" />
-    <PackageReference Include="DigOrDie.DODModAPI.AssetPacker" Version="0.1.0-re.*" />
+    <PackageReference Include="DigOrDie.DODModAPI.AssetPacker" Version="0.1.1" />
   </ItemGroup>
 
   <ItemGroup>

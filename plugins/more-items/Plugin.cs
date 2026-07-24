@@ -91,9 +91,9 @@ public class MoreItemsPlugin : BaseUnityPlugin {
         );
         if (!configEnable.Value) { return; }
 
-        DODModAPI.SpriteManager.RegisterTexture(Textures.ResourceName);
+        DODModAPI.SpriteManager.RegisterTexture(Textures.TileSpritesheetResource);
         DODModAPI.SpriteManager.RegisterTexture(Textures.fertileDirt_surfaceMaterial);
-        DODModAPI.SpriteManager.RegisterTexture(Textures.SurfaceTops);
+        DODModAPI.SpriteManager.RegisterTexture(Textures.SurfaceTopsResource);
         DODModAPI.SpriteManager.RegisterTexture(Textures.SpritesAtlasResource);
 
         DODModAPI.ItemManager.RegisterAllItems(typeof(CustomItems));
