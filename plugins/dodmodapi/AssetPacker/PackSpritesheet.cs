@@ -332,8 +332,8 @@ namespace DODModAPI.AssetPacker {
                     throw new ConfigException($"Top image file not found: \"{fullTopPath}\" for SURFACE '{surfaceName}' (line {lineNumber})");
                 }
 
-                surfaces.Add(new SurfaceDef() {
-                    name = SanitizeIdentifier(surfaceName),
+                surfaces.Add(new SurfaceDef {
+                    name = surfaceName,
                     materialPath = fullMaterialPath,
                     topPath = fullTopPath,
                 });
@@ -371,7 +371,8 @@ namespace DODModAPI.AssetPacker {
                 ctx.EmbeddedResources.Add(surfaceTopsAtlasItem);
 
                 foreach (var surf in surfaces) {
-                    codeBuilder.AppendLine($"    public const string {surf.name}_surfaceMaterial = \"{ctx.Prefix}_{surf.name}_material\";");
+                    var surfId = SanitizeIdentifier(surf.name);
+                    codeBuilder.AppendLine($"    public const string {surfId}_surfaceMaterial = \"{ctx.Prefix}_{surfId}_material\";");
                 }
                 codeBuilder.AppendLine($"    public const string SurfaceTopsResource = \"{surfaceTopsLogicalName}\";");
                 codeBuilder.AppendLine();
@@ -572,7 +573,9 @@ namespace DODModAPI.AssetPacker {
                 }
 
                 sw.Stop();
-                ctx.Log.LogMessage(MessageImportance.High, $"AssetPacker: {units.Count} units -> {unitAtlases.Count} unit atlases (elapsed {FormatElapsedTime(sw.Elapsed)})");
+                ctx.Log.LogMessage(MessageImportance.High,
+                    $"AssetPacker: {units.Count} units -> {unitAtlases.Count} unit atlases (elapsed {FormatElapsedTime(sw.Elapsed)})"
+                );
             }
         }
 
@@ -897,18 +900,13 @@ retryWithLargerAtlas:
             try {
                 return Image.Load<T>(path);
             } catch (UnknownImageFormatException ex) {
-                throw new AssetProcessorException(
-                    $"{context}: unsupported image format for \"{path}\". " +
-                    $"Ensure the file is a valid PNG/JPEG/BMP. ({ex.Message})");
+                throw new AssetProcessorException($"{context}: unsupported image format for \"{path}\". Ensure the file is a valid PNG/JPEG/BMP. ({ex.Message})");
             } catch (InvalidImageContentException ex) {
-                throw new AssetProcessorException(
-                    $"{context}: image file is corrupt or truncated: \"{path}\". ({ex.Message})");
+                throw new AssetProcessorException($"{context}: image file is corrupt or truncated: \"{path}\". ({ex.Message})");
             } catch (FileNotFoundException) {
-                throw new AssetProcessorException(
-                    $"{context}: image file not found: \"{path}\".");
+                throw new AssetProcessorException($"{context}: image file not found: \"{path}\".");
             } catch (IOException ex) {
-                throw new AssetProcessorException(
-                    $"{context}: I/O error reading image \"{path}\": {ex.Message}");
+                throw new AssetProcessorException($"{context}: I/O error reading image \"{path}\": {ex.Message}");
             }
         }
 
