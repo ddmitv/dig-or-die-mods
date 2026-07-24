@@ -20,6 +20,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            max-width: 100%;
         }
 
         :root {
@@ -42,6 +43,12 @@
             --info: #60a5fa;
         }
 
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+            max-width: 100%;
+        }
+
         body {
             font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: var(--bg-primary);
@@ -54,6 +61,8 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 1.5rem;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .meta-icon {
@@ -298,6 +307,8 @@
             display: block;
             background: transparent;
             padding: 0;
+            white-space: pre-wrap;
+            max-width: 100%;
         }
 
         .copy-btn {
@@ -488,8 +499,15 @@
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.78rem;
             color: var(--text-secondary);
-            white-space: pre;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
             overflow-x: auto;
+            max-width: 100%;
+        }
+        .config-block.exception-log {
+            color: var(--danger);
+            border-color: rgba(248, 113, 113, 0.3);
+            background: rgba(248, 113, 113, 0.05);
         }
 
         .config-change {
@@ -543,6 +561,7 @@
             font-size: 0.78rem;
             line-height: 1.5;
             overflow-x: auto;
+            max-width: 100%;
         }
 
         .ft-node {
@@ -550,7 +569,8 @@
             align-items: center;
             gap: 0.45rem;
             padding: 0.28rem 0;
-            white-space: nowrap;
+            white-space: normal;
+            word-break: break-word;
         }
 
         .ft-node svg {
@@ -674,6 +694,8 @@
             border-radius: 12px;
             padding: 1.5rem;
             transition: all 0.2s ease;
+            min-width: 0;
+            max-width: 100%;
         }
 
         .rec-card:hover {
@@ -759,6 +781,8 @@
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 1.5rem;
+            min-width: 0;
+            max-width: 100%;
         }
 
         .build-card h4 {
@@ -937,6 +961,8 @@
             transition: all 0.2s ease;
             display: flex;
             flex-direction: column;
+            min-width: 0;
+            max-width: 100%;
         }
 
         .mod-card:hover {
@@ -1505,9 +1531,11 @@
             border-radius: 6px;
             transition: all 0.2s;
             border: 1px solid transparent;
-            display: inline-flex;       /* new */
-            align-items: center;        /* new */
-            gap: 0.35rem;               /* new – space between icon and text */
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            max-width: 100%;
+            word-break: break-word;
         }
 
         @keyframes fadeIn {
@@ -1521,20 +1549,264 @@
             }
         }
 
-        @media (max-width: 768px) {
+                @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+
             .header-content h1 {
-                font-size: 1.8rem;
+                font-size: 1.6rem;
+                word-break: break-word;
             }
+
+            .header-content p {
+                font-size: 0.9rem;
+                word-break: break-word;
+            }
+
+            header {
+                padding: 2rem 0 1.5rem;
+            }
+
             .mods-grid,
-            .recommended-grid {
-                grid-template-columns: 1fr;
+            .recommended-grid,
+            .build-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1rem;
             }
+
             .mods-header {
                 flex-direction: column;
-                align-items: flex-start;
+                align-items: stretch;
+                gap: 0.75rem;
             }
+
+            .sort-btns {
+                width: 100%;
+                justify-content: flex-start;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 0.5rem;
+                gap: 0.5rem;
+            }
+
+            .sort-btn {
+                flex-shrink: 0;
+                white-space: nowrap;
+            }
+
             .install-guide {
-                padding: 1.25rem;
+                padding: 1rem;
+                border-radius: 12px;
+            }
+
+            .mod-card,
+            .rec-card,
+            .build-card {
+                padding: 1rem;
+            }
+
+            .mod-links {
+                flex-direction: column;
+                width: 100%;
+                gap: 0.5rem;
+            }
+
+            .mod-links > * {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .mod-links .btn {
+                justify-content: center;
+                width: 100%;
+            }
+
+            .mod-links > div {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .mod-links > div > * {
+                flex: 1;
+                justify-content: center;
+                min-width: 0;
+            }
+
+            .code-block,
+            .config-block {
+                padding: 0.75rem;
+                padding-right: 4rem;
+                font-size: 0.7rem;
+                max-width: 100%;
+            }
+
+            .copy-btn {
+                right: 0.4rem;
+                padding: 0.25rem 0.4rem;
+                font-size: 0.65rem;
+            }
+
+            .mod-meta-row {
+                font-size: 0.75rem;
+                gap: 0.4rem;
+            }
+
+            .mod-sha256-value {
+                font-size: 0.6rem;
+            }
+
+            .step,
+            .manual-step {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .file-tree {
+                font-size: 0.7rem;
+            }
+
+            .ft-content {
+                padding: 0.75rem;
+            }
+
+            .ft-children {
+                padding-left: 1rem;
+            }
+
+            .ft-children > .ft-item::before {
+                left: -0.75rem;
+                width: 0.5rem;
+            }
+
+            .ft-children::before {
+                left: 0.25rem;
+            }
+
+            .collapsible-header {
+                padding: 1rem;
+            }
+
+            .collapsible-inner {
+                padding: 0 1rem;
+            }
+
+            .collapsible.open .collapsible-inner {
+                padding: 1rem;
+            }
+
+            .section-title {
+                font-size: 1.3rem;
+                word-break: break-word;
+            }
+
+            .section-subtitle {
+                font-size: 0.85rem;
+            }
+
+            pre,
+            .modal-body pre {
+                padding: 0.75rem;
+                font-size: 0.75rem;
+                overflow-x: auto;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }
+
+            .build-card ul,
+            .build-card p {
+                font-size: 0.8rem;
+                word-break: break-word;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 0.75rem;
+            }
+
+            .header-content h1 {
+                font-size: 1.4rem;
+            }
+
+            .section-title {
+                font-size: 1.15rem;
+            }
+
+            .mod-card,
+            .rec-card,
+            .build-card,
+            .install-guide {
+                padding: 0.875rem;
+            }
+
+            .btn {
+                padding: 0.55rem 1rem;
+                font-size: 0.85rem;
+            }
+
+            .btn-sm {
+                padding: 0.35rem 0.6rem;
+                font-size: 0.7rem;
+            }
+
+            .badge {
+                font-size: 0.65rem;
+                padding: 0.15rem 0.4rem;
+            }
+
+            .code-action-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.75rem;
+            }
+
+            .code-action-row .code-block {
+                width: 100%;
+                margin-top: 0;
+            }
+
+            .config-block {
+                font-size: 0.65rem;
+                padding: 0.6rem;
+            }
+
+            .config-change {
+                font-size: 0.75rem;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.25rem;
+            }
+
+            .header-nav a {
+                font-size: 0.7rem;
+                padding: 0.25rem 0.5rem;
+            }
+
+            .modal-content {
+                width: 95%;
+                max-height: 90vh;
+            }
+
+            .modal-header {
+                padding: 1rem;
+            }
+
+            .modal-body {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+
+            .tip-box,
+            .warning-box,
+            .note-box {
+                padding: 0.6rem 0.75rem;
+                font-size: 0.75rem;
+            }
+
+            .box-icon {
+                width: 14px;
+                height: 14px;
             }
         }
     </style>
@@ -1875,19 +2147,19 @@ Enabled = true</pre>
                                             <div class="ft-item ft-file ft-new">
                                                 <div class="ft-node">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                                    <span class="ft-label">com.example.precise-clock.cfg</span>
+                                                    <span class="ft-label">precise-clock.cfg</span>
                                                 </div>
                                             </div>
                                             <div class="ft-item ft-file ft-new">
                                                 <div class="ft-node">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                                    <span class="ft-label">com.example.better-chat.cfg</span>
+                                                    <span class="ft-label">better-chat.cfg</span>
                                                 </div>
                                             </div>
                                             <div class="ft-item ft-file ft-new">
                                                 <div class="ft-node">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                                    <span class="ft-label">com.example.autosave-tweaks.cfg</span>
+                                                    <span class="ft-label">com.bepis.bepinex.configurationmanager.cfg</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1906,16 +2178,17 @@ Enabled = true</pre>
                     </div>
                 </div>
 
-                <div class="collapsible" id="troubleshooting">
+                                <div class="collapsible" id="troubleshooting">
                     <div class="collapsible-header" onclick="toggleCollapsible('troubleshooting')">
                         <h3>🔧 Troubleshooting</h3>
                         <span class="collapsible-arrow">▼</span>
                     </div>
                     <div class="collapsible-body">
                         <div class="collapsible-inner">
-                            <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1.5rem;">If you encounter issues, check <code>Dig or Die/DigOrDie_Data/output_log.txt</code> for errors. Below are common solutions based on the official BepInEx documentation.</p>
-                            
+                            <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1.5rem;">Based on the <a href="https://docs.bepinex.dev/articles/user_guide/troubleshooting.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">official BepInEx troubleshooting guide</a>. Most startup problems come from a missing core file, wrong entry point, or incorrect BepInEx build. Also check <code>Dig or Die/DigOrDie_Data/output_log.txt</code> for errors.</p>
+
                             <div class="manual-steps">
+
                                 <div class="manual-step">
                                     <div class="step-number">1</div>
                                     <div class="manual-step-content">
@@ -1933,18 +2206,21 @@ Enabled = true</pre>
 # Setting type: Boolean
 # Default value: false
 Enabled = true</div>
+                                        <div class="warning-box" style="margin-top: 0.75rem;">
+                                            <svg class="box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                            <span><strong>No console opens or <code>BepInEx.cfg</code> doesn't exist?</strong> The preloader/doorstop probably failed. Check the game root folder for <code>LogOutput.log</code> or <code>preloader_<em>timestamp</em>.log</code> for clues, and continue with the steps below.</span>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="manual-step">
                                     <div class="step-number">2</div>
                                     <div class="manual-step-content">
-                                        <h4>Fix Corrupted <code>Managed</code> Folder</h4>
-                                        <p>If you upgraded from an older BepInEx version or another modding framework, incompatible DLLs might be left behind.</p>
-                                        <ol style="padding-left: 1.25rem; color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.5rem;">
-                                            <li>Go to <code>Dig or Die/DigOrDie_Data</code> and delete the <code>Managed</code> folder.</li>
-                                            <li>Open Steam, right-click Dig or Die → <strong>Properties</strong> → <strong>Installed Files</strong> → <strong>Verify integrity of game files</strong>.</li>
-                                        </ol>
+                                        <h4>Verify BepInEx Architecture (Bitness)</h4>
+                                        <p>BepInEx has separate builds for <strong>x86</strong> and <strong>x64</strong> games. Using the wrong one will cause the game to fail silently or crash on startup.</p>
+                                        <p style="margin-top: 0.5rem;"><strong>Dig or Die is a 32-bit (x86) game</strong>, so you must use the <code>x86</code> build of BepInEx.</p>
+                                        <p>In other words, you need to download <code>BepInEx_win_x86_&lt;VERSION&gt;.zip</code>, <strong>NOT</strong> <code>BepInEx_win_x64_&lt;VERSION&gt;.zip
+</code></p>
                                     </div>
                                 </div>
 
@@ -1952,10 +2228,10 @@ Enabled = true</div>
                                     <div class="step-number">3</div>
                                     <div class="manual-step-content">
                                         <h4>Check Game Path Characters</h4>
-                                        <p>The Unity Mono runtime cannot handle non-ASCII characters or extremely long path names.</p>
+                                        <p>Some versions of Mono bundled with Unity games cannot handle non-ASCII characters or extremely long path names.</p>
                                         <div class="warning-box">
                                             <svg class="box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                                            <span>Ensure your game folder path is under 256 characters and only contains standard letters (A-Z, a-z), numbers (0-9), and common punctuation.</span>
+                                            <span>Keep the full game path <strong>under 256 characters</strong> and use only: <code>A-Z</code>, <code>a-z</code>, <code>0-9</code> and common punctuation: <code>.</code> <code>:</code> <code>;</code> <code>,</code> <code>!</code> <code>"</code> <code>#</code> <code>%</code> <code>&amp;</code> <code>(</code> <code>)</code> <code>[</code> <code>]</code> <code>{</code> <code>}</code> <code>=</code> <code>?</code> <code>*</code> <code>'</code> <code>_</code> <code>-</code>.</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1963,9 +2239,29 @@ Enabled = true</div>
                                 <div class="manual-step">
                                     <div class="step-number">4</div>
                                     <div class="manual-step-content">
-                                        <h4>Verify BepInEx Architecture (Bitness)</h4>
-                                        <p>Dig or Die is a <strong>32-bit (x86)</strong> game. Using the 64-bit (x64) version of BepInEx will cause the game to fail silently or crash on startup.</p>
-                                        <p style="margin-top: 0.5rem;">Ensure you downloaded <code>BepInEx_win_x86_...</code> and not <code>x64</code>.</p>
+                                        <h4>Change the Entry Point</h4>
+                                        <p>If the preloader runs without errors but <strong>plugins don't load</strong>, the chosen entry point may never be called by the game. Try a different one.</p>
+                                        <p style="margin-top: 0.5rem;">Open <code>BepInEx/config/BepInEx.cfg</code> and set:</p>
+                                        <div class="config-block">[Preloader.Entrypoint]
+
+## The local filename of the assembly to target.
+# Setting type: String
+# Default value: UnityEngine.dll
+Assembly = UnityEngine.dll
+
+## The name of the type in the entrypoint assembly to search for the entrypoint method.
+# Setting type: String
+# Default value: Application
+Type = MonoBehaviour
+
+## The name of the method in the specified entrypoint assembly and type to hook.
+# Setting type: String
+# Default value: .cctor
+Method = .cctor</div>
+                                        <div class="tip-box" style="margin-top: 0.5rem;">
+                                            <svg class="box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
+                                            <span>If that still doesn't work, try <code>Type = Camera</code> or <code>Type = Application</code> — different entry points have different side effects, and the earlier one is called the better.</span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1973,18 +2269,68 @@ Enabled = true</div>
                                     <div class="step-number">5</div>
                                     <div class="manual-step-content">
                                         <h4>Fix Harmony / MonoMod Errors</h4>
-                                        <p>If logs show <code>NotImplementedException: Derived classes must implement it</code> or similar Harmony patching errors, you need to change the Harmony backend.</p>
+                                        <p>On Unity 2017+ the bundled Mono runtime's <code>System.Reflection.Emit</code> is incomplete, which can produce errors like:</p>
+                                        <div class="config-block exception-log">NotImplementedException: Derived classes must implement it
+Stack trace:
+System.Reflection.Module.get_Assembly () (at &lt;e1319b7195c343e79b385cd3aa43f5dc&gt;:0)
+MonoMod.Utils._DMDEmit.Generate (MonoMod.Utils.DynamicMethodDefinition dmd, System.Reflection.MethodBase _mb, System.Reflection.Emit.ILGenerator il) (at &lt;041d70ff506f4f089a67adab0245e45d&gt;:0)
+MonoMod.Utils.DMDEmitMethodBuilderGenerator.GenerateMethodBuilder (MonoMod.Utils.DynamicMethodDefinition dmd, System.Reflection.Emit.TypeBuilder typeBuilder) (at &lt041d70ff506f4f089a67adab0245e45d&gt;:0)
+MonoMod.Utils.DMDEmitMethodBuilderGenerator._Generate (MonoMod.Utils.DynamicMethodDefinition dmd, System.Object context) (at &lt041d70ff506f4f089a67adab0245e45d&gt;:0)
+...</div>
                                         <p style="margin-top: 0.5rem;">Open <code>BepInEx/config/BepInEx.cfg</code>, locate <code>[Preloader]</code>, and add/change:</p>
                                         <div class="config-block">[Preloader]
 ## Specifies which MonoMod backend to use for Harmony patches.
 HarmonyBackend = cecil</div>
                                     </div>
                                 </div>
+
+                                <div class="manual-step">
+                                    <div class="step-number">6</div>
+                                    <div class="manual-step-content">
+                                        <h4>Plugins Load but Don't Work</h4>
+                                        <p>If logs show plugins being loaded but none of them seem to actually run, the game may be destroying the BepInEx Manager GameObject during startup.</p>
+                                        <p style="margin-top: 0.5rem;">Open <code>BepInEx/config/BepInEx.cfg</code> and add/change:</p>
+                                        <div class="config-block">[Chainloader]
+## Hides the manager GameObject so the game cannot destroy it.
+HideManagerGameObject = true</div>
+                                    </div>
+                                </div>
+
+                                <div class="manual-step">
+                                    <div class="step-number">7</div>
+                                    <div class="manual-step-content">
+                                        <h4>Fix Corrupted <code>Managed</code> Folder</h4>
+                                        <p>If you upgraded from an older BepInEx version or used a different modding framework, incompatible DLLs may be left in the <code>Managed</code> folder.</p>
+                                        <ol style="padding-left: 1.25rem; color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.5rem;">
+                                            <li>Go to <code>Dig or Die/DigOrDie_Data</code> and <strong>delete</strong> the <code>Managed</code> folder.</li>
+                                            <li>Open Steam, right-click Dig or Die → <strong>Properties</strong> → <strong>Installed Files</strong> → <strong>Verify integrity of game files</strong>.</li>
+                                        </ol>
+                                        <p style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.85rem;">Steam will redownload a clean copy of the <code>Managed</code> folder.</p>
+                                    </div>
+                                </div>
+
+                                <div class="manual-step">
+                                    <div class="step-number">8</div>
+                                    <div class="manual-step-content">
+                                        <h4>Console Displays Weird Characters</h4>
+                                        <p>If you see <strong>Garbled text (mojibake)</strong> in the console, this usually means mismatched encodings. First make sure you're on the latest BepInEx version, then try changing your Windows system locale (Region → Administrative → Change system locale) or use a locale-forcing tool.</p>
+                                        <p style="margin-top: 0.5rem;">If you see <strong>Unknown / placeholder characters</strong> in the console, the console font is missing glyphs. Right-click the console title bar → <strong>Properties</strong> → <strong>Font</strong> tab, and pick a font that supports the characters you need (e.g. <em>Consolas</em>, <em>Cascadia Mono</em>, or <em>MS Gothic</em> for CJK). Set the same font under <strong>Defaults</strong> to keep it across sessions.</p>
+                                    </div>
+                                </div>
+
+                                <div class="manual-step">
+                                    <div class="step-number">9</div>
+                                    <div class="manual-step-content">
+                                        <h4>Older Unity Games: Rename <code>winhttp.dll</code></h4>
+                                        <p>While the <code>winhttp.dll</code> proxy works best on modern platforms (and older Wine on Linux), some old Unity games don't load it correctly.</p>
+                                        <p style="margin-top: 0.5rem;">Try renaming <code>winhttp.dll</code> in the game root to <code>version.dll</code> and run the game again. Rename it back if nothing changes.</p>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
                     </div>
                 </div>
-
                 <div class="collapsible" id="uninstallation">
                     <div class="collapsible-header" onclick="toggleCollapsible('uninstallation')">
                         <h3>🗑️ Uninstallation</h3>
