@@ -353,7 +353,7 @@ impl WorldViewer {
                 }
 
                 let highlight_rect = Rect::from_min_size(self.world_to_screen(world_pos.floor(), &resp.rect), Vec2::splat(self.view_zoom));
-                let stroke = Stroke::new(2.0, const { Color32::from_rgba_unmultiplied_const(255, 255, 255, 100) });
+                let stroke = Stroke::new(2.0_f32, const { Color32::from_rgba_unmultiplied_const(255, 255, 255, 100) });
                 painter.rect_stroke(highlight_rect, 1.0, stroke, egui::StrokeKind::Middle);
 
                 if resp.clicked() {
@@ -378,7 +378,7 @@ impl WorldViewer {
             self.selected_cell = Some((cell_x, cell_y));
             
             let highlight_rect = Rect::from_min_size(self.world_to_screen(cell_pos_to_vec2((cell_x, cell_y)), &resp.rect), Vec2::splat(self.view_zoom));
-            let stroke = Stroke::new(3.0, const { Color32::BLUE });
+            let stroke = Stroke::new(3.0_f32, const { Color32::BLUE });
             painter.rect_stroke(highlight_rect, 1.0, stroke, egui::StrokeKind::Middle);
         }
         if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape)) {
@@ -464,7 +464,7 @@ impl WorldViewer {
             let filled_rect = Rect::from_min_max(rect.left_bottom() - vec2(0.0, rect.height() * cell.water.clamp(0.0, 1.0)), rect.max);
             let liquid_color = if cell.is_lava() { Color32::RED } else { Color32::BLUE };
             ui.painter().rect_filled(filled_rect, 1.0, liquid_color);
-            ui.painter().rect_stroke(rect, 1.0, Stroke::new(1.0, ui.visuals().text_color()), egui::StrokeKind::Outside);
+            ui.painter().rect_stroke(rect, 1.0, Stroke::new(1.0_f32, ui.visuals().text_color()), egui::StrokeKind::Outside);
 
             ui.label(format!("{:.15}", &cell.water));
         });
@@ -472,8 +472,8 @@ impl WorldViewer {
             ui.label("Force:");
             let (rect, _) = ui.allocate_exact_size(vec2(10.0, 10.0), egui::Sense::hover());
             
-            ui.painter().circle_stroke(rect.center(), 10.0, Stroke::new(1.0, ui.visuals().text_color()));
-            ui.painter().arrow(rect.center(), vec2(cell.force_x as f32, -cell.force_y as f32).normalized() * 8.0, Stroke::new(1.7, ui.visuals().text_color()));
+            ui.painter().circle_stroke(rect.center(), 10.0, Stroke::new(1.0_f32, ui.visuals().text_color()));
+            ui.painter().arrow(rect.center(), vec2(cell.force_x as f32, -cell.force_y as f32).normalized() * 8.0, Stroke::new(1.7_f32, ui.visuals().text_color()));
 
             ui.label(format!("({:+}, {:+})", cell.force_x, cell.force_y));
         });
@@ -660,5 +660,5 @@ fn show_color_indicator(ui: &mut egui::Ui, size: Vec2, color: Color32) {
     let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
             
     ui.painter().rect_filled(rect, 1.0, color);
-    ui.painter().rect_stroke(rect, 1.0, Stroke::new(1.0, ui.visuals().widgets.noninteractive.bg_stroke.color), egui::StrokeKind::Outside);
+    ui.painter().rect_stroke(rect, 1.0, Stroke::new(1.0_f32, ui.visuals().widgets.noninteractive.bg_stroke.color), egui::StrokeKind::Outside);
 }
