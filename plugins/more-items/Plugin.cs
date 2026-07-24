@@ -58,18 +58,18 @@ public class MoreItemsPlugin : BaseUnityPlugin {
         try {
             var pluginType = pluginInfo.Instance.GetType();
             var replaceTypeEnumType = pluginType.Assembly.GetType("ReplaceType");
-            if (replaceTypeEnumType == null) {
+            if (replaceTypeEnumType is null) {
                 Logger.LogWarning($"Failed to find 'ReplaceType' enum in '{ReplacementorPluginGUID}' plugin");
                 return;
             }
-            object replaceTypeLight = Enum.Parse(replaceTypeEnumType, "Light");
-            if (replaceTypeLight == null) {
+            object? replaceTypeLight = Enum.Parse(replaceTypeEnumType, "Light");
+            if (replaceTypeLight is null) {
                 Logger.LogWarning($"Failed to parse string 'Light' as enum 'ReplaceType' in '{ReplacementorPluginGUID}' plugin");
                 return;
             }
 
-            MethodInfo addReplaceableItemMethod = pluginType.GetMethod("AddReplaceableItem", BindingFlags.Public | BindingFlags.Instance);
-            if (addReplaceableItemMethod == null) {
+            MethodInfo? addReplaceableItemMethod = pluginType.GetMethod("AddReplaceableItem", BindingFlags.Public | BindingFlags.Instance);
+            if (addReplaceableItemMethod is null) {
                 Logger.LogWarning($"Failed to find 'AddReplaceableItem' method in '{ReplacementorPluginGUID}' plugin type");
                 return;
             }
