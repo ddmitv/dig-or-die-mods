@@ -101,14 +101,7 @@ public class MoreItemsPlugin : BaseUnityPlugin {
 
         EventManager.Register(new TestEvent());
 
-        // ModCTile.texture = LoadTexture2DFromManifest(currectAssembly, "more-items.textures.combined_textures.png");
-        // ModCSurface.fertileDirtTexture = LoadSurfaceFromManifest(currectAssembly, "more-items.textures.surfaces.surface_fertileDirt.png");
-        // ModCSurface.surfaceTops = LoadSurfaceFromManifest(currectAssembly, "more-items.textures.surfaces.surface_tops.png");
-        // CustomBullets.particlesTexture = LoadTexture2DFromManifest(currectAssembly, "more-items.textures.combined_particles.png");
-
         var harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), Info.Metadata.GUID);
-
-        //Utils.RunStaticConstructor(typeof(CustomItems));
 
         gameObject.AddComponent<FlashEffect>();
 
