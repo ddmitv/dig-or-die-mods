@@ -8,10 +8,10 @@
   <UsingTask TaskName="DODModAPI.AssetPacker.PackSpriteSheet"
              AssemblyFile="$(_DODModAPIAssetPacker_TaskAssembly)" />
 
-  <Target Name="PackSprites" BeforeTargets="BeforeBuild;CoreCompile">
+  <Target Name="PackSprites" BeforeTargets="BeforeBuild;CoreCompile" Condition="'@(ModSprites)' != ''">
     <PackSpriteSheet
       ConfigFiles="@(ModSprites)"
-      IntermediateOutputPath="$(IntermediateOutputPath)"
+      IntermediateOutputPath="$(BaseIntermediateOutputPath)"
       AtlasClass="%(ModSprites.AtlasName)"
       ModId="$(MSBuildProjectName)">
       <Output TaskParameter="GeneratedCompile" ItemName="Compile" />

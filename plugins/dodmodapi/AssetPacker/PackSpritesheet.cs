@@ -495,13 +495,13 @@ namespace DODModAPI.AssetPacker {
                         var info = Image.Identify(fullPath);
 
                         if (info.Width != info.Height) {
-                            throw new NotImplementedException();
+                            throw new ConfigException($"UNIT '{unitName}' animation sprite '{path}' must be square, but was {info.Width}x{info.Height} (line {lineNumber})");
                         }
 
                         if (spriteSize is null) {
                             spriteSize = info.Width;
                         } else if (spriteSize != info.Width) {
-                            throw new NotImplementedException();
+                            throw new ConfigException($"All UNIT '{unitName}' animation must have identical dimensions. Expected {spriteSize}, got {info.Width} for \"{path}\" (line {lineNumber})");
                         }
                         totalTileCount += 1;
                         animsFullPaths.Add(fullPath);
@@ -647,8 +647,6 @@ namespace DODModAPI.AssetPacker {
                 int i = 0;
                 while (i < input.Length) {
                     while (i < input.Length && char.IsWhiteSpace(input[i])) {
-                        if (input[i] == '#') { return tokens; }
-
                         i += 1;
                     }
 
@@ -726,8 +724,8 @@ namespace DODModAPI.AssetPacker {
                 if (tokens.Count == 0) {
                     throw new ConfigException($"Directive is missing (line {lineNumber})");
                 }
-                if (tokens[0] is not ConfigTokenizer.StringToken { Value: var directive}) {
-                    throw new ConfigException($"Direcive must be a string (line {lineNumber})");
+                if (tokens[0] is not ConfigTokenizer.StringToken { Value: var directive }) {
+                    throw new ConfigException($"Directive must be a string (line {lineNumber})");
                 }
 
                 if (directiveMap.TryGetValue(directive, out IAssetProcessor processor)) {
@@ -814,7 +812,7 @@ refind_free_shelf:
             for (int i = 0; i < sprites.Count; i++) {
                 SpriteDef sprite = sprites[i];
 
-                var info = Image.Identify(sprite.path);
+                IImageInfo? info = Image.Identify(sprite.path);
                 sprite.width = info.Width;
                 sprite.height = info.Height;
 
