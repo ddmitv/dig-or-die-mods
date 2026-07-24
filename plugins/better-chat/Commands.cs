@@ -214,8 +214,8 @@ public static class CustomCommands {
         
         CommandManager.Register("/tp", opts with {
             TabCompleter = argIdx => argIdx == 0 ? SNetwork.Players.Select(p => p.m_name).OrderBy(x => x).ToList() : null,
-        }, (args, playerSender) => {
-            if (playerSender.m_unitPlayer is null) {
+        }, (args) => {
+            if (args.PlayerSender.m_unitPlayer is null) {
                 throw new CommandException("Cannot teleport: player has no active unit");
             }
             
@@ -224,10 +224,10 @@ public static class CustomCommands {
                 if (target.m_unitPlayer is null) {
                     throw new CommandException($"Cannot teleport: player \"{target.m_name}\" has no active unit");
                 }
-                playerSender.m_unitPlayer.Pos = target.m_unitPlayer.Pos;
+                args.PlayerSender.m_unitPlayer.Pos = target.m_unitPlayer.Pos;
             } else if (args.Remaining == 2) {
                 Vector2 pos = args.ArgWorldPos();
-                playerSender.m_unitPlayer.Pos = pos;
+                args.PlayerSender.m_unitPlayer.Pos = pos;
                 Misc.SendChatMessageLocal($"Teleported to {pos}");
             } else {
                 throw new CommandException("Expected either a player name or X and Y coordinates");
@@ -235,7 +235,7 @@ public static class CustomCommands {
         });
         CommandManager.Register("/give", opts with {
             TabCompleter = argIdx => argIdx == 0 ? GItems.Items.Skip(1).Select(x => x.m_codeName).ToList() : null,
-        }, (args, playerSender) => {
+        }, (args) => {
             CItem selectedItem = args.ArgItem();
             if (selectedItem is null) {
                 throw new CommandException("Cannot give null item", args.Index);
@@ -244,7 +244,7 @@ public static class CustomCommands {
             args.ArgNone();
 
             Misc.SendChatMessageLocal($"Given {itemCount} {selectedItem.Name}");
-            CInventory inventory = playerSender.m_inventory;
+            CInventory inventory = args.PlayerSender.m_inventory;
             CStack itemStack = inventory.GetStack(selectedItem);
             if (itemStack != null) {
                 itemStack.m_nb += itemCount;
@@ -257,7 +257,7 @@ public static class CustomCommands {
         });
         CommandManager.Register("/place", opts with {
             TabCompleter = argIdx => argIdx == 0 ? GItems.Items.Skip(1).OfType<CItemCell>().Select(x => x.m_codeName).ToList() : null,
-        }, (args, playerSender) => {
+        }, (args) => {
             ParseCellResult selectedCell;
             try {
                 selectedCell = ParseCellParameters(args.ArgString("cell"));
@@ -272,7 +272,7 @@ public static class CustomCommands {
         });
         CommandManager.Register("/fill", opts with {
             TabCompleter = argIdx => argIdx == 0 ? GItems.Items.Skip(1).OfType<CItemCell>().Select(x => x.m_codeName).ToList() : null,
-        }, (args, playerSender) => {
+        }, (args) => {
             ParseCellResult selectedCell;
             try {
                 selectedCell = ParseCellParameters(args.ArgString("cell"));
@@ -299,7 +299,7 @@ public static class CustomCommands {
         });
         CommandManager.Register("/killinfo", opts with {
             Local = true,
-        }, (args, playerSender) => {
+        }, (args) => {
             args.ArgNone();
             foreach (var specieKilled in SSingleton<SUnits>.Inst.SpeciesKilled) {
                 Misc.SendChatMessageLocal($"{specieKilled.m_uDesc.GetName()}: {specieKilled.m_nb} ({GVars.SimuTime - specieKilled.m_lastKillTime:0.00})");
@@ -307,7 +307,7 @@ public static class CustomCommands {
         });
         CommandManager.Register("/spawn", opts with {
             TabCompleter = argIdx => argIdx == 0 ? GUnits.UDescs.Skip(1).Select(x => x.m_codeName).ToList() : null,
-        }, (args, playerSender) => {
+        }, (args) => {
             CUnit.CDesc selectedUnit = args.ArgUnitDesc();
             if (selectedUnit is null) {
                 throw new CommandException("Cannot spawn null unit", args.Index);
@@ -318,17 +318,17 @@ public static class CustomCommands {
             Misc.SendChatMessageLocal($"Spawned unit {selectedUnit.GetName()} at {spawnPos}");
             SUnits.SpawnUnit(selectedUnit, spawnPos);
         });
-        CommandManager.Register("/clearinventory", opts, (args, playerSender) => {
+        CommandManager.Register("/clearinventory", opts, (args) => {
             args.ArgNone();
-            Misc.SendChatMessageLocal($"Cleared {playerSender.m_inventory.Items.Count} items from inventory");
-            playerSender.m_inventory.CleanAll();
+            Misc.SendChatMessageLocal($"Cleared {args.PlayerSender.m_inventory.Items.Count} items from inventory");
+            args.PlayerSender.m_inventory.CleanAll();
         });
-        CommandManager.Register("/clearpickups", opts, (args, player) => {
+        CommandManager.Register("/clearpickups", opts, (args) => {
             args.ArgNone();
             Misc.SendChatMessageLocal($"Cleared {SPickups.Pickups.Count} pickups");
             SSingleton<SPickups>.Inst.CleanAll();
         });
-        CommandManager.Register("/clone", opts, (args, player) => {
+        CommandManager.Register("/clone", opts, (args) => {
             int2 srcFrom = args.ArgCellPos("start source position");
             int2 srcTo = args.ArgCellPos("end source position");
             int2 dest = args.ArgCellPos("start destination source position");
@@ -361,7 +361,7 @@ public static class CustomCommands {
 
         CommandManager.Register("/replace", opts with {
             TabCompleter = argIdx => argIdx <= 1 ? GItems.Items.Skip(1).OfType<CItemCell>().Select(x => x.m_codeName).ToList() : null,
-        }, (args, player) => {
+        }, (args) => {
             CItemCell srcCell = args.ArgCellItem("source cell item");
 
             ParseCellResult destCell;
@@ -394,7 +394,7 @@ public static class CustomCommands {
         });
         CommandManager.Register("/freecam", opts with {
             Local = true,
-        }, (args, player) => {
+        }, (args) => {
             if (args.Remaining >= 1) {
                 string[] parts = args.ArgString("freecam parameter").Split('=');
                 args.ArgNone();
@@ -428,7 +428,7 @@ public static class CustomCommands {
         });
         CommandManager.Register("/exportpng", opts with {
             Local = true,
-        }, (args, player) => {
+        }, (args) => {
             string exportPath = Misc.AppendExtension(Misc.GetFullPathFromBase(
                 args.Remaining == 0 ? "SavedScreen.png" : args.ArgString("file path"),
                 System.IO.Path.Combine(Application.dataPath, "..")
@@ -451,7 +451,7 @@ public static class CustomCommands {
         });
         CommandManager.Register("/clock", opts with {
             TabCompleter = argIdx => argIdx == 0 ? ["pause", "resume", "morning", "night", "evening", "midday", "midnight", "lavastart", "lavaend"] : null,
-        }, (args, player) => {
+        }, (args) => {
             string arg = args.ArgString("value").ToLowerInvariant();
             args.ArgNone();
 

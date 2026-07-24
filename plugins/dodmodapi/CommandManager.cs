@@ -26,7 +26,7 @@ public static class CommandManager {
 
     private static Regex? _splitCmdArgsRegex = null;
 
-    public delegate void CommandAction(CommandArgs args, CPlayer playerSender);
+    public delegate void CommandAction(CommandArgs args);
     public delegate List<string>? CommandCompletions(int argIndex);
     public delegate bool ChatPreprocessor(ref string text);
 
@@ -159,7 +159,7 @@ public static class CommandManager {
                 string[] args = commandAndArgs.Skip(1).ToArray();
 
                 try {
-                    cmdEntry.action(new CommandArgs(args), playerSender);
+                    cmdEntry.action(new CommandArgs(args, playerSender));
                     if (cmdEntry.disableAchievements && !GVars.m_achievementsLocked) {
                         GVars.m_achievementsLocked = true;
                         Misc.SendChatMessageLocal("Achievements have been deactivated in this game");
@@ -250,15 +250,18 @@ public static class CommandManager {
 
 public struct CommandArgs {
     private readonly string[] _args;
+    private readonly CPlayer _sender;
 
     public readonly string[] ArgArray => _args;
+    public readonly CPlayer PlayerSender => _sender;
     public int Index { readonly get; set; } = 0;
 
     public readonly bool HasNext => Index < _args.Length;
     public readonly int Remaining => _args.Length - Index;
 
-    public CommandArgs(string[] args) {
+    public CommandArgs(string[] args, CPlayer sender) {
         _args = args;
+        _sender = sender;
     }
 
     public readonly void ArgNone() {
@@ -296,22 +299,26 @@ public struct CommandArgs {
     }
 
     public int2 ArgCellPos(string argName = "cell position") {
-        int x = ArgInt($"{argName} (X coordinate)");
+        var basePos = PlayerSender?.m_unitPlayer?.PosCell ?? new int2(0, 0);
+
+        int x = ArgRelativeCellCoord(basePos.x, $"{argName} (X coordinate)");
         if (x < 0 || x >= SWorld.Gs.x) {
             throw new CommandException($"{argName} X coordinate is out of the world: {x}", Index);
         }
-        int y = ArgInt($"{argName} (Y coordinate)");
+        int y = ArgRelativeCellCoord(basePos.y, $"{argName} (Y coordinate)");
         if (y < 0 || y >= SWorld.Gs.y) {
             throw new CommandException($"{argName} Y coordinate is out of the world: {y}", Index);
         }
         return new int2(x, y);
     }
     public Vector2 ArgWorldPos(string argName = "world position") {
-        float x = ArgFloat($"{argName} (X coordinate)");
+        var basePos = PlayerSender?.m_unitPlayer?.m_pos ?? new Vector2(0, 0);
+
+        float x = ArgRelativeWorldCoord(basePos.x, $"{argName} (X coordinate)");
         if (x < SWorld.GridRectM2.x || x >= SWorld.GridRectM2.xMax) {
             throw new CommandException($"{argName} X coordinate is out of the world: {x}", Index);
         }
-        float y = ArgFloat($"{argName} (Y coordinate)");
+        float y = ArgRelativeWorldCoord(basePos.y, $"{argName} (Y coordinate)");
         if (y < SWorld.GridRectM2.y || y >= SWorld.GridRectM2.yMax) {
             throw new CommandException($"{argName} Y coordinate is out of the world: {y}", Index);
         }
@@ -399,5 +406,52 @@ public struct CommandArgs {
             throw new CommandException($"Unknown {argName} code name; did you mean \"{closestCodeName}\"?", Index);
         }
         return unit;
+    }
+
+    private float ArgRelativeWorldCoord(float relativeBase, string argName) {
+        if (!HasNext) {
+            throw new CommandException($"Expected {argName}", Index + 1);
+        }
+        var coord = _args[Index];
+        Index += 1;
+
+        if (coord.StartsWith("~")) {
+            string offsetStr = coord.Substring(1);
+            if (string.IsNullOrEmpty(offsetStr)) {
+                return relativeBase;
+            }
+            if (!float.TryParse(offsetStr, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out float offset)) {
+                throw new CommandException($"Invalid relative offset for {argName}", Index);
+            }
+            return relativeBase + offset;
+        } else {
+            if (!float.TryParse(coord, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out float result)) {
+                throw new CommandException($"Invalid {argName}", Index);
+            }
+            return result;
+        }
+    }
+    private int ArgRelativeCellCoord(int relativeBase, string argName) {
+        if (!HasNext) {
+            throw new CommandException($"Expected {argName}", Index + 1);
+        }
+        var coord = _args[Index];
+        Index += 1;
+
+        if (coord.StartsWith("~")) {
+            string offsetStr = coord.Substring(1);
+            if (string.IsNullOrEmpty(offsetStr)) {
+                return relativeBase;
+            }
+            if (!int.TryParse(offsetStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out int offset)) {
+                throw new CommandException($"Invalid relative offset for {argName}", Index);
+            }
+            return relativeBase + offset;
+        } else {
+            if (!int.TryParse(coord, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result)) {
+                throw new CommandException($"Invalid {argName}", Index);
+            }
+            return result;
+        }
     }
 }
