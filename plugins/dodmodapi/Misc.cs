@@ -196,10 +196,16 @@ public static class Misc {
     }
 
     public static RectInt ClampRect(RectInt rect, int minX, int minY, int maxX, int maxY) {
-        return new RectInt(
-            Math.Max(rect.x, minX), Math.Max(rect.y, minY),
-            Math.Min(rect.width, maxX), Math.Min(rect.height, maxY)
-        );
+        int x = Math.Max(rect.x, minX);
+        int y = Math.Max(rect.y, minY);
+
+        int xMax = Math.Min(rect.xMax, maxX);
+        int yMax = Math.Min(rect.yMax, maxY);
+
+        int width = Math.Max(0, xMax - x);
+        int height = Math.Max(0, yMax - y);
+
+        return new RectInt(x, y, width, height);
     }
 
     public static string GetFullPathFromBase(string path, string basePath) {
@@ -307,8 +313,13 @@ public static class Misc {
     public static RectInt RectIntIntersection(RectInt a, RectInt b) {
         int x = Math.Max(a.x, b.x);
         int y = Math.Max(a.y, b.y);
-        int width = Math.Min(a.xMax, b.xMax) - x;
-        int height = Math.Min(a.yMax, b.yMax) - y;
+
+        int xMax = Math.Min(a.xMax, b.xMax);
+        int yMax = Math.Min(a.yMax, b.yMax);
+
+        int width = Math.Max(0, xMax - x);
+        int height = Math.Max(0, yMax - y);
+
         return new RectInt(x, y, width, height);
     }
 
