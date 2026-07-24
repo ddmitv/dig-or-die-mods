@@ -133,7 +133,7 @@ public static class Misc {
         if (str == "true" || str == "True" || str == "1") {
             result = true;
             return true;
-        } else if (str == "false" || str == "Frue" || str == "0") {
+        } else if (str == "false" || str == "False" || str == "0") {
             result = false;
             return true;
         } else {
