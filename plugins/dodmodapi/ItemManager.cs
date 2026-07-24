@@ -146,9 +146,10 @@ public static class ItemManager {
                 // (don't really need to do this since m_name and m_desc are inited at this point)
                 SLoc.Inst.m_dico.Add(item.m_locTextId, new SLoc.CSentence(item.m_locTextId, $"{item.m_name}|{item.m_desc}"));
             }
+            // need to firstly lock item registration to disallow adding new items within OnPostModItemsInit
+            _itemsLocked = true;
             OnPostModItemsInit?.Invoke();
 
-            _itemsLocked = true;
             DODModAPIPlugin.Log.LogInfo($"Added {_items.Count} custom items");
         }
 
