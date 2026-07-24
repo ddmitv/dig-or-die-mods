@@ -234,16 +234,13 @@ public sealed class CodeCursor {
         return this;
     }
 
-    public CodeCursor ReplaceOpcode<T>(int offset, in T newOpcode, out T oldOpcode) {
+    public CodeCursor ReplaceOpcode(int offset, in OpCode newOpcode, out OpCode oldOpcode) {
         int targetPos = _pos + offset;
         if (targetPos < 0 || targetPos >= _codes.Count) {
             throw new ArgumentOutOfRangeException(nameof(offset), offset, $"Offset {offset} leads to position {targetPos}, which is out of bounds [0..{_codes.Count})");
         }
-        if (_codes[targetPos].operand is not T) {
-            throw new InvalidCastException($"Cannot cast operand type \"{_codes[targetPos].operand.GetType().FullName}\" to \"{typeof(T).FullName}\" at offset {offset} (position {targetPos})");
-        }
-        oldOpcode = (T)_codes[targetPos].operand;
-        _codes[targetPos].operand = newOpcode;
+        oldOpcode = _codes[targetPos].opcode;
+        _codes[targetPos].opcode = newOpcode;
         _pos += 1;
         return this;
     }
