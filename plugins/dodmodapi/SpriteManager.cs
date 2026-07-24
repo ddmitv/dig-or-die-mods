@@ -77,7 +77,7 @@ public static class SpriteManager {
         [HarmonyPrefix]
         [HarmonyPatch(typeof(CAssetTexture), nameof(CAssetTexture.Texture), MethodType.Getter)]
         private static bool CAssetTexture_get_Texture(CAssetTexture __instance, ref Texture __result) {
-            if (_textures.TryGetValue(__instance.m_filename, out TextureEntry entry)) {
+            if (__instance.m_asset is null && _textures.TryGetValue(__instance.m_filename, out TextureEntry entry)) {
                 var texture = LoadTexture(entry.Assembly, entry.ResourceName);
                 __instance.m_asset = texture;
                 __instance.m_lastUseTime = Time.realtimeSinceStartup;
