@@ -122,9 +122,7 @@ namespace DODModAPI.AssetPacker {
 
             try {
                 foreach (var configFile in ConfigFiles) {
-                    if (!ParseConfig(configFile.GetMetadata("FullPath"), assetProcessors)) {
-                        return false;
-                    }
+                    ParseConfig(configFile.GetMetadata("FullPath"), assetProcessors);
                 }
             } catch (ConfigException ex) {
                 Log.LogErrorFromException(ex);
@@ -183,7 +181,7 @@ namespace DODModAPI.AssetPacker {
 
             public void Parse(List<ConfigTokenizer.Token> tokens, string baseDir, int lineNumber) {
                 if (tokens.Count <= 1 || tokens[1] is not ConfigTokenizer.StringToken { Value: var tileName }) {
-                    throw new ConfigException($"Expected an tile name string after TILE directive (line {lineNumber})");
+                    throw new ConfigException($"Expected an tile name string after TILE directive", lineNumber);
                 }
 
                 if (tokens.Count == 3 && tokens[2] is ConfigTokenizer.StringToken { Value: var mainTokenFile }) {
@@ -192,17 +190,17 @@ namespace DODModAPI.AssetPacker {
                     foreach (var rawFile in mainTokenFile.Split('+')) {
                         var file = rawFile.Trim();
                         if (string.IsNullOrWhiteSpace(file)) {
-                            throw new ConfigException($"Invalid or empty file path found in TILE '{tileName}' main texture (line {lineNumber})");
+                            throw new ConfigException($"Invalid or empty file path found in TILE '{tileName}' main texture", lineNumber);
                         }
 
                         var fullPath = Path.Combine(baseDir, file);
                         if (!File.Exists(fullPath)) {
-                            throw new ConfigException($"Image file not found: '{fullPath}' for TILE '{tileName}' main texture (line {lineNumber})");
+                            throw new ConfigException($"Image file not found: '{fullPath}' for TILE '{tileName}' main texture", lineNumber);
                         }
                         tiles.Add(new() { path = fullPath, properties = [] });
                     }
                     if (tiles.Count == 0) {
-                        throw new ConfigException($"TILE '{tileName}' tiles must have at least one valid tile (line {lineNumber})");
+                        throw new ConfigException($"TILE '{tileName}' tiles must have at least one valid tile", lineNumber);
                     }
 
                     tiles[0].properties.Add(tileName);
@@ -212,7 +210,7 @@ namespace DODModAPI.AssetPacker {
 
                 for (int i = 2; i < tokens.Count; ++i) {
                     if (tokens[i] is not ConfigTokenizer.KeyValueToken { Key: var property, Value: var tokenFiles }) {
-                        throw new ConfigException($"Expected a key-value pair (e.g., property=filename.png) in TILE '{tileName}', but found an invalid token (line {lineNumber})");
+                        throw new ConfigException($"Expected a key-value pair (e.g., property=filename.png) in TILE '{tileName}', but found an invalid token", lineNumber);
                     }
 
                     var tiles = new List<Tile>();
@@ -220,17 +218,17 @@ namespace DODModAPI.AssetPacker {
                     foreach (var rawFile in tokenFiles.Split('+')) {
                         var file = rawFile.Trim();
                         if (string.IsNullOrWhiteSpace(file)) {
-                            throw new ConfigException($"Invalid or empty file path found in TILE '{tileName}' property '{property}' (line {lineNumber})");
+                            throw new ConfigException($"Invalid or empty file path found in TILE '{tileName}' property '{property}'", lineNumber);
                         }
 
                         var fullPath = Path.Combine(baseDir, file);
                         if (!File.Exists(fullPath)) {
-                            throw new ConfigException($"Image file not found: '{fullPath}' for TILE '{tileName}' property '{property}' (line {lineNumber})");
+                            throw new ConfigException($"Image file not found: '{fullPath}' for TILE '{tileName}' property '{property}'", lineNumber);
                         }
                         tiles.Add(new() { path = fullPath, properties = [] });
                     }
                     if (tiles.Count == 0) {
-                        throw new ConfigException($"TILE '{tileName}' property '{property}' sprites must have at least one sprite (line {lineNumber})");
+                        throw new ConfigException($"TILE '{tileName}' property '{property}' sprites must have at least one sprite", lineNumber);
                     }
                     tiles[0].properties.Add($"{tileName}_{property}");
 
@@ -301,35 +299,35 @@ namespace DODModAPI.AssetPacker {
 
             public void Parse(List<ConfigTokenizer.Token> tokens, string baseDir, int lineNumber) {
                 if (tokens.Count <= 1 || tokens[1] is not ConfigTokenizer.StringToken { Value: var surfaceName }) {
-                    throw new ConfigException($"Expected a surface name string after the SURFACE directive (line {lineNumber})");
+                    throw new ConfigException($"Expected a surface name string after the SURFACE directive", lineNumber);
                 }
 
                 string? materialPath = null;
                 string? topPath = null;
                 for (int i = 2; i < tokens.Count; ++i) {
                     if (tokens[i] is not ConfigTokenizer.KeyValueToken { Key: var key, Value: var value }) {
-                        throw new ConfigException($"Expected a key-value pair (e.g., material=filename.png) in SURFACE '{surfaceName}', but found an invalid token (line {lineNumber})");
+                        throw new ConfigException($"Expected a key-value pair (e.g., material=filename.png) in SURFACE '{surfaceName}', but found an invalid token", lineNumber);
                     }
                     if (key == "material") {
                         materialPath = value;
                     } else if (key == "top") {
                         topPath = value;
                     } else {
-                        throw new ConfigException($"Invalid property '{key}' in SURFACE '{surfaceName}'. Only 'material' and 'top' are allowed (line {lineNumber})");
+                        throw new ConfigException($"Invalid property '{key}' in SURFACE '{surfaceName}'. Only 'material' and 'top' are allowed", lineNumber);
                     }
                 }
                 if (materialPath is null || topPath is null) {
-                    throw new ConfigException($"SURFACE '{surfaceName}' requires both 'material' and 'top' properties to be defined (line {lineNumber})");
+                    throw new ConfigException($"SURFACE '{surfaceName}' requires both 'material' and 'top' properties to be defined", lineNumber);
                 }
 
                 var fullMaterialPath = Path.Combine(baseDir, materialPath);
                 var fullTopPath = Path.Combine(baseDir, topPath);
 
                 if (!File.Exists(fullMaterialPath)) {
-                    throw new ConfigException($"Material image file not found: \"{fullMaterialPath}\" for SURFACE '{surfaceName}' (line {lineNumber})");
+                    throw new ConfigException($"Material image file not found: \"{fullMaterialPath}\" for SURFACE '{surfaceName}'", lineNumber);
                 }
                 if (!File.Exists(fullTopPath)) {
-                    throw new ConfigException($"Top image file not found: \"{fullTopPath}\" for SURFACE '{surfaceName}' (line {lineNumber})");
+                    throw new ConfigException($"Top image file not found: \"{fullTopPath}\" for SURFACE '{surfaceName}'", lineNumber);
                 }
 
                 surfaces.Add(new SurfaceDef {
@@ -399,14 +397,14 @@ namespace DODModAPI.AssetPacker {
 
             public void Parse(List<ConfigTokenizer.Token> tokens, string baseDir, int lineNumber) {
                 if (tokens.Count <= 1 || tokens[1] is not ConfigTokenizer.StringToken { Value: var spriteName }) {
-                    throw new ConfigException($"Expected a sprite name string after the SPRITE directive (line {lineNumber})");
+                    throw new ConfigException($"Expected a sprite name string after the SPRITE directive", lineNumber);
                 }
                 if (tokens.Count <= 2 || tokens[2] is not ConfigTokenizer.StringToken { Value: var spritePath }) {
-                    throw new ConfigException($"Expected a sprite path after the name (line {lineNumber})");
+                    throw new ConfigException($"Expected a sprite path after the name", lineNumber);
                 }
                 var fullPath = Path.Combine(baseDir, spritePath);
                 if (!File.Exists(fullPath)) {
-                    throw new ConfigException($"Sprite file not found: \"{fullPath}\" for SPRITE '{spriteName}' (line {lineNumber})");
+                    throw new ConfigException($"Sprite file not found: \"{fullPath}\" for SPRITE '{spriteName}'", lineNumber);
                 }
                 sprites.Add(new SpriteDef { name = spriteName, path = fullPath });
             }
@@ -464,7 +462,7 @@ namespace DODModAPI.AssetPacker {
 
             public void Parse(List<ConfigTokenizer.Token> tokens, string baseDir, int lineNumber) {
                 if (tokens.Count <= 1 || tokens[1] is not ConfigTokenizer.StringToken { Value: var unitName }) {
-                    throw new ConfigException($"Expected a unit name string after UNIT directive (line {lineNumber})");
+                    throw new ConfigException($"Expected a unit name string after UNIT directive", lineNumber);
                 }
                 List<UnitDef.Animation> anims = [];
                 int? spriteSize = null;
@@ -472,13 +470,13 @@ namespace DODModAPI.AssetPacker {
 
                 for (int i = 2; i < tokens.Count; ++i) {
                     if (tokens[i] is not ConfigTokenizer.KeyValueToken { Key: var animName, Value: var tokenPaths }) {
-                        throw new ConfigException($"Expected a key-value pair (e.g., stand=filename.png) in UNIT '{unitName}', but found an invalid token (line {lineNumber})");
+                        throw new ConfigException($"Expected a key-value pair (e.g., stand=filename.png) in UNIT '{unitName}', but found an invalid token", lineNumber);
                     }
                     if (!UnitStateOrder.Contains(animName)) {
-                        throw new ConfigException($"Invalid animation '{animName}' in UNIT '{unitName}'. Allowed animation: {string.Join(", ", UnitStateOrder)} (line {lineNumber})");
+                        throw new ConfigException($"Invalid animation '{animName}' in UNIT '{unitName}'. Allowed animation: {string.Join(", ", UnitStateOrder)}", lineNumber);
                     }
                     if (anims.Any(x => x.name == animName)) {
-                        throw new ConfigException($"Duplicate animation '{animName}' in UNIT '{unitName}' (line {lineNumber})");
+                        throw new ConfigException($"Duplicate animation '{animName}' in UNIT '{unitName}'", lineNumber);
                     }
 
                     var paths = tokenPaths.Split('+');
@@ -490,30 +488,30 @@ namespace DODModAPI.AssetPacker {
 
                         var fullPath = Path.Combine(baseDir, path);
                         if (!File.Exists(fullPath)) {
-                            throw new ConfigException($"Image file not found: '{fullPath}' for UNIT '{unitName}' animation '{animName}' (line {lineNumber})");
+                            throw new ConfigException($"Image file not found: '{fullPath}' for UNIT '{unitName}' animation '{animName}'", lineNumber);
                         }
                         var info = Image.Identify(fullPath);
 
                         if (info.Width != info.Height) {
-                            throw new ConfigException($"UNIT '{unitName}' animation sprite '{path}' must be square, but was {info.Width}x{info.Height} (line {lineNumber})");
+                            throw new ConfigException($"UNIT '{unitName}' animation sprite '{path}' must be square, but was {info.Width}x{info.Height}", lineNumber);
                         }
 
                         if (spriteSize is null) {
                             spriteSize = info.Width;
                         } else if (spriteSize != info.Width) {
-                            throw new ConfigException($"All UNIT '{unitName}' animation must have identical dimensions. Expected {spriteSize}, got {info.Width} for \"{path}\" (line {lineNumber})");
+                            throw new ConfigException($"All UNIT '{unitName}' animation must have identical dimensions. Expected {spriteSize}, got {info.Width} for \"{path}\"", lineNumber);
                         }
                         totalTileCount += 1;
                         animsFullPaths.Add(fullPath);
                     }
                     if (animsFullPaths.Count == 0) {
-                        throw new ConfigException($"UNIT '{unitName}' animation '{animName}' must have at least one sprite (line {lineNumber})");
+                        throw new ConfigException($"UNIT '{unitName}' animation '{animName}' must have at least one sprite", lineNumber);
                     }
 
                     anims.Add(new() { name = animName, paths = animsFullPaths });
                 }
                 if (anims.Count == 0 || spriteSize is null) {
-                    throw new ConfigException($"UNIT '{unitName}' must have at least one animation defined (line {lineNumber})");
+                    throw new ConfigException($"UNIT '{unitName}' must have at least one animation defined", lineNumber);
                 }
                 var sortedAnims = anims.OrderBy(anim => Array.IndexOf(UnitStateOrder, anim.name)).ToList();
 
@@ -629,7 +627,11 @@ namespace DODModAPI.AssetPacker {
             }
         }
 
-        private sealed class ConfigException(string message) : Exception(message);
+        private sealed class ConfigException : Exception {
+            public ConfigException(string message) : base(message) { }
+            public ConfigException(string message, int line) : base($"{message} (line {line})") { }
+            public ConfigException(string message, int line, int character) : base($"{message} (at {line}:{character + 1})") { }
+        }
 
         private sealed class AssetProcessorException(string message) : Exception(message);
 
@@ -656,7 +658,7 @@ namespace DODModAPI.AssetPacker {
 
                     while (i < input.Length) {
                         char c = input[i];
-                        if (c == '#') { return tokens; }
+                        if (!inQuotes && c == '#') { return tokens; }
 
                         if (c == '"') {
                             inQuotes ^= true;
@@ -668,10 +670,10 @@ namespace DODModAPI.AssetPacker {
                         }
                         if (!inQuotes && c == '=') {
                             if (isKeyValue) {
-                                throw new ConfigException($"Invalid token: multiple unquoted '=' characters are not allowed (at {lineNumber}:{i + 1}, with key \"{keyPart}\")");
+                                throw new ConfigException($"Invalid token: multiple unquoted '=' characters are not allowed (with key \"{keyPart}\")", lineNumber, i);
                             }
                             if (valueBuilder.Length == 0) {
-                                throw new ConfigException($"Invalid token: empty key is not allowed (at {lineNumber}:{i + 1})");
+                                throw new ConfigException($"Invalid token: empty key is not allowed", lineNumber, i);
                             }
                             isKeyValue = true;
                             keyPart = valueBuilder.ToString();
@@ -683,7 +685,7 @@ namespace DODModAPI.AssetPacker {
                         i += 1;
                     }
                     if (inQuotes) {
-                        throw new ConfigException($"Invalid token: unclosed quote (at {lineNumber}:{i + 1})");
+                        throw new ConfigException($"Invalid token: unclosed quote", lineNumber, i);
                     }
 
                     string finalValue = valueBuilder.ToString();
@@ -699,7 +701,7 @@ namespace DODModAPI.AssetPacker {
             }
         }
 
-        private bool ParseConfig(string configPath, IAssetProcessor[] assetProcessors) {
+        private void ParseConfig(string configPath, IAssetProcessor[] assetProcessors) {
             string baseDir = Path.GetDirectoryName(configPath) ?? "";
             var tokenizer = new ConfigTokenizer();
             int lineNumber = 0;
@@ -722,19 +724,18 @@ namespace DODModAPI.AssetPacker {
 
                 var tokens = tokenizer.Tokenize(line, lineNumber);
                 if (tokens.Count == 0) {
-                    throw new ConfigException($"Directive is missing (line {lineNumber})");
+                    throw new ConfigException($"Directive is missing", lineNumber);
                 }
                 if (tokens[0] is not ConfigTokenizer.StringToken { Value: var directive }) {
-                    throw new ConfigException($"Directive must be a string (line {lineNumber})");
+                    throw new ConfigException($"Directive must be a string", lineNumber);
                 }
 
                 if (directiveMap.TryGetValue(directive, out IAssetProcessor processor)) {
                     processor.Parse(tokens, baseDir, lineNumber);
                 } else {
-                    Log.LogWarning($"Unknown directive '{directive}'");
+                    throw new ConfigException($"Unknown directive '{directive}' in \"{configPath}\"", lineNumber);
                 }
             }
-            return true;
         }
 
         private static AtlasTileSize PackTiles(List<TileBlock> tileBlocks) {
