@@ -38,7 +38,7 @@ public class MaxThreads : BaseUnityPlugin {
             .FindNext(
                 new(OpCodes.Ldc_I4_4),
                 new(OpCodes.Call, typeof(SWorldDll).Method("DllInit")))
-            .Replace(offset: 0, Transpilers.EmitDelegate(GetThreadsCount), out _)
+            .Replace(Transpilers.EmitDelegate(GetThreadsCount), out _)
             .Finish();
     }
 }

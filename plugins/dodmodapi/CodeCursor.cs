@@ -80,7 +80,9 @@ public sealed class CodeCursor {
         return this;
     }
     public CodeCursor MoveToEnd() {
-        _pos = _codes.Count - 1;
+        if (_codes.Count > 0) {
+            _pos = _codes.Count - 1;
+        }
         return this;
     }
 
@@ -105,7 +107,7 @@ public sealed class CodeCursor {
             throw new ArgumentException($"OpCode '{opcode}' is not a branch instruction", nameof(opcode));
         }
         int targetPos = _pos + offset;
-        if (targetPos < 0 || targetPos > _codes.Count) {
+        if (targetPos < 0 || targetPos >= _codes.Count) {
             throw new ArgumentOutOfRangeException(nameof(offset), offset, $"Branch target position {targetPos} is out of bounds [0..{_codes.Count})");
         }
         var label = _generator.DefineLabel();
@@ -163,11 +165,19 @@ public sealed class CodeCursor {
             return this;
         }
         List<Label> labels = _codes[_pos].labels;
-        _codes[_pos].labels = new List<Label>();
+
+        CollectionHelpers.Partition(_codes[_pos].blocks,
+            b => b.blockType == ExceptionBlockType.BeginExceptionBlock ||
+                 b.blockType == ExceptionBlockType.BeginFinallyBlock,
+            out var openingBlocks, out var closingBlocks);
+
+        _codes[_pos].labels = [];
+        _codes[_pos].blocks = closingBlocks;
 
         _codes.InsertRange(_pos, instructions);
 
         _codes[_pos].labels = labels;
+        _codes[_pos].blocks.AddRange(openingBlocks);
 
         _pos += instructions.Length;
         return this;
@@ -182,14 +192,9 @@ public sealed class CodeCursor {
             Insert(instructions);
             return this;
         }
-        List<Label> labels = _codes[_pos].labels;
-        _codes[_pos].labels = [label];
+        Inject(instructions);
+        _codes[_pos - instructions.Length].labels.Add(label);
 
-        _codes.InsertRange(_pos, instructions);
-
-        _codes[_pos].labels = labels;
-
-        _pos += instructions.Length;
         return this;
     }
 
@@ -234,28 +239,27 @@ public sealed class CodeCursor {
         return this;
     }
 
-    public CodeCursor ReplaceOpcode(int offset, in OpCode newOpcode, out OpCode oldOpcode) {
-        int targetPos = _pos + offset;
-        if (targetPos < 0 || targetPos >= _codes.Count) {
-            throw new ArgumentOutOfRangeException(nameof(offset), offset, $"Offset {offset} leads to position {targetPos}, which is out of bounds [0..{_codes.Count})");
+    public CodeCursor ReplaceOpcode(in OpCode newOpcode, out OpCode oldOpcode) {
+        if (_pos < 0 || _pos >= _codes.Count) {
+            throw new InvalidOperationException($"Current position {_pos} is out of bounds [0..{_codes.Count})");
         }
-        oldOpcode = _codes[targetPos].opcode;
-        _codes[targetPos].opcode = newOpcode;
+        oldOpcode = _codes[_pos].opcode;
+        _codes[_pos].opcode = newOpcode;
+
         _pos += 1;
         return this;
     }
 
-    public CodeCursor Replace(int offset, CodeInstruction newInstr, out CodeInstruction oldInstr) {
-        int targetPos = _pos + offset;
-        if (targetPos < 0 || targetPos >= _codes.Count) {
-            throw new ArgumentOutOfRangeException(nameof(offset), offset, $"Offset {offset} leads to position {targetPos}, which is out of bounds [0..{_codes.Count})");
+    public CodeCursor Replace(CodeInstruction newInstr, out CodeInstruction oldInstr) {
+        if (_pos < 0 || _pos >= _codes.Count) {
+            throw new InvalidOperationException($"Current position {_pos} is out of bounds [0..{_codes.Count})");
         }
-        oldInstr = _codes[targetPos];
+        oldInstr = _codes[_pos];
 
         AppendList(ref newInstr.labels, oldInstr.labels);
         AppendList(ref newInstr.blocks, oldInstr.blocks);
 
-        _codes[targetPos] = newInstr;
+        _codes[_pos] = newInstr;
         _pos += 1;
         return this;
     }
@@ -276,25 +280,13 @@ public sealed class CodeCursor {
         return this;
     }
 
-    public CodeCursor Scope(Action<CodeCursor> fn) {
-        if (fn is null) { throw new ArgumentNullException(nameof(fn)); }
-
-        int savedPos = _pos;
-        try {
-            fn(this);
-        } finally {
-            _pos = savedPos;
-        }
-        return this;
-    }
-
     public CodeCursor GetPos(out int pos) {
         pos = _pos;
         return this;
     }
     public CodeCursor SetPos(int pos) {
-        if (pos < 0 || pos >= _codes.Count) {
-            throw new ArgumentOutOfRangeException(nameof(pos), pos, $"Position {pos} is outside the valid range [0..{_codes.Count})");
+        if (pos < 0 || pos > _codes.Count) {
+            throw new ArgumentOutOfRangeException(nameof(pos), pos, $"Position {pos} is outside the valid range [0..{_codes.Count}]");
         }
         _pos = pos;
         return this;

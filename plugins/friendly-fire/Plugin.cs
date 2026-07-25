@@ -74,7 +74,7 @@ internal static class HidePlayerNamesPatch {
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldc_I4_0),
                 new(OpCodes.Call, typeof(CMesh<CMeshText>).Method<SScreen, bool>("Get")))
-            .Replace(offset: 0, new(OpCodes.Nop), out _)
+            .Replace(new(OpCodes.Nop), out _)
             .Remove(28)
 
             .MoveToStart()
@@ -85,7 +85,7 @@ internal static class HidePlayerNamesPatch {
                 new(OpCodes.Ldloc_S),
                 new(OpCodes.Ldfld, typeof(CPlayer).Field("m_lastChat")),
                 new(OpCodes.Ldloca_S))
-            .Replace(offset: 0, new(OpCodes.Nop, null), out _)
+            .Replace(new(OpCodes.Nop, null), out _)
             .Remove(22)
 
             .Finish();

@@ -36,16 +36,6 @@ public class FlashEffect : MonoBehaviour {
     }
 }
 
-public class TestEvent : ModEnvironment {
-    public TestEvent() : base("testEvent", "Test Event", 10f) {
-        m_shakeCam = true;
-    }
-
-    public override void OnEventStart() => Misc.SendChatMessageLocal("starting event!!");
-    public override void OnEventUpdate() => SNetwork.GetMyPlayer().m_unitPlayer.m_pos += Vector2.up * SMain.SimuDeltaTime;
-    public override void OnEventEnd() => Misc.SendChatMessageLocal("ending event!!");
-}
-
 [BepInPlugin("more-items", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 [BepInDependency(ReplacementorPluginGUID, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency(DODModAPIPlugin.GUID)]
@@ -98,8 +88,6 @@ public class MoreItemsPlugin : BaseUnityPlugin {
 
         DODModAPI.ItemManager.RegisterAllItems(typeof(CustomItems));
         DODModAPI.UnitManager.RegisterUnit(CustomUnits.waterVaporizer);
-
-        EventManager.Register(new TestEvent());
 
         var harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), Info.Metadata.GUID);
 

@@ -73,8 +73,11 @@ public static class ItemManager {
 
     public static void RegisterAllItems(Type type) {
         LateRegistrationException.ThrowIfLocked(_itemsLocked);
+        // skips all non-ModItem fields
         foreach (var itemField in type.GetFields(BindingFlags.Static | BindingFlags.Public)) {
-            _items.Add((ModItem)itemField.GetValue(null));
+            if (itemField.GetValue(null) is ModItem item) {
+                _items.Add(item);
+            }
         }
     }
 
@@ -85,8 +88,11 @@ public static class ItemManager {
 
     public static void RegisterAllRecipeGroups(Type type) {
         LateRegistrationException.ThrowIfLocked(_recipeGroupsLocked);
+        // skips all non-ModRecipeGroup fields
         foreach (var recipeGroupField in type.GetFields(BindingFlags.Static | BindingFlags.Public)) {
-            _recipeGroups.Add((ModRecipeGroup)recipeGroupField.GetValue(null));
+            if (recipeGroupField.GetValue(null) is ModRecipeGroup recipeGroup) {
+                _recipeGroups.Add(recipeGroup);
+            }
         }
     }
 

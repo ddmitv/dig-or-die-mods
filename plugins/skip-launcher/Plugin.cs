@@ -64,7 +64,7 @@ public class SkipLauncher : BaseUnityPlugin {
                 new(OpCodes.Call, typeof(SSingletonScreen<SScreenLauncher>).Method("get_Inst")),
                 new(OpCodes.Ldc_I4_0),
                 new(OpCodes.Callvirt, typeof(SScreen).Method("Activate")))
-            .Replace(offset: 0, Transpilers.EmitDelegate(OnScreenLauncherActivate), out _)
+            .Replace(Transpilers.EmitDelegate(OnScreenLauncherActivate), out _)
             .Remove(2)
             .Finish();
     }

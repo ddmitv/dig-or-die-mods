@@ -54,6 +54,7 @@ public static class SpriteManager {
             throw new InvalidOperationException($"Resource with logical name \"{resourceName}\" not found (in assembly {assembly.GetName().Name})");
         }
         var bytes = new byte[stream.Length];
+        // since GetManifestResourceStream returns System.IO.UnmanagedMemoryStream it's safe to just read entire buffer in single call
         _ = stream.Read(bytes, 0, bytes.Length);
 
         var texture = new Texture2D(2, 2, TextureFormat.RGBA32, mipmap: false);

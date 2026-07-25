@@ -152,6 +152,9 @@ public static class CommandManager {
 
             static bool ExecModCommand(string text, CPlayer playerSender) {
                 string[] commandAndArgs = SplitCommandArgs(text);
+                if (commandAndArgs.Length == 0) {
+                    return false;
+                }
                 string command = commandAndArgs[0];
                 if (!_commands.TryGetValue(command, out CommandEntry cmdEntry)) {
                     return false;
@@ -208,6 +211,7 @@ public static class CommandManager {
                 return;
             }
             if (cmdInfo.isLocal) {
+                // if steamIdRemote != SNetwork.MySteamID it sends SMessageChat
                 steamIdRemote = SNetwork.MySteamID;
             }
         }
@@ -297,6 +301,11 @@ public struct CommandArgs {
         Index += 1;
         return result;
     }
+
+    // currently only supports "~" player relative coords. it would be nice to also have "^" - player's cursor relative coords
+    // but it's untrivial to implement: you would need to send player's mouse coords to all connected clients
+    // in order for them to calculate target position and execute the command
+    // (since the command sync is implemented by all the clients executing the exactly same command)
 
     public int2 ArgCellPos(string argName = "cell position") {
         var basePos = PlayerSender?.m_unitPlayer?.PosCell ?? new int2(0, 0);

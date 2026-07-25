@@ -27,10 +27,13 @@ public static class UnitManager {
         LateRegistrationException.ThrowIfLocked(_unitDescsLocked);
         _unitDescs.Add(modUnit);
     }
-    public static void RegisterAllUnit(Type type) {
+    public static void RegisterAllUnits(Type type) {
         LateRegistrationException.ThrowIfLocked(_unitDescsLocked);
-        foreach (var modUnit in type.GetFields(BindingFlags.Static | BindingFlags.Public)) {
-            _unitDescs.Add((ModUnit)modUnit.GetValue(null));
+        // skips all non-ModUnit fields
+        foreach (var modUnitField in type.GetFields(BindingFlags.Static | BindingFlags.Public)) {
+            if (modUnitField.GetValue(null) is ModUnit modUnit) {
+                _unitDescs.Add(modUnit);
+            }
         }
     }
 
@@ -40,13 +43,12 @@ public static class UnitManager {
         private static void SUnits_OnInit() {
             foreach (var modUnit in _unitDescs) {
                 var desc = modUnit.UnitDesc;
-                desc.m_id = (byte)GUnits.UDescs.Count;
-                GUnits.UDescs.Add(desc);
-
-                // type of field CUnit.CDesc.m_id is byte, so max allowed ID is 255
+                // in the SUnits.OnInit a Debug.LogError is called if GUnits.UDescs.Count > 254 so we're mimicing this behavior
                 if (GUnits.UDescs.Count >= 255) {
                     throw new InvalidOperationException($"GUnits.UDescs can only have 255 elements (unit descriptors). Unable to add unit \"{desc.m_codeName}\"");
                 }
+                desc.m_id = (byte)GUnits.UDescs.Count;
+                GUnits.UDescs.Add(desc);
             }
             _unitDescsLocked = true;
             DODModAPIPlugin.Log.LogInfo($"Added {_unitDescs.Count} custom unit descriptors");

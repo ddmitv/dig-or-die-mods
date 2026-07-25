@@ -249,7 +249,7 @@ internal static class UnitInstantObservation {
                 new(OpCodes.Ldfld, typeof(CUnitMonster).Field("m_target")),
                 new(OpCodes.Brtrue))
             .Remove(2)
-            .ReplaceOpcode(offset: 0, OpCodes.Br, out _)
+            .ReplaceOpcode( OpCodes.Br, out _)
 
             .FindNext(
                 new(OpCodes.Ldarg_0),

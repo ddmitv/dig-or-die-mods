@@ -334,6 +334,24 @@ public static class Misc {
     public static float EaseOutCubic(float x) => 1f - Cub(1f - x);
 }
 
+public static class CollectionHelpers {
+    public static void Partition<T>(List<T> source, Func<T, bool> pred, out List<T> matching, out List<T> nonMatching) {
+        if (source is null) { throw new ArgumentNullException(nameof(source)); }
+        if (pred is null) { throw new ArgumentNullException(nameof(pred)); }
+
+        matching = [];
+        nonMatching = [];
+
+        for (int i = 0; i < source.Count; ++i) {
+            if (pred(source[i])) {
+                matching.Add(source[i]);
+            } else {
+                nonMatching.Add(source[i]);
+            }
+        }
+    }
+}
+
 public static class CellFlags {
     public const uint CustomData0 = 1U;
     public const uint CustomData1 = 2U;

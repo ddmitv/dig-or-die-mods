@@ -11,10 +11,12 @@ namespace DODModAPI;
 
 public static class ModeManager {
     private static readonly Dictionary<string, ModeLuaSetup> _modeLuaSetups = new();
+    private static bool _modesLocked = false;
 
     public delegate void ModeLuaSetup(Lua.Script script);
 
     public static void Register<T>(ModeLuaSetup setup, string modeId, string modeName, string modeDescription) where T : CMode {
+        LateRegistrationException.ThrowIfLocked(_modesLocked);
         if (_modeLuaSetups.ContainsKey(modeId)) {
             throw new ArgumentException($"[ModeManager] Duplicate mode ID \"{modeId}\"", nameof(modeId));
         }
@@ -90,6 +92,7 @@ public static class ModeManager {
         [HarmonyPatch(typeof(SDataLua), nameof(SDataLua.WriteDefaultParamsValues))]
         [HarmonyPrefix]
         private static bool SDataLua_WriteDefaultParamsValues(CMode mod) {
+            _modesLocked = true;
             if (_modeLuaSetups.ContainsKey(mod.m_name)) {
                 return false;
             }
