@@ -50,12 +50,14 @@ public static class Misc {
     public static string? ClosestStringMatch(string target, IEnumerable<string> sources) {
         if (sources == null) { throw new ArgumentNullException(nameof(sources)); }
 
+        string targetLower = target.ToLowerInvariant();
+
         string? result = null;
         int resultDist = int.MaxValue;
         bool hasAny = false;
         foreach (string src in sources) {
             hasAny = true;
-            int dist = DamerauLevenshteinDistance(src.ToLowerInvariant(), target.ToLowerInvariant(),
+            int dist = DamerauLevenshteinDistance(src.ToLowerInvariant(), targetLower,
                 insertionCost: 1, deletionCost: 2, substitutionCost: 3, transpositionCost: 3
             );
             if (dist < resultDist) {
