@@ -203,6 +203,8 @@ public static class ItemManager {
                     _ => 7,
                 };
             }
+            // the vanilla game has 202 items (including the 0-th/null one), so the last item (lootBalrog) has an ID of 201
+            // the new modded items will go to the back of the item list (GItems.Items), so any item with ID >201 is a modded one
             const ushort lastItemId = 201;
 
             var a_item = a.m_item;

@@ -153,10 +153,12 @@ public sealed class CodeCursor {
             blocks.AddRange(_codes[i].blocks);
         }
         _codes.RemoveRange(_pos, (int)count);
-        if (_pos < _codes.Count) {
-            _codes[_pos].labels.AddRange(labels);
-            _codes[_pos].blocks.AddRange(blocks);
+        if (_pos >= _codes.Count) {
+            throw new InvalidOperationException($"Nowhere to put preserved labels from removing because position {_pos} it is out of bounds [0..{_codes.Count})");
         }
+
+        _codes[_pos].labels.AddRange(labels);
+        _codes[_pos].blocks.AddRange(blocks);
         return this;
     }
     public CodeCursor Inject(params CodeInstruction[] instructions) {
