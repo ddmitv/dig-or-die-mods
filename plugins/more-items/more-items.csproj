@@ -9,11 +9,11 @@
   
   <ItemGroup>
     <ProjectReference Include="../dodmodapi/dodmodapi.csproj" Private="false" />
-    <PackageReference Include="DigOrDie.DODModAPI.AssetPacker" Version="0.1.1" />
+    <PackageReference Include="DigOrDie.DODModAPI.AssetPacker" Version="0.1.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <ModSprites Include="textures/sprites.cfg" AtlasName="Textures" />
+    <ModAtlas Include="textures/sprites.cfg" AtlasName="Textures" />
   </ItemGroup>
   
   <Import Project="../Plugin.Common.targets" />

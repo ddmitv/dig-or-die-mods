@@ -651,6 +651,7 @@ namespace DODModAPI.AssetPacker {
                     while (i < input.Length && char.IsWhiteSpace(input[i])) {
                         i += 1;
                     }
+                    if (i >= input.Length) { break; }
 
                     bool inQuotes = false;
                     bool isKeyValue = false;
@@ -658,7 +659,6 @@ namespace DODModAPI.AssetPacker {
 
                     while (i < input.Length) {
                         char c = input[i];
-                        if (!inQuotes && c == '#') { return tokens; }
 
                         if (c == '"') {
                             inQuotes ^= true;

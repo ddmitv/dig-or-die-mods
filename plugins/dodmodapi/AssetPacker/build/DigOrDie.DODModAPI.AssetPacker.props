@@ -8,11 +8,11 @@
   <UsingTask TaskName="DODModAPI.AssetPacker.PackSpriteSheet"
              AssemblyFile="$(_DODModAPIAssetPacker_TaskAssembly)" />
 
-  <Target Name="PackSprites" BeforeTargets="BeforeBuild;CoreCompile" Condition="'@(ModSprites)' != ''">
+  <Target Name="PackSprites" BeforeTargets="BeforeBuild;CoreCompile" Condition="'@(ModAtlas)' != ''">
     <PackSpriteSheet
-      ConfigFiles="@(ModSprites)"
+      ConfigFiles="@(ModAtlas)"
       IntermediateOutputPath="$(BaseIntermediateOutputPath)"
-      AtlasClass="%(ModSprites.AtlasName)"
+      AtlasClass="%(ModAtlas.AtlasName)"
       ModId="$(MSBuildProjectName)">
       <Output TaskParameter="GeneratedCompile" ItemName="Compile" />
       <Output TaskParameter="GeneratedEmbeddedResource" ItemName="EmbeddedResource" />
@@ -20,12 +20,12 @@
   </Target>
 
   <ItemDefinitionGroup>
-    <ModSprites Visible="true">
+    <ModAtlas Visible="true">
       <AtlasName />
-    </ModSprites>
+    </ModAtlas>
   </ItemDefinitionGroup>
 
   <ItemGroup>
-    <AvailableItemName Include="ModSprites" />
+    <AvailableItemName Include="ModAtlas" />
   </ItemGroup>
 </Project>
