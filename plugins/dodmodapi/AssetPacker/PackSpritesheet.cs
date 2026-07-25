@@ -378,7 +378,7 @@ namespace DODModAPI.AssetPacker {
                 foreach (var surf in surfaces) {
                     int idxX = surf.surfaceTopTileX;
                     int idxY = surf.surfaceTopTileY;
-                    codeBuilder.AppendLine($"    public static readonly {ModTileType} {surf.name}_surfaceTops" +
+                    codeBuilder.AppendLine($"    public static readonly {ModTileType} {SanitizeIdentifier(surf.name)}_surfaceTops" +
                         $" = new {ModTileType}({idxX}, {idxY}, \"{surfaceTopsLogicalName}\");");
                 }
                 codeBuilder.AppendLine();
