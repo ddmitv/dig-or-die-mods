@@ -417,6 +417,30 @@ public struct CommandArgs {
         return unit;
     }
 
+    public bool ArgBool(string argName = "boolean") {
+        if (!HasNext) {
+            throw new CommandException($"Expected {argName}", Index + 1);
+        }
+        if (!bool.TryParse(_args[Index], out bool result)) {
+            throw new CommandException($"Invalid boolean", Index + 1);
+        }
+        Index += 1;
+        return result;
+    }
+
+    public T ArgEnum<T>(string argName = "value") where T : struct, Enum {
+        if (!HasNext) {
+            throw new CommandException($"Expected {argName}", Index + 1);
+        }
+        string strValue = _args[Index];
+        if (!Enum.IsDefined(typeof(T), strValue)) {
+            var closestEnumName = Misc.ClosestStringMatch(strValue, Enum.GetNames(typeof(T)));
+            throw new CommandException($"Unknown {argName}; did you mean \"{closestEnumName}\"?", Index);
+        }
+        Index += 1;
+        return (T)Enum.Parse(typeof(T), strValue);
+    }
+
     private float ArgRelativeWorldCoord(float relativeBase, string argName) {
         if (!HasNext) {
             throw new CommandException($"Expected {argName}", Index + 1);
