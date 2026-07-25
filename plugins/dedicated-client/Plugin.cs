@@ -416,7 +416,7 @@ public class DedicatedClient : BaseUnityPlugin {
         harmony.PatchAll(typeof(Patches));
     }
 
-    void OnDistroy() {
+    void OnDestroy() {
         client?.Close();
         client = null;
     }
