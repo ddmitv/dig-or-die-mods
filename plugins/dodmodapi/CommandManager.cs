@@ -207,6 +207,7 @@ public static class CommandManager {
         [HarmonyPrefix]
         private static void SScreenHudChat_AddChatMessage_Networked(string str, ref ulong steamIdRemote) {
             string[] commandAndArgs = SplitCommandArgs(str);
+            if (commandAndArgs.Length == 0) { return; }
             if (!_commands.TryGetValue(commandAndArgs[0], out CommandEntry cmdInfo)) {
                 return;
             }

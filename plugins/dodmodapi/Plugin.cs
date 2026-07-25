@@ -26,5 +26,6 @@ public class DODModAPIPlugin : BaseUnityPlugin {
         harmony.PatchAll(typeof(SaveManager.Patches));
         harmony.PatchAll(typeof(EventManager.Patches));
         harmony.PatchAll(typeof(NetworkManager.Patches));
+        harmony.PatchAll(typeof(ModBulletDesc.Patches));
     }
 }

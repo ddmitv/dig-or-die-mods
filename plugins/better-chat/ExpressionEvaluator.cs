@@ -904,7 +904,7 @@ public sealed class ExpressionEvaluator {
                 return false;
             }
             text = text.Remove(start, i - start).Insert(start, exprResult);
-            i += -(i - start) + exprResult.Length; // adjust index for evaluated expression character difference
+            i += -(i - start) + exprResult.Length - 1; // adjust index for evaluated expression character difference
             if (displayExpression) {
                 text = text.Insert(start, exprString + "=");
                 i += exprString.Length + 1;

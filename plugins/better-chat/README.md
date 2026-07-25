@@ -226,7 +226,7 @@ A string enclosed in `[` and `]` denotes an optional argument inside it.
 ## `<UNIT-POSITION>`
 
 Two-dimensional coordinate composed of X and Y values.
-Each value must be a single-precision floating-point number, a relative coordinate, or a cursor coordinate.
+Each value must be a single-precision floating-point number or a relative coordinate.
 
 **Examples:** `300.4 560.3` (`x=300.4,y=560.3`), `1000 800.25` (`x=1000,y=800.25`)
 
@@ -238,7 +238,7 @@ Each value must be a single-precision floating-point number, a relative coordina
 ## `<CELL-POSITION>`
 
 Two-dimensional coordinate composed of X and Y values.
-Each value must be a integer number, a relative coordinate, or a cursor coordinate.
+Each value must be a integer number or a relative coordinate.
 
 **Examples:** `630 703` (`x=630,y=703`), `100 25` (`x=100,y=25`)
 

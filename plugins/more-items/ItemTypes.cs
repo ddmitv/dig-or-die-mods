@@ -131,7 +131,7 @@ public sealed class ExtCItem_Explosive : CItem_Defense {
                 if (relative.sqrMagnitude > range * range) {
                     continue;
                 }
-                if (!Misc.IsInWorld(i, j)) { return; }
+                if (!Misc.IsInWorld(i, j)) { continue; }
 
                 ref var cell = ref SWorld.Grid[i, j];
                 if (!cell.IsPassable()) { continue; }
