@@ -918,12 +918,23 @@ retryWithLargerAtlas:
             }
         }
 
+        private static readonly HashSet<string> CSharpKeywords = [
+            "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked", "class", "const", "continue",
+            "decimal", "default", "delegate", "do", "double", "else", "enumevent", "explicit", "extern", "false", "finally", "fixed",
+            "float", "for", "foreach", "goto", "if", "implicit", "in", "int", "interface", "internal", "is", "lock", "longnamespace",
+            "new", "null", "object", "operator", "out", "override", "params", "private", "protected", "public", "readonly", "ref",
+            "return", "sbyte", "sealed", "short", "sizeof", "stackallocstatic", "string", "struct", "switch", "this", "throw", "true",
+            "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort", "using", "virtual", "void", "volatile", "while"
+        ];
+
         private static string SanitizeIdentifier(string name) {
             if (string.IsNullOrEmpty(name)) { return "_"; }
 
-            var chars = name.Select(c => char.IsLetterOrDigit(c) ? c : '_');
+            var chars = string.Concat(name.Select(c => char.IsLetterOrDigit(c) ? c : '_'));
 
-            return char.IsDigit(name[0]) ? "_" + string.Concat(chars) : string.Concat(chars);
+            string sanitized = char.IsDigit(name[0]) ? $"_{chars}" : chars;
+
+            return CSharpKeywords.Contains(sanitized) ? $"@{sanitized}" : sanitized;
         }
 
         private static (string Namespace, string Class) SplitFullTypeName(string fullTypeName) {
