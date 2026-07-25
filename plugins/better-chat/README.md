@@ -12,7 +12,6 @@ A plugin that expands the list of available commands (chat messages starting wit
   - [Constants](#constants)
 - [Command Argument Specification](#command-argument-specification)
   - [Relative coordinates](#relative-coordinates)
-  - [Cursor coordinates](#cursor-coordinates)
   - [Format language specifications](#format-language-specifications)
   - [`<UNIT-POSITION>`](#unit-position)
   - [`<CELL-POSITION>`](#cell-position)
@@ -216,30 +215,6 @@ Examples:
 
 ---
 
-## Cursor coordinates
-
-Format of coordinates that refer to the current mouse position.
-Their format starts with caret (`^`), optionally followed by a number (which can be negative), representing an offset.
-They describe an absolute position of the mouse in the world along an axes, plus some provided offset.
-A standalone caret (^) assumes an offset of 0.
-They can represent a single-precision floating-point number or an integer.
-
-> [!NOTE]
-> You can mix relative and cursor coordinates in the same command.
-
-Examples:
-```
-/tp ^ ^
-```
-> Teleport to the position pointing by the mouse.
-
-```
-/tp ^5 ^
-```
-> Teleports player to the position pointing by the mouse plus additional offset in right (X+) direction in 5 cells.
-
----
-
 ## Format language specifications
 
 A string enclosed in `<` and `>` denotes an argument type defined in this list.
@@ -405,16 +380,6 @@ Must contain a case-sensitive player nickname currently joined in the lobby.
 > Teleports up by 100 cells.
 
 ```
-/tp ^ ^
-```
-> Teleports to the position **pointing by the mouse**.
-
-```
-/tp ^5 ^
-```
-> Teleports to the position **pointed to by the mouse**, with a **5-cell offset to the right (+X)**.
-
-```
 /tp SomePlayerInLobby
 ```
 > Teleports to the position of another player with name **`SomePlayerInLobby`**.
@@ -476,21 +441,6 @@ Places `cell` to position `pos`.
 > Removes cell 5 cells above the player position.
 
 ```
-/place rock ^ ^
-```
-> Places "Stone" at the cell **pointed to by the mouse**.
-
-```
-/place dirt{water=0.1} ^ ^
-```
-> Places "Dirt" with 10% water inside at the cell **pointed to by the mouse**.
-
-```
-/place air{water=5,lava=1} ^ ^
-```
-> Creates lava (and removes cell) with quantity of 5 units.
-
-```
 /place wallDoor{data0=1} ~ ~
 ```
 > Places an **open** "Armored Door" at the **cell that player is standing in**.
@@ -531,11 +481,6 @@ The total number of filled cells is $(x_{max} - x_{min} + 1) \times (y_{max} - y
 /fill wallWood ~ ~ ~10 ~2
 ```
 > Fills region from **the player's current position** to **10 cells right (+X)** and **2 cells up (+Y)** from current player's location with "Wooden Wall".
-
-```
-/fill air{water=50} ^-2 ^-2 ^2 ^2
-```
-> Fills region to nothing with **water pressure** to `50` in a **5x5 region** centered on the mouse cursor (from **2 cells left (–X)** to **2 cells right (+X)**, and **2 cells down (–Y)** to **2 cells up (+Y)**).
 
 ```
 /fill air 0 0 1023 1023
@@ -581,11 +526,6 @@ Spawns `unit` at coordinates `pos`.
 ```
 > Spawns **Hound** at (300, 700).
 
-```
-/spawn #22 ^ ^
-```
-> Spawn **Acid Ant** at the position **pointing by the mouse**.
-
 ---
 
 ## `/clearinventory`
@@ -630,11 +570,6 @@ Clones cells from one region (`from` to `to` positions) to another (`dest` to `d
 /clone 500 500 599 599 600 500
 ```
 > Copies a 100x100 cell region from (500, 500) to (600, 600) and pastes it starting at the destination corner (600, 500).
-
-```
-/clone ~-5 ~-5 ~5 ~5 ^ 6
-```
-> Copies a 10x10 square around player and pastes it where mouse is located.
 
 ---
 
