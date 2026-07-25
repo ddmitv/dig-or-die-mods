@@ -16,6 +16,11 @@ public static class ModeManager {
     public delegate void ModeLuaSetup(Lua.Script script);
 
     public static void Register<T>(ModeLuaSetup setup, string modeId, string modeName, string modeDescription) where T : CMode {
+        if (setup is null) { throw new ArgumentNullException(nameof(setup)); }
+        if (string.IsNullOrEmpty(modeId)) { throw new ArgumentException("Mode ID cannot be null or empty", nameof(modeId)); }
+        if (string.IsNullOrEmpty(modeName)) { throw new ArgumentException("Mode name cannot be null or empty", nameof(modeName)); }
+        if (string.IsNullOrEmpty(modeDescription)) { throw new ArgumentException("Mode description cannot be null or empty", nameof(modeDescription)); }
+
         LateRegistrationException.ThrowIfLocked(_modesLocked);
         if (_modeLuaSetups.ContainsKey(modeId)) {
             throw new ArgumentException($"[ModeManager] Duplicate mode ID \"{modeId}\"", nameof(modeId));

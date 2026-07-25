@@ -12,6 +12,8 @@ public static class NetworkManager {
     private static bool _messagesLocked = false;
 
     public static void Register(SMessageBase message) {
+        if (message is null) { throw new ArgumentNullException(nameof(message)); }
+
         LateRegistrationException.ThrowIfLocked(_messagesLocked);
 
         if (message.m_messageId != 0) {

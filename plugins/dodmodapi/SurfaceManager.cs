@@ -1,4 +1,5 @@
 ﻿
+using System;
 using HarmonyLib;
 using UnityEngine;
 
@@ -20,12 +21,50 @@ public sealed class ModSurface : CSurface {
     }
 }
 
+public sealed class ModSurfaceBg : CSurfaceBg {
+    public ModSurfaceBg(string surfaceTexture, int surfaceSortingOrder, Color color) : base(default, default, default) {
+        m_surfaceTexture = surfaceTexture;
+        m_surfaceMat = SResources.GetMaterial("SurfaceOpaque", surfaceTexture);
+        m_topIcon = null;
+
+        m_matTop = null;
+        m_sortingOrder = surfaceSortingOrder;
+        m_hasAltTop = false;
+
+        m_surfaceGrass = null;
+        m_surfaceGrassWet = null;
+
+        m_color = color;
+    }
+}
+
 public static class SurfaceManager {
+    public static void RegisterBackgroundSurface(ModSurfaceBg surfaceBg) {
+        if (surfaceBg is null) { throw new ArgumentNullException(nameof(surfaceBg)); }
+
+        GSurfaces.BgSurfacesList ??= [null];
+        if (GSurfaces.BgSurfacesList.Count >= 8) {
+            throw new InvalidOperationException($"Failed to register background surface {{surfaceTexture=\"{surfaceBg.m_surfaceTexture}\",sortingOrder={surfaceBg.m_sortingOrder}}}: background surface ID pool is exhausted (max background surface ID 7 reached)");
+        }
+
+        surfaceBg.m_id = GSurfaces.BgSurfacesList.Count;
+        GSurfaces.BgSurfacesList.Add(surfaceBg);
+    }
+
     internal static class Patches {
         [HarmonyPatch(typeof(CSurface), MethodType.Constructor, [typeof(string), typeof(int), typeof(int), typeof(int), typeof(bool), typeof(CSurface), typeof(CSurface), typeof(bool)])]
         [HarmonyPrefix]
         private static bool CSurface_ctor(CSurface __instance) {
             if (__instance is ModSurface) {
+                return false; // skip base ctor
+            }
+            return true;
+        }
+
+        [HarmonyPatch(typeof(CSurfaceBg), MethodType.Constructor, [typeof(string), typeof(int), typeof(Color)])]
+        [HarmonyPrefix]
+        private static bool CSurfaceBg_ctor(CSurface __instance) {
+            if (__instance is ModSurfaceBg) {
                 return false; // skip base ctor
             }
             return true;

@@ -67,11 +67,15 @@ public static class ItemManager {
     public static event Action? OnPostItemsInit;
 
     public static void RegisterItem(ModItem modItem) {
+        if (modItem is null) { throw new ArgumentNullException(nameof(modItem)); }
+
         LateRegistrationException.ThrowIfLocked(_itemsLocked);
         _items.Add(modItem);
     }
 
     public static void RegisterAllItems(Type type) {
+        if (type is null) { throw new ArgumentNullException(nameof(type)); }
+
         LateRegistrationException.ThrowIfLocked(_itemsLocked);
         // skips all non-ModItem fields
         foreach (var itemField in type.GetFields(BindingFlags.Static | BindingFlags.Public)) {
@@ -82,11 +86,15 @@ public static class ItemManager {
     }
 
     public static void RegisterRecipeGroup(ModRecipeGroup recipeGroup) {
+        if (recipeGroup is null) { throw new ArgumentNullException(nameof(recipeGroup)); }
+
         LateRegistrationException.ThrowIfLocked(_recipeGroupsLocked);
         _recipeGroups.Add(recipeGroup);
     }
 
     public static void RegisterAllRecipeGroups(Type type) {
+        if (type is null) { throw new ArgumentNullException(nameof(type)); }
+
         LateRegistrationException.ThrowIfLocked(_recipeGroupsLocked);
         // skips all non-ModRecipeGroup fields
         foreach (var recipeGroupField in type.GetFields(BindingFlags.Static | BindingFlags.Public)) {

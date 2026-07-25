@@ -24,10 +24,14 @@ public static class UnitManager {
     private static bool _unitDescsLocked = false;
 
     public static void RegisterUnit(ModUnit modUnit) {
+        if (modUnit is null) { throw new ArgumentNullException(nameof(modUnit)); }
+
         LateRegistrationException.ThrowIfLocked(_unitDescsLocked);
         _unitDescs.Add(modUnit);
     }
     public static void RegisterAllUnits(Type type) {
+        if (type is null) { throw new ArgumentNullException(nameof(type)); }
+
         LateRegistrationException.ThrowIfLocked(_unitDescsLocked);
         // skips all non-ModUnit fields
         foreach (var modUnitField in type.GetFields(BindingFlags.Static | BindingFlags.Public)) {

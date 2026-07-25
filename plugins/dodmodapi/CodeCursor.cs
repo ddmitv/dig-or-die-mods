@@ -340,10 +340,22 @@ public sealed class CodeCursor {
         if (pattern.operand is null) {
             return true;
         }
-        if (pattern.operand is int localIndex && actual.operand is LocalBuilder lb) {
+        if (TryCastToLocalIndex(pattern.operand, out int localIndex) && actual.operand is LocalBuilder lb) {
             return localIndex == lb.LocalIndex;
         }
         return object.Equals(pattern.operand, actual.operand);
+    }
+
+    private static bool TryCastToLocalIndex(object operand, out int result) {
+        switch (operand) {
+        case int i: result = i; return true;
+        case byte b: result = b; return true;
+        case sbyte sb: result = sb; return true;
+        case short s: result = s; return true;
+        case ushort us: result = us; return true;
+        case uint ui when ui <= int.MaxValue: result = (int)ui; return true;
+        default: result = 0; return false;
+        }
     }
 
     private static void AppendList<T>(ref List<T> a, List<T> b) {
