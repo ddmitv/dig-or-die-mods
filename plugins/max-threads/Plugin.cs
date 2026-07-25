@@ -8,7 +8,7 @@ using DODModAPI;
 
 [BepInPlugin("max-threads", ThisPluginInfo.Name, ThisPluginInfo.Version)]
 [BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
-public class CellPicker : BaseUnityPlugin {
+public class MaxThreads : BaseUnityPlugin {
     private static ConfigEntry<uint> configOverrideThreadsNumber = null!;
 
     private void Awake() {
@@ -22,7 +22,7 @@ public class CellPicker : BaseUnityPlugin {
         if (!configEnabled.Value) { return; }
 
         var harmony = new Harmony(Info.Metadata.GUID);
-        harmony.PatchAll(typeof(CellPicker));
+        harmony.PatchAll(typeof(MaxThreads));
     }
 
     [HarmonyTranspiler]
