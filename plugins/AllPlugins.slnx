@@ -1,0 +1,22 @@
+<Solution>
+  <Project Path="achievement-enabler/achievement-enabler.csproj" />
+  <Project Path="autosave-tweaks/autosave-tweaks.csproj" />
+  <Project Path="better-chat/better-chat.csproj" />
+  <Project Path="cell-picker/cell-picker.csproj" />
+  <Project Path="debug-mode/debug-mode.csproj" />
+  <Project Path="dedicated-client/dedicated-client.csproj" />
+  <Project Path="dodmodapi/dodmodapi.csproj" />
+  <Project Path="enable-asserts/enable-asserts.csproj" />
+  <Project Path="focused-flashlight/focused-flashlight.csproj" />
+  <Project Path="friendly-fire/friendly-fire.csproj" />
+  <Project Path="max-threads/max-threads.csproj" />
+  <Project Path="more-items/more-items.csproj" />
+  <Project Path="player-name-changer/player-name-changer.csproj" />
+  <Project Path="precise-clock/precise-clock.csproj" />
+  <Project Path="replacementor/replacementor.csproj" />
+  <Project Path="save-dialog/save-dialog.csproj" />
+  <Project Path="settable-seed/settable-seed.csproj" />
+  <Project Path="skip-launcher/skip-launcher.csproj" />
+  <Project Path="ultra-hardcore/ultra-hardcore.csproj" />
+  <Project Path="world-recorder/world-recorder.csproj" />
+</Solution>

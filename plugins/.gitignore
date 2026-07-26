@@ -4,6 +4,7 @@
 !Plugin.Common.props
 !Plugin.Common.targets
 !create-plugin.ps1
+!AllPlugins.slnx
 
 !debug-mode/
 !friendly-fire/
