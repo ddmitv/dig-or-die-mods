@@ -3,5 +3,6 @@
 !.gitignore
 !save-dialog.csproj
 !Plugin.cs
+!FileDialogHelper.cs
 !README.md
 !readme-res/
