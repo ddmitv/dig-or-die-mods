@@ -108,15 +108,15 @@ internal static class CUnitDefensePatches {
                 new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
                 new(OpCodes.Ldsfld, typeof(GItems).StaticField("explosive")),
                 new(OpCodes.Bne_Un))
-            .DeclareLabel(out var skipLabel)
-            .InjectWithLabel(skipLabel,
+            .InjectWithLabel(skipLabel => [
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CUnitDefense).Field("m_item")),
                 new(OpCodes.Isinst, typeof(ExtCItem_Explosive)),
                 new(OpCodes.Ldnull),
                 new(OpCodes.Beq, skipLabel),
                 new(OpCodes.Ldarg_0),
-                Transpilers.EmitDelegate(ExtCItem_Explosive.ExplosiveLogic));
+                Transpilers.EmitDelegate(ExtCItem_Explosive.ExplosiveLogic)
+            ]);
     }
 
     private static void PatchCollector(CodeCursor codeCursor) {

@@ -184,18 +184,20 @@ public sealed class CodeCursor {
         _pos += instructions.Length;
         return this;
     }
-    public CodeCursor InjectInstruction(in OpCode opcode, object? operand = null) {
-        return Inject(new CodeInstruction(opcode, operand));
-    }
 
-    public CodeCursor InjectWithLabel(Label label, params CodeInstruction[] instructions) {
-        if (_pos >= _codes.Count) {
-            // nowhere to put label (since we're at the end) so just leaving as it is
-            Insert(instructions);
-            return this;
-        }
+    public CodeCursor InjectWithLabel(Func<Label, CodeInstruction[]> instructionsFactory) {
+        if (instructionsFactory is null) { throw new ArgumentNullException(nameof(instructionsFactory)); }
+
+        Label skipLabel = _generator.DefineLabel();
+        CodeInstruction[] instructions = instructionsFactory(skipLabel);
+        if (instructions is null || instructions.Length == 0) { return this; }
+
         Inject(instructions);
-        _codes[_pos - instructions.Length].labels.Add(label);
+
+        if (_pos >= _codes.Count) {
+            throw new InvalidOperationException($"There is no instruction after position {_pos}, unable to place skip label");
+        }
+        _codes[_pos].labels.Add(skipLabel);
 
         return this;
     }
@@ -269,7 +271,8 @@ public sealed class CodeCursor {
         if (_pos < 0 || _pos >= _codes.Count) {
             throw new InvalidOperationException($"Position {_pos} which is out of bounds [0..{_codes.Count})");
         }
-        _codes[_pos] = new(opcode, operand) { labels = _codes[_pos].labels, blocks = _codes[_pos].blocks };
+        _codes[_pos].opcode = opcode;
+        _codes[_pos].operand = operand;
         _pos += 1;
         return this;
     }

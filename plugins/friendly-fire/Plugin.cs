@@ -26,9 +26,8 @@ internal static class PlayersDamagePlayersPatch {
                 new(OpCodes.Ldloc_2),
                 new(OpCodes.Callvirt, typeof(List<CUnit>).Method("Contains")),
                 new(OpCodes.Brtrue))
-            .InjectInstruction(OpCodes.Ldarg_0)
-            .CreateLabel(offset: 0, out var failLabel)
-            .Insert(
+            .InjectWithLabel(failLabel => [
+                new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CBullet).Field("m_attacker")),
                 new(OpCodes.Isinst, typeof(CUnitPlayer)),
                 new(OpCodes.Brfalse, failLabel), // `m_attacker` is not CUnitPlayer
@@ -38,7 +37,8 @@ internal static class PlayersDamagePlayersPatch {
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CBullet).Field("m_attacker")),
                 new(OpCodes.Ldloc_2),
-                new(OpCodes.Bne_Un, successLabel)) // `m_attacker` != `cunit2`
+                new(OpCodes.Bne_Un, successLabel) // `m_attacker` != `cunit2`
+            ])
             .Finish();
     }
 }
@@ -169,9 +169,8 @@ internal static class DefenseDamagePlayersPatch {
             //     cunit2 is CUnitPlayer && 
             //     m_attacker != cunit2) 
             //     -> jump to success (bypass original checks)
-            .InjectInstruction(OpCodes.Ldarg_0)
-            .CreateLabel(offset: 0, out Label failLabel)
-            .Insert(
+            .InjectWithLabel(failLabel => [
+                new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CBullet).Field("m_attacker")),
                 new(OpCodes.Isinst, typeof(CUnitDefense)),
                 new(OpCodes.Brfalse, failLabel),
@@ -181,7 +180,8 @@ internal static class DefenseDamagePlayersPatch {
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(CBullet).Field("m_attacker")),
                 new(OpCodes.Ldloc_2),
-                new(OpCodes.Bne_Un, successLabel))
+                new(OpCodes.Bne_Un, successLabel)
+            ])
             .Finish();
 
         //          [ if (... && (m_unitsHit == null || ...) && ...) ]
