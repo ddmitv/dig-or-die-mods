@@ -175,6 +175,7 @@ All unit tiles with the same animation dimensions are placed in a shared sprites
 For example, if unit #1 and unit #2 have identical tile dimensions, the their sprites are placed in the same spritesheet.
 
 **Allowed animation names** (in canonical order):
+
 | Animation   | Description           |
 | ----------- | --------------------- |
 | `stand`     | Idle animation        |
