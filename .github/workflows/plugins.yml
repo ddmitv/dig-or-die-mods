@@ -1,0 +1,35 @@
+
+name: Compile mods
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'plugins/**'
+      - '.github/workflows/plugins.yml'
+  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore
+        run: dotnet restore AllPlugins.slnx
+        working-directory: ./plugins
+
+      - name: Build
+        run: dotnet build AllPlugins.slnx -c Release --no-restore --no-incremental -warnaserror
+        working-directory: ./plugins
