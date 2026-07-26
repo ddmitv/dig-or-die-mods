@@ -191,29 +191,25 @@ internal static class Patches {
                 steamId.m_SteamID = buffer.ReadULong();
             }
         }
-        var codeMatcher = new CodeMatcher(instructions, generator);
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Ldloc_S),
                 new(OpCodes.Callvirt, typeof(SMessageBase).Method("IsMessageOnlyInLobby")),
                 new(OpCodes.Brfalse))
-            .ThrowIfInvalid("(1)")
             .Insert(
                 new(OpCodes.Ldloc_S, (byte)4), // message id
                 new(OpCodes.Ldloc_S, (byte)1), // buffer
                 new(OpCodes.Ldloca_S, (byte)2), // steam id
                 new(OpCodes.Ldloca_S, (byte)6), // message size
-                Transpilers.EmitDelegate(ReceiveClientId));
-        if (DedicatedClient.configLogReceivedPackets.Value) {
-            codeMatcher.Start()
-                .MatchForward(useEnd: false,
+                Transpilers.EmitDelegate(ReceiveClientId))
+
+            .When(DedicatedClient.configLogReceivedPackets.Value, cc => cc
+                .FindNext(out uint n,
                     new(OpCodes.Ldloc_S),
                     new(OpCodes.Callvirt, typeof(SMessageBase).Method("IsTraced")),
                     new(OpCodes.Brfalse))
-                .ThrowIfInvalid("(2)")
-                .RemoveInstructions(3);
-        }
-        return codeMatcher.Instructions();
+                .Remove(n))
+            .Finish();
     }
     // [HarmonyPatch(typeof(SMessagePlayerInfos), nameof(SMessagePlayerInfos.OnReceived))]
     // [HarmonyTranspiler]
@@ -256,17 +252,16 @@ internal static class Patches {
         static void InsertPlaceholder(CBuffer buffer) {
             buffer.m_pos += 4;
         }
-        return new CodeMatcher(instructions, generator)
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldsfld, typeof(SMessageBase).StaticField("m_buffer")),
                 new(OpCodes.Ldfld, typeof(CBuffer).Field("m_pos")),
                 new(OpCodes.Stfld, typeof(SMessageBase).Field("m_bufferStartPos")))
-            .ThrowIfInvalid("(1)")
             .Insert(
                 new(OpCodes.Ldsfld, typeof(SMessageBase).StaticField("m_buffer")),
                 Transpilers.EmitDelegate(InsertPlaceholder))
-            .Instructions();
+            .Finish();
     }
     [HarmonyPatch(typeof(SMessageBase), nameof(SMessageBase.Send_End))]
     [HarmonyPostfix]

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
 using DODModAPI.Extensions;
+using DODModAPI;
 
 internal static class RepeatLastCommandPatch {
     [HarmonyPatch(typeof(SScreenHudChat), nameof(SScreenHudChat.OnUpdate))]
@@ -24,11 +25,9 @@ internal static class FullChatHistoryPatch {
     [HarmonyPatch(typeof(SNetworkCommands), nameof(SNetworkCommands.ProcessCommand))]
     [HarmonyTranspiler]
     private static IEnumerable<CodeInstruction> SNetworkCommands_ProcessCommand(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
         // Disable updating command history so that it doesn't interfere with new approach
-        codeMatcher
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(out uint n,
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(SNetworkCommands).Field("m_historyCommands")),
                 new(OpCodes.Ldarg_1),
@@ -38,9 +37,8 @@ internal static class FullChatHistoryPatch {
                 new(OpCodes.Ldfld, typeof(SNetworkCommands).Field("m_historyCommands")),
                 new(OpCodes.Callvirt, typeof(List<string>).Method("get_Count")),
                 new(OpCodes.Stfld, typeof(SNetworkCommands).Field("m_historyIndex")))
-            .ThrowIfInvalid("(1)")
-            .RemoveInstructions(9);
-        return codeMatcher.Instructions();
+            .Remove(n)
+            .Finish();
     }
     [HarmonyPatch(typeof(SScreenHudChat), nameof(SScreenHudChat.OnUpdate))]
     [HarmonyTranspiler]
@@ -55,10 +53,8 @@ internal static class FullChatHistoryPatch {
             networkCommands.m_historyIndex = networkCommands.m_historyCommands.Count;
         }
 
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
-        codeMatcher.
-            MatchForward(useEnd: true,
+        return new CodeCursor(instructions, generator)
+            .FindNextEnd(
                 new(OpCodes.Ldc_I4_S, (sbyte)13),
                 new(OpCodes.Call, typeof(SInputs).Method("GetKeyDown")),
                 new(OpCodes.Brfalse),
@@ -68,13 +64,10 @@ internal static class FullChatHistoryPatch {
                 new(OpCodes.Ldsfld, typeof(string).StaticField("Empty")),
                 new(OpCodes.Call, typeof(string).Method("op_Inequality")),
                 new(OpCodes.Brfalse))
-            .ThrowIfInvalid("(1)")
-            .Advance(1)
             .Insert(
                 new(OpCodes.Ldarg_0),
-                Transpilers.EmitDelegate(AddToChatHistory));
-
-        return codeMatcher.Instructions();
+                Transpilers.EmitDelegate(AddToChatHistory))
+            .Finish();
     }
 }
 

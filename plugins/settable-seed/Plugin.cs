@@ -33,23 +33,20 @@ internal static class InputSeedPatch {
             cparams.m_seed = (int)seed;
             return true;
         }
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(
+                // insert here
+            // skipRet:
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(SScreenChooseMultiOptions).Field("m_startCheated")),
                 new(OpCodes.Brfalse))
-            .ThrowIfNotMatch("(1)")
-            .CreateLabel(out Label skipRet)
+            .CreateLabel(offset: 0, out Label skipRet)
             .Insert(
                 new(OpCodes.Ldloc_1),
                 Transpilers.EmitDelegate(SetSeed),
                 new(OpCodes.Brtrue, skipRet),
-                new(OpCodes.Ret)
-            );
-
-        return codeMatcher.Instructions();
+                new(OpCodes.Ret))
+            .Finish();
     }
 
     [HarmonyPatch(typeof(SScreenChooseDifficulty), nameof(SScreenChooseDifficulty.OnInit))]
@@ -75,22 +72,17 @@ internal static class InputSeedPatch {
             SOutgame.Params.m_seed = (int)seed;
             return true;
         }
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
-        codeMatcher.Start()
-            .MatchForward(useEnd: false,
+        return new CodeCursor(instructions, generator)
+            .FindNext(
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, typeof(SScreenChooseDifficulty).Field("m_startCheated")),
                 new(OpCodes.Brfalse))
-            .ThrowIfNotMatch("(1)")
-            .CreateLabel(out Label skipRet)
+            .CreateLabel(offset: 0, out Label skipRet)
             .Insert(
                 Transpilers.EmitDelegate(SetSeed),
                 new(OpCodes.Brtrue, skipRet),
-                new(OpCodes.Ret)
-            );
-
-        return codeMatcher.Instructions();
+                new(OpCodes.Ret))
+            .Finish();
     }
 
     [HarmonyPatch(typeof(SGameStartEnd), nameof(SGameStartEnd.StartNewGame_Coroutine), MethodType.Enumerator)]
