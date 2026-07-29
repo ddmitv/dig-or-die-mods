@@ -99,6 +99,24 @@ public static class SpriteManager {
         }
 
         [HarmonyTranspiler]
+        [HarmonyPatch(typeof(CItem_Mineral), MethodType.Constructor, [typeof(CTile), typeof(CTile), typeof(ushort), typeof(uint), typeof(CSurface), typeof(bool)])]
+        private static IEnumerable<CodeInstruction> CItem_Mineral_ctor(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+            // vanilla CItem_Mineral forcefully assigns m_tileIcon.m_textureName to "items_minerals",
+            // which breaks modded tiles (they have custom m_textureName)
+            // this patch removes force assign to m_tileIcon.m_textureName which allows tileIcon to have its own texture name
+            return new CodeCursor(instructions, generator)
+                .FindNextEnd(
+                    new(OpCodes.Ldarg_2),
+                    new(OpCodes.Brfalse))
+                .GetOperand(offset: -1, out Label failLabel)
+                .Insert(
+                    new(OpCodes.Ldarg_2),
+                    new(OpCodes.Isinst, typeof(ModTile)),
+                    new(OpCodes.Brtrue, failLabel)) // skip if tileIcon is ModTile
+                .Finish();
+        }
+
+        [HarmonyTranspiler]
         [HarmonyPatch(typeof(CItem), nameof(CItem.Init))]
         private static IEnumerable<CodeInstruction> CItem_Init(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
             // this patch removes overwriting of m_tileIcon if m_tileIcon is an instance of ModCTile.
