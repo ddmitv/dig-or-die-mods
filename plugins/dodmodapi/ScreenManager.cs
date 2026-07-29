@@ -16,7 +16,7 @@ public static class ScreenManager {
         public string name;
     }
 
-    public static void Register<T>(int sortOrder = 100, string? name = null) where T : SSingletonScreen<T> {
+    public static void Register<T>(int sortOrder = 0, string? name = null) where T : SSingletonScreen<T> {
         LateRegistrationException.ThrowIfLocked(_screensLocked);
 
         _screens.Add(new ScreenEntry {
@@ -37,7 +37,7 @@ public static class ScreenManager {
             _screens.Sort((a, b) => a.sortOrder.CompareTo(b.sortOrder));
 
             foreach (var entry in _screens) {
-                GameObject obj = new($"{entry.sortOrder}_{entry.name}");
+                GameObject obj = new(entry.name);
                 obj.transform.SetParent(parent, worldPositionStays: false);
                 obj.AddComponent(entry.type);
             }
