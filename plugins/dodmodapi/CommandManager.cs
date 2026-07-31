@@ -6,11 +6,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection.Emit;
-using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace DODModAPI;
 
+// exception made specifically made for in-command errors (for example, when user passes invalid argument to a command)
 public class CommandException : Exception {
     public int? ArgIndex { get; } = null;
 
@@ -23,8 +23,6 @@ public class CommandException : Exception {
 public static class CommandManager {
     private static readonly Dictionary<string, CommandEntry> _commands = new();
     private static readonly List<ChatPreprocessorEntry> _chatPreprocessors = new();
-
-    private static Regex? _splitCmdArgsRegex = null;
 
     public delegate void CommandAction(CommandArgs args);
     public delegate List<string>? CommandCompletions(int argIndex);
@@ -80,11 +78,34 @@ public static class CommandManager {
     }
 
     private static string[] SplitCommandArgs(string text) {
-        _splitCmdArgsRegex ??= new Regex(@"[\""].+?[\""]|[^ ]+");
-        return _splitCmdArgsRegex.Matches(text)
-            .Cast<Match>()
-            .Select(m => m.Value.Trim('"'))
-            .ToArray();
+        var args = new List<string>();
+        int i = 0;
+        int len = text.Length;
+
+        while (i < len) {
+            // skip spaces between arguments
+            while (i < len && char.IsWhiteSpace(text[i])) {
+                i++;
+            }
+            if (i >= len) { break; }
+
+            if (text[i] == '"') {
+                i += 1; // skip opening quote
+                int start = i;
+                while (i < len && text[i] != '"') {
+                    i++;
+                }
+                args.Add(text.Substring(start, i - start));
+                i += 1; // skip closing quote
+            } else {
+                int start = i;
+                while (i < len && !char.IsWhiteSpace(text[i])) {
+                    i++;
+                }
+                args.Add(text.Substring(start, i - start));
+            }
+        }
+        return args.ToArray();
     }
 
     private static string EscapeArg(string arg) {
@@ -440,6 +461,12 @@ public struct CommandArgs {
         }
         Index += 1;
         return (T)Enum.Parse(typeof(T), strValue);
+    }
+
+    public string ArgRest(string argName = "text") {
+        string result = string.Join("", _args, Index, _args.Length - Index);
+        Index = _args.Length;
+        return result;
     }
 
     private float ArgRelativeWorldCoord(float relativeBase, string argName) {
