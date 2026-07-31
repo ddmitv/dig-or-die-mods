@@ -488,5 +488,14 @@ public static class CustomCommands {
                 GVars.m_clock = newClockTime;
             }
         });
+        CommandManager.Register("/fullbright", opts with {
+            Local = true,
+        }, (args) => {
+            args.ArgNone();
+            FullbrightPatch.isEnabled = !FullbrightPatch.isEnabled;
+            Misc.SendChatMessageLocal(
+                $"Fullbright {(FullbrightPatch.isEnabled ? "enabled" : "disabled")}"
+            );
+        });
     }
 }

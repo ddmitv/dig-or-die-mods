@@ -56,6 +56,7 @@ public class BetterChat : BaseUnityPlugin {
         }
         harmony.PatchAll(typeof(FreecamModePatch));
         harmony.PatchAll(typeof(ClockCommandPatch));
+        harmony.PatchAll(typeof(FullbrightPatch));
 
         instance = this;
 

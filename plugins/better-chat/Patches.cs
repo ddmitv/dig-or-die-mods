@@ -1,10 +1,11 @@
 
-using HarmonyLib;
+using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
-using UnityEngine;
-using DODModAPI.Extensions;
 using DODModAPI;
+using DODModAPI.Extensions;
+using HarmonyLib;
+using UnityEngine;
 
 internal static class RepeatLastCommandPatch {
     [HarmonyPatch(typeof(SScreenHudChat), nameof(SScreenHudChat.OnUpdate))]
@@ -162,6 +163,53 @@ internal static class ClockCommandPatch {
     private static void SGame_OnUpdateSimu_Postfix(ref float __state) {
         if (isPaused) {
             SOutgame.Params.m_dayDurationTotal = __state;
+        }
+    }
+}
+
+internal static class FullbrightPatch {
+    public static bool isEnabled = false;
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(SWorld), nameof(SWorld.GetLightColor))]
+    private static void SWorld_GetLightColor_Postfix(ref Color __result) {
+        if (!isEnabled) { return; }
+        __result.r = Math.Max(__result.r, 0.45f);
+        __result.g = Math.Max(__result.g, 0.45f);
+        __result.b = Math.Max(__result.b, 0.45f);
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(SWorld), nameof(SWorld.GetLightColor32))]
+    private static void SWorld_GetLightColor32_Postfix(ref Color32 __result) {
+        if (!isEnabled) { return; }
+        __result.r = Math.Max(__result.r, (byte)115);
+        __result.g = Math.Max(__result.g, (byte)115);
+        __result.b = Math.Max(__result.b, (byte)115);
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(SWorld), nameof(SWorld.GetLight))]
+    private static void SWorld_GetLight_Postfix(ref float __result) {
+        if (!isEnabled) { return; }
+        __result = Math.Max(__result, 0.9f);
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(CMeshPoly), nameof(CMeshPoly.DrawTextureQuad))]
+    private static void CMeshPoly_DrawTextureQuad_Postfix(CMeshPoly __instance) {
+        if (!isEnabled) { return; }
+
+        Color32[] colors = __instance.m_colors;
+        int iVertex = __instance.m_iVertex;
+
+        for (int i = iVertex - 4; i < iVertex; i++) {
+            if (i >= 0 && i < colors.Length) {
+                colors[i].r = Math.Max(colors[i].r, (byte)115);
+                colors[i].g = Math.Max(colors[i].g, (byte)115);
+                colors[i].b = Math.Max(colors[i].b, (byte)115);
+                colors[i].a = 255;
+            }
         }
     }
 }
