@@ -10,7 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="AssetPacker/**/*" />
+    <Compile Remove="AssetPacker/**;example-mod/**" />
+    <None Remove="AssetPacker/**;example-mod/**" />
   </ItemGroup>
   <Import Project="../Plugin.Common.targets" />
 </Project>

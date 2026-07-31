@@ -6,6 +6,7 @@
   <Project Path="debug-mode/debug-mode.csproj" />
   <Project Path="dedicated-client/dedicated-client.csproj" />
   <Project Path="dodmodapi/dodmodapi.csproj" />
+  <Project Path="dodmodapi/example-mod/example-mod.csproj" />
   <Project Path="enable-asserts/enable-asserts.csproj" />
   <Project Path="focused-flashlight/focused-flashlight.csproj" />
   <Project Path="friendly-fire/friendly-fire.csproj" />

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../../Plugin.Common.props" />
+  
+  <PropertyGroup>
+    <AssemblyName>example_mod</AssemblyName>
+    <Product>DODModAPI Example Mod</Product>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <!-- Reference the core API -->
+    <ProjectReference Include="../dodmodapi.csproj" Private="false" />
+    <!-- Reference the AssetPacker to generate textures/sprites at build time -->
+    <PackageReference Include="DigOrDie.DODModAPI.AssetPacker" Version="0.1.2" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <!-- Tell AssetPacker to process sprites.cfg and generate a class named "ExampleAssets" -->
+    <ModAtlas Include="assets/sprites.cfg" AtlasName="ExampleAssets" />
+  </ItemGroup>
+  
+  <Import Project="../../Plugin.Common.targets" />
+</Project>

@@ -1,6 +1,8 @@
 /*
 
-!AssetPacker
+!AssetPacker/
+!example-mod/
+
 !dodmodapi.csproj
 !.gitignore
 !AudioManager.cs
