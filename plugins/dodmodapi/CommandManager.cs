@@ -464,7 +464,7 @@ public struct CommandArgs {
     }
 
     public string ArgRest(string argName = "text") {
-        string result = string.Join("", _args, Index, _args.Length - Index);
+        string result = string.Join(" ", _args, Index, _args.Length - Index);
         Index = _args.Length;
         return result;
     }
