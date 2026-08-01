@@ -27,7 +27,7 @@ public static class CustomUnits {
 public static class CustomBullets {
     public static readonly ExtCBulletDesc meltdownSnipe = new(
         sprite: Textures.meltdownSnipe, radius: 0.7f, dispersionAngleRad: 0.1f,
-        speedStart: 50f, speedEnd: 30f, light: 0xC0A57u
+        speedStart: 50f, speedEnd: 30f, light: new(12, 10, 87)
     ) {
         m_lavaQuantity = 40f,
         m_explosionRadius = 5f,
@@ -54,7 +54,7 @@ public static class CustomBullets {
 
     public static readonly ExtCBulletDesc impactGrenadeBullet = new(
         sprite: Textures.particleImpactGrenade, radius: 0.5f, dispersionAngleRad: 0f,
-        speedStart: 20f, speedEnd: 15f, light: 0x005E19
+        speedStart: 20f, speedEnd: 15f, light: new(0, 94, 25)
     ) {
         m_grenadeYSpeed = -40f,
         m_explosionRadius = 3f,
@@ -63,7 +63,7 @@ public static class CustomBullets {
 
     public static readonly ExtCBulletDesc particleEnergyDiffuser = new(
         sprite: Textures.particleEnergyDiffuser, radius: 0.5f, dispersionAngleRad: 0f,
-        speedStart: 15f, speedEnd: 10f, light: 0x05B7ED
+        speedStart: 15f, speedEnd: 10f, light: new(5, 182, 236)
     ) {
         explosionEnergyRadius = 6f,
         explosionEnergyDamage = 60f,
@@ -382,7 +382,7 @@ public static class CustomItems {
                 projDesc: new ExtCBulletDesc(
                     sprite: Textures.particlesSnipTurretMK2,
                     radius: 0.45f, dispersionAngleRad: 0f,
-                    speedStart: 40f, speedEnd: 30f, light: 0xE10AF5
+                    speedStart: 40f, speedEnd: 30f, light: new(224, 10, 224)
                 ),
                 sound: GameAssets.SoundID.particleTurret
             ),
@@ -644,7 +644,7 @@ public static class CustomItems {
                     dispersionAngleRad: 0f,
                     speedStart: 20f,
                     speedEnd: 15f,
-                    light: 0x005E19
+                    light: new(0, 94, 25)
                 ) {
                     m_grenadeYSpeed = -15f,
                     m_explosionRadius = 15f,

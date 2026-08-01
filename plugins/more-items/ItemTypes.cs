@@ -240,7 +240,7 @@ public sealed class ExtCBulletDesc : ModBulletDesc {
     public float explosionEnergyRadius = 0f;
     public float explosionEnergyDamage = 0f;
 
-    public ExtCBulletDesc(ModSprite sprite, float radius, float dispersionAngleRad, float speedStart, float speedEnd, uint light = 0)
+    public ExtCBulletDesc(ModSprite sprite, float radius, float dispersionAngleRad, float speedStart, float speedEnd, Color24 light = default)
         : base(sprite, radius, dispersionAngleRad, speedStart, speedEnd, light) {}
 
     public void DoEnergyExplosion(CBullet bullet) {
