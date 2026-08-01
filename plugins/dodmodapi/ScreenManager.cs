@@ -30,10 +30,9 @@ public static class ScreenManager {
         [HarmonyPatch(typeof(SScreen), nameof(SScreen.InitScreens))]
         [HarmonyPrefix]
         private static void SScreen_InitScreens() {
-            Transform? parent = GameObject.Find("_Screens")?.transform;
-            if (parent is null) {
-                throw new InvalidOperationException("\"_Screens\" GameObject not found");
-            }
+            Transform? parent = GameObject.Find("_Screens")?.transform
+                ?? throw new InvalidOperationException("\"_Screens\" GameObject not found");
+
             _screens.Sort((a, b) => a.sortOrder.CompareTo(b.sortOrder));
 
             foreach (var entry in _screens) {

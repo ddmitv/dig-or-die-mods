@@ -17,6 +17,7 @@ public static class NetworkManager {
         LateRegistrationException.ThrowIfLocked(_messagesLocked);
 
         if (message.m_messageId != 0) {
+            // network message ID is explicitly specified
             var msgId = message.m_messageId;
             if ((msgId >= 1 && msgId <= 35) || (msgId >= 100 && msgId <= 102) || (msgId >= 253 && msgId <= 255)) {
                 throw new ArgumentException($"Network message ID {msgId} ({msgId:X}) is reserved by the game", nameof(message));
@@ -27,6 +28,7 @@ public static class NetworkManager {
             }
             messageSlot = message;
         } else {
+            // network message ID is auto
             _autoIdMessages.Add(message);
         }
         _messagesCount += 1;

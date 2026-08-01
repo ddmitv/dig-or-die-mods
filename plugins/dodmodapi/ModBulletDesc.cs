@@ -4,7 +4,7 @@ using HarmonyLib;
 namespace DODModAPI;
 
 public class ModBulletDesc : CBulletDesc {
-    public ModBulletDesc(ModSprite sprite, float radius, float dispersionAngleRad, float speedStart, float speedEnd, uint light = 0)
+    public ModBulletDesc(ModSprite sprite, float radius, float dispersionAngleRad, float speedStart, float speedEnd, Color24 light = default)
         : base(default, default, default, default, default, default, default) {
 
         m_sprite = sprite.Value;
@@ -12,7 +12,7 @@ public class ModBulletDesc : CBulletDesc {
         m_dispertionAngleRad = dispersionAngleRad;
         m_speedStart = speedStart;
         m_speedEnd = speedEnd;
-        m_light = new Color24(light);
+        m_light = light;
     }
 
     internal static class Patches {

@@ -38,6 +38,8 @@ public static class SaveManager {
         // DODModAPIPlugin.Log.LogInfo()
     }
 
+    // we're not flushing any buffers since BinaryWriter/BinaryReader internal streams are MemoryStream that doesn't require flushing
+
     private static void WriteModSaveData(BinaryWriter writer) {
         if (writer.BaseStream is not MemoryStream ms) {
             DODModAPIPlugin.Log.LogError($"Base stream of BinaryWriter is not MemoryStream (it is {writer.BaseStream.GetType()}), unable to save mods custom data in the save file");

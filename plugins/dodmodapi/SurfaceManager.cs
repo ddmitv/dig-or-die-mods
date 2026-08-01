@@ -22,7 +22,8 @@ public sealed class ModSurface : CSurface {
 }
 
 public sealed class ModSurfaceBg : CSurfaceBg {
-    public ModSurfaceBg(string surfaceTexture, int surfaceSortingOrder, Color color) : base(default, default, default) {
+    public ModSurfaceBg(string surfaceTexture, int surfaceSortingOrder, Color color)
+        : base(default, default, default) /*base ctor is skipped*/ {
         m_surfaceTexture = surfaceTexture;
         m_surfaceMat = SResources.GetMaterial("SurfaceOpaque", surfaceTexture);
         m_topIcon = null;
@@ -39,6 +40,9 @@ public sealed class ModSurfaceBg : CSurfaceBg {
 }
 
 public static class SurfaceManager {
+    // since almost all bit patterns for background surfaces are occupied you can only add one more background surface to the existing ones
+    // 0 = null, 1 = bgDirt, 2 = bgRock, 3 = bgGranit, 4 = bgCrystal, 5 = bgLava, 6 = bgOrganic, 7 = free
+    // only max 7 since the background surface id is stored within 3 bits (CCell.Flag_BgSurface_{0,1,2})
     public static void RegisterBackgroundSurface(ModSurfaceBg surfaceBg) {
         if (surfaceBg is null) { throw new ArgumentNullException(nameof(surfaceBg)); }
 
