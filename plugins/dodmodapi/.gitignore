@@ -5,6 +5,8 @@
 
 !dodmodapi.csproj
 !.gitignore
+!README.md
+
 !AudioManager.cs
 !CodeCursor.cs
 !CommandManager.cs
