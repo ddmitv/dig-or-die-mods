@@ -61,10 +61,6 @@ public class BetterChat : BaseUnityPlugin {
         instance = this;
 
         CustomCommands.AddCustomCommands();
-        DODModAPI.CommandManager.RegisterChatPreprocessor(priority: -1, (ref string text) => {
-
-            return true;
-        });
     }
 }
 
