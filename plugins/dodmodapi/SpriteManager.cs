@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using DODModAPI.Extensions;
 using HarmonyLib;
 using UnityEngine;
@@ -38,16 +39,35 @@ public sealed class ModTile : CTile {
 public static class SpriteManager {
     private static readonly Dictionary<string, TextureEntry> _textures = new();
 
-    private readonly record struct TextureEntry(Assembly Assembly, string ResourceName);
+    private readonly record struct TextureEntry(Assembly Assembly, string ResourceName, TextureSettings TextureSettings);
 
+    public readonly struct TextureSettings() {
+        public readonly FilterMode filterMode = FilterMode.Bilinear;
+        public readonly TextureWrapMode wrapMode = TextureWrapMode.Repeat;
+        public readonly int anisoLevel = 1;
+        public readonly bool compress = true;
+        public readonly bool mipmaps = false;
+        public readonly bool isReadable = false;
+    }
+
+    // uses Assembly.GetCallingAssembly() to resolve the resource's assembly
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static void RegisterTexture(string resourceName) {
-        _textures.Add(resourceName, new(Assembly.GetCallingAssembly(), resourceName));
+        _textures.Add(resourceName, new(Assembly.GetCallingAssembly(), resourceName, new TextureSettings()));
     }
-    public static void RegisterTexture(Assembly assembly, string resourceName) {
-        _textures.Add(resourceName, new(assembly, resourceName));
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void RegisterTexture(string resourceName, TextureSettings textureSettings) {
+        _textures.Add(resourceName, new(Assembly.GetCallingAssembly(), resourceName, textureSettings));
     }
 
-    public static Texture2D LoadTexture(Assembly assembly, string resourceName) {
+    public static void RegisterTexture(Assembly assembly, string resourceName) {
+        _textures.Add(resourceName, new(assembly, resourceName, new TextureSettings()));
+    }
+    public static void RegisterTexture(Assembly assembly, string resourceName, TextureSettings textureSettings) {
+        _textures.Add(resourceName, new(assembly, resourceName, textureSettings));
+    }
+
+    public static Texture2D LoadTexture(Assembly assembly, string resourceName, TextureSettings textureSettings) {
         using var stream = assembly.GetManifestResourceStream(resourceName);
 
         if (stream is null) {
@@ -62,14 +82,16 @@ public static class SpriteManager {
             throw new InvalidOperationException($"Failed to load texture image from logical name \"{resourceName}\" (in assembly {assembly.GetName().Name})");
         }
 
-        texture.filterMode = FilterMode.Bilinear;
-        texture.wrapMode = TextureWrapMode.Repeat;
-        texture.anisoLevel = 1;
+        texture.filterMode = textureSettings.filterMode;
+        texture.wrapMode = textureSettings.wrapMode;
+        texture.anisoLevel = textureSettings.anisoLevel;
         texture.mipMapBias = 0f;
         texture.name = resourceName;
 
-        texture.Compress(highQuality: true);
-        texture.Apply(updateMipmaps: true, makeNoLongerReadable: true);
+        if (textureSettings.compress) {
+            texture.Compress(highQuality: true);
+        }
+        texture.Apply(updateMipmaps: textureSettings.mipmaps, makeNoLongerReadable: !textureSettings.isReadable);
 
         return texture;
     }
@@ -79,7 +101,7 @@ public static class SpriteManager {
         [HarmonyPatch(typeof(CAssetTexture), nameof(CAssetTexture.Texture), MethodType.Getter)]
         private static bool CAssetTexture_get_Texture(CAssetTexture __instance, ref Texture __result) {
             if (__instance.m_asset is null && _textures.TryGetValue(__instance.m_filename, out TextureEntry entry)) {
-                var texture = LoadTexture(entry.Assembly, entry.ResourceName);
+                var texture = LoadTexture(entry.Assembly, entry.ResourceName, entry.TextureSettings);
                 __instance.m_asset = texture;
                 __instance.m_lastUseTime = Time.realtimeSinceStartup;
                 __result = texture;
