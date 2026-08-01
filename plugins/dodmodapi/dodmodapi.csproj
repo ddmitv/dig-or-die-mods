@@ -7,9 +7,18 @@
     <PackageId>DigOrDie.DODModAPI</PackageId>
     <RootNamespace>DODModAPI</RootNamespace>
     <Version>1.0.0</Version>
+
+    <Authors>ddmitv</Authors>
+    <Description>Core modding API for Dig or Die. Provides registration systems for custom items, units, events, game modes, save data, network messages, UI screens, chat commands, textures, and surfaces.</Description>
+    <PackageTags>DigOrDie;Modding;GameModding;BepInEx;Harmony</PackageTags>
+    <RepositoryUrl>https://github.com/ddmitv/dig-or-die-mods</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+
     <Compile Remove="AssetPacker/**;example-mod/**" />
     <None Remove="AssetPacker/**;example-mod/**" />
   </ItemGroup>
