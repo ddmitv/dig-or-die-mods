@@ -15,6 +15,9 @@ public static class ModeManager {
 
     public delegate void ModeLuaSetup(Lua.Script script);
 
+    // setup parameter is used as a replacement for mode lua files and its invoked on lua module env initialization
+    // you are required to define globals "mod" and "params" in the script's env
+    // if you don't initialize CMode's m_name field, it will be automatically assigned to modeId parameter
     public static void Register<T>(ModeLuaSetup setup, string modeId, string modeName, string modeDescription) where T : CMode {
         if (setup is null) { throw new ArgumentNullException(nameof(setup)); }
         if (string.IsNullOrEmpty(modeId)) { throw new ArgumentException("Mode ID cannot be null or empty", nameof(modeId)); }
@@ -79,6 +82,8 @@ public static class ModeManager {
                 return false;
             }
             return new CodeCursor(instructions, generator)
+                //     script.Call(script.RequireModule("main", null));
+                //     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
                 .FindNext(out uint instrsNum,
                     new(OpCodes.Ldloc_S, 4),
                     new(OpCodes.Ldloc_S, 4),
@@ -87,6 +92,11 @@ public static class ModeManager {
                     new(OpCodes.Callvirt, typeof(Lua.Script).Method(nameof(Lua.Script.RequireModule))),
                     new(OpCodes.Callvirt, typeof(Lua.Script).Method<Lua.DynValue>(nameof(Lua.Script.Call))),
                     new(OpCodes.Pop))
+                //     if (!ExecModScripts(script, j)) {
+                //     +++++++++++++++++++++++++++++++++
+                //         script.Call(script.RequireModule("main", null));
+                //     }
+                //     +
                 .Insert(
                     new(OpCodes.Ldloc_S, (byte)4), // load "script" local
                     new(OpCodes.Ldloc_S, (byte)6), // load "j" local
