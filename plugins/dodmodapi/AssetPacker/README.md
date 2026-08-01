@@ -55,11 +55,11 @@ Each field name is C# identifier sanitized so you could name any asset with any 
 
 ```csharp
 
-// Register embedded textures with SpriteManager
-DODModAPI.SpriteManager.RegisterTexture(Textures.TileSpritesheetResource);
-DODModAPI.SpriteManager.RegisterTexture(Textures.SpritesAtlasResource);
-DODModAPI.SpriteManager.RegisterTexture(Textures.SurfaceTopsResource);
-DODModAPI.SpriteManager.RegisterTexture(Textures.fertileDirt_surfaceMaterial);
+// Register embedded textures with TextureManager
+DODModAPI.TextureManager.RegisterTexture(Textures.TileSpritesheetResource);
+DODModAPI.TextureManager.RegisterTexture(Textures.SpritesAtlasResource);
+DODModAPI.TextureManager.RegisterTexture(Textures.SurfaceTopsResource);
+DODModAPI.TextureManager.RegisterTexture(Textures.fertileDirt_surfaceMaterial);
 
 // Use generated tile references
 var item = new CItem_Device(

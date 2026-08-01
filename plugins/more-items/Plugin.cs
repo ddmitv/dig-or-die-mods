@@ -81,10 +81,10 @@ public class MoreItemsPlugin : BaseUnityPlugin {
         );
         if (!configEnable.Value) { return; }
 
-        DODModAPI.SpriteManager.RegisterTexture(Textures.TileSpritesheetResource);
-        DODModAPI.SpriteManager.RegisterTexture(Textures.fertileDirt_surfaceMaterial);
-        DODModAPI.SpriteManager.RegisterTexture(Textures.SurfaceTopsResource);
-        DODModAPI.SpriteManager.RegisterTexture(Textures.SpritesAtlasResource);
+        DODModAPI.TextureManager.RegisterTexture(Textures.TileSpritesheetResource);
+        DODModAPI.TextureManager.RegisterTexture(Textures.fertileDirt_surfaceMaterial);
+        DODModAPI.TextureManager.RegisterTexture(Textures.SurfaceTopsResource);
+        DODModAPI.TextureManager.RegisterTexture(Textures.SpritesAtlasResource);
 
         DODModAPI.ItemManager.RegisterAllItems(typeof(CustomItems));
         DODModAPI.UnitManager.RegisterUnit(CustomUnits.waterVaporizer);

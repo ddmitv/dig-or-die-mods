@@ -19,7 +19,7 @@ public class DODModAPIPlugin : BaseUnityPlugin {
         harmony.PatchAll(typeof(ModeManager.Patches));
         harmony.PatchAll(typeof(CommandManager.Patches));
         harmony.PatchAll(typeof(ScreenManager.Patches));
-        harmony.PatchAll(typeof(SpriteManager.Patches));
+        harmony.PatchAll(typeof(TextureManager.Patches));
         harmony.PatchAll(typeof(ItemManager.Patches));
         harmony.PatchAll(typeof(SurfaceManager.Patches));
         harmony.PatchAll(typeof(UnitManager.Patches));

@@ -36,7 +36,7 @@ public sealed class ModTile : CTile {
     public uint MainColor { get; }
 }
 
-public static class SpriteManager {
+public static class TextureManager {
     private static readonly Dictionary<string, TextureEntry> _textures = new();
 
     private readonly record struct TextureEntry(Assembly Assembly, string ResourceName, TextureSettings TextureSettings);

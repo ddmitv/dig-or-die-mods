@@ -22,7 +22,7 @@
 !Plugin.cs
 !SaveManager.cs
 !ScreenManager.cs
-!SpriteManager.cs
+!TextureManager.cs
 !SurfaceManager.cs
 !UnitManager.cs
 !WeakTable.cs
