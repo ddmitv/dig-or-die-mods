@@ -38,7 +38,20 @@ public static class SaveManager {
         // DODModAPIPlugin.Log.LogInfo()
     }
 
-    // we're not flushing any buffers since BinaryWriter/BinaryReader internal streams are MemoryStream that doesn't require flushing
+    // we're not flushing any buffers since BinaryWriter/BinaryReader internal streams are MemoryStream that doesn't require flushing.
+    //
+    // the binary format of the DODModAPI custom save data:
+    // struct DODModAPIExtraSaveData {
+    //     uint64 magic;
+    //     uint32 modCount;
+    //     ModData mods[modCount];
+    // }
+    // struct ModData {
+    //     System.String modId;
+    //     uint32 version;
+    //     uint32 blobLen;
+    //     byte blob[blobLen];
+    // }
 
     private static void WriteModSaveData(BinaryWriter writer) {
         if (writer.BaseStream is not MemoryStream ms) {
@@ -104,7 +117,7 @@ abortSaving:
         ms.Position = modDataCountPos;
         writer.Write(modDataCount); // write to placeholder
 
-        // other mods may add some data after, so we should put pos to the end
+        // other mods that doesn't use DODModAPI may add some data after, so we should put pos to the end
         writer.Seek(0, SeekOrigin.End);
 
         DODModAPIPlugin.Log.LogInfo($"Wrote mod save data ({modDataCount} custom mod data handlers)");

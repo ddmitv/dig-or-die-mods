@@ -8,6 +8,9 @@ using HarmonyLib;
 namespace DODModAPI;
 
 // replacement for HarmonyLib.CodeMatcher with improved API (because CodeMatcher API sucks and i hate it)
+//
+// natively supports pattern matching againts LocalBuilder.LocalIndex with an integer
+// note that if a method accepts an "offset" parameter, it is NOT going to advance current position
 public sealed class CodeCursor {
     private readonly ILGenerator _generator;
     private readonly List<CodeInstruction> _codes;
@@ -21,23 +24,32 @@ public sealed class CodeCursor {
         _pos = 0;
     }
 
+    // searches forward for the pattern of instruction, and places cursor AT THE BEGINING of found pattern;
+    // if pattern was not found, throws an exception with some context
     public CodeCursor FindNext(params CodeInstruction[] pattern) {
         MatchImpl(pattern, 1, false);
         return this;
     }
+    // searches forward for the pattern of instruction, and places cursor AFTER THE END of found pattern;
+    // if pattern was not found, throws an exception with some context
     public CodeCursor FindNextEnd(params CodeInstruction[] pattern) {
         MatchImpl(pattern, 1, true);
         return this;
     }
+    // searches backwards for the pattern of instruction, and places cursor AT THE BEGINING of found pattern;
+    // if pattern was not found, throws an exception with some context
     public CodeCursor FindPrevious(params CodeInstruction[] pattern) {
         MatchImpl(pattern, -1, false);
         return this;
     }
+    // searches backwards for the pattern of instruction, and places cursor AFTER THE END of found pattern;
+    // if pattern was not found, throws an exception with some context
     public CodeCursor FindPreviousEnd(params CodeInstruction[] pattern) {
         MatchImpl(pattern, -1, true);
         return this;
     }
 
+    // same as above, just for convenience outputs length of the pattern (e.g., to remove the number of instruction that are in the pattern)
     public CodeCursor FindNext(out uint patternLength, params CodeInstruction[] pattern) {
         MatchImpl(pattern, 1, false);
         patternLength = (uint)pattern.Length;
@@ -86,6 +98,7 @@ public sealed class CodeCursor {
         return this;
     }
 
+    // inserts instruction at the current position while advancing by the instruction count
     public CodeCursor Insert(params CodeInstruction[] instructions) {
         if (instructions is null || instructions.Length == 0) {
             return this;
@@ -95,6 +108,7 @@ public sealed class CodeCursor {
         return this;
     }
 
+    // inserts single instruction while advancing by one
     public CodeCursor Insert(in OpCode opcode, object? operand = null) {
         _codes.Insert(_pos, new(opcode, operand));
         _pos += 1;
@@ -116,6 +130,7 @@ public sealed class CodeCursor {
         _pos++;
         return this;
     }
+    // removes instruction at the current position
     public CodeCursor Remove() {
         if (_pos >= _codes.Count) {
             throw new InvalidOperationException($"Cursor position {_pos} is out of bounds [0..{_codes.Count})");
@@ -123,6 +138,7 @@ public sealed class CodeCursor {
         _codes.RemoveAt(_pos);
         return this;
     }
+    // removes N instructions at the current position
     public CodeCursor Remove(uint count) {
         if (_pos + count > _codes.Count) {
             throw new ArgumentOutOfRangeException(nameof(count), count, $"Cannot remove {count} instructions starting at position {_pos}; only {_codes.Count - _pos} remain");
@@ -130,6 +146,7 @@ public sealed class CodeCursor {
         _codes.RemoveRange(_pos, (int)count);
         return this;
     }
+    // removes N instructions while gathering labels that are localed in them
     public CodeCursor RemoveAndCollectLabels(uint count, out List<Label> labels) {
         if (_pos + count > _codes.Count) {
             throw new ArgumentOutOfRangeException(nameof(count), count, $"Cannot remove {count} instructions starting at position {_pos}; only {_codes.Count - _pos} remain");
@@ -141,6 +158,7 @@ public sealed class CodeCursor {
         _codes.RemoveRange(_pos, (int)count);
         return this;
     }
+    // removes N instructions while collecting labels & exception blocks, and then adding them to next instruction after the removed ones
     public CodeCursor RemovePreservingLabels(uint count) {
         if (_pos + count > _codes.Count) {
             throw new ArgumentOutOfRangeException(nameof(count), count, $"Cannot remove {count} instructions starting at position {_pos}; only {_codes.Count - _pos} remain");
@@ -161,6 +179,10 @@ public sealed class CodeCursor {
         _codes[_pos].blocks.AddRange(blocks);
         return this;
     }
+    // similar to Insert(), but moves labels & exception blocks from the current instruction, to the first inserted one
+    // for example, if you inject [instrA, instrB, instrC] at [instr1, >> instr2, instr3] (>> is the current position),
+    // the labels & exception blocks from instr2 will be moved to instrA, and inserted between instr1 and instr2:
+    // [instr1, instrA, instrB, instrC, >> instr2, instr3]
     public CodeCursor Inject(params CodeInstruction[] instructions) {
         if (_pos >= _codes.Count) {
             Insert(instructions);
@@ -185,6 +207,12 @@ public sealed class CodeCursor {
         return this;
     }
 
+    // similar to Inject() and Insert(), but allows to create label for the AFTER the injected instructions instruction.
+    // for example, if you inject with label [instrA, instrB -> instr2, instrC] at [instr1, >> instr2, instr3] (>> is current position)
+    // where instrB jumps to the instr2 position. the final instructions layout will be:
+    // [instr1, instrA, instrB -> instr2, instrC, >> instr2, instr3]
+    // this is impossible to do with just Inject() since Inject() will move ALL labels from instr2 to instrA, making an
+    // infinite loop between instrA and instrB
     public CodeCursor InjectWithLabel(Func<Label, CodeInstruction[]> instructionsFactory) {
         if (instructionsFactory is null) { throw new ArgumentNullException(nameof(instructionsFactory)); }
 
@@ -202,6 +230,7 @@ public sealed class CodeCursor {
         return this;
     }
 
+    // creates label that points to the offseted instruction
     public CodeCursor CreateLabel(int offset, out Label label) {
         int targetPos = _pos + offset;
         if (targetPos < 0 || targetPos >= _codes.Count) {
@@ -212,6 +241,7 @@ public sealed class CodeCursor {
         return this;
     }
 
+    // creates a dummy label
     public CodeCursor DeclareLabel(out Label label) {
         label = _generator.DefineLabel();
         return this;
@@ -277,6 +307,7 @@ public sealed class CodeCursor {
         return this;
     }
 
+    // executes fn based if condition is true; otherwise, does nothing
     public CodeCursor When(bool condition, Action<CodeCursor> fn) {
         if (condition) {
             if (fn is null) { throw new ArgumentNullException(nameof(fn)); }
@@ -285,10 +316,12 @@ public sealed class CodeCursor {
         return this;
     }
 
+    // outputs current position
     public CodeCursor GetPos(out int pos) {
         pos = _pos;
         return this;
     }
+    // assigns current position to the passed one
     public CodeCursor SetPos(int pos) {
         if (pos < 0 || pos > _codes.Count) {
             throw new ArgumentOutOfRangeException(nameof(pos), pos, $"Position {pos} is outside the valid range [0..{_codes.Count}]");
@@ -297,6 +330,7 @@ public sealed class CodeCursor {
         return this;
     }
 
+    // adds labels to the current instruction
     public CodeCursor AddLabels(List<Label> labels) {
         if (_pos < 0 || _pos >= _codes.Count) {
             throw new InvalidOperationException($"Position {_pos} is outside the valid range [0..{_codes.Count})");
@@ -305,6 +339,7 @@ public sealed class CodeCursor {
         return this;
     }
 
+    // finishes the CodeCursor
     public List<CodeInstruction> Finish() {
         return _codes;
     }
@@ -343,6 +378,7 @@ public sealed class CodeCursor {
         if (pattern.operand is null) {
             return true;
         }
+        // allows to easily search for specific instruction operands that uses local variables with just integer indexes
         if (TryCastToLocalIndex(pattern.operand, out int localIndex) && actual.operand is LocalBuilder lb) {
             return localIndex == lb.LocalIndex;
         }

@@ -271,6 +271,7 @@ internal static class DeathMessageKilledByPlayerPatch {
         }
         SScreenHudChat.AddChatMessage_Networked($"/system {MagicChatMessageSystemArg}|{__instance.GetPlayer().m_name}|{attackerPlayer.GetPlayer().m_name}");
 
+        // since CUnitPlayerLocal.OnDeath overrides CUnitPlayer.OnDeath we need to call the base without triggering the override
         Base_CUnitPlayer_OnDeath(__instance, attacker, "");
 
         return false;

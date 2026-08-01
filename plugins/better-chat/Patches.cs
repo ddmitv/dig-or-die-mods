@@ -119,6 +119,8 @@ internal static class FreecamModePatch {
         public SInputs.KeyBinding up;
         public SInputs.KeyBinding down;
     }
+    // we temporary replace movement keybindings with no-ops so the actual player character doesn't move while
+    // the camera is detached
     [HarmonyPrefix]
     [HarmonyPatch(typeof(CUnitPlayerLocal), nameof(CUnitPlayerLocal.Update))]
     private static void CUnitPlayerLocal_Update_Prefix(ref PrevKeyBindings __state) {
@@ -149,6 +151,9 @@ internal static class FreecamModePatch {
 
 internal static class ClockCommandPatch {
     public static bool isPaused = false;
+
+    // since the clock advances by SMain.SimuDeltaTime / SOutgame.Params.m_dayDurationTotal, setting m_dayDurationTotal
+    // to +infinity makes the advancement zero, pausing the clock
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(SGame), nameof(SGame.OnUpdateSimu))]
