@@ -9,7 +9,7 @@
   
   <ItemGroup>
     <!-- Reference the core API -->
-    <PackageReference Include="DigOrDie.DODModAPI" Version="1.0.0" />
+    <PackageReference Include="DigOrDie.DODModAPI" Version="1.0.2" />
     <!-- Reference the AssetPacker to generate textures/sprites at build time -->
     <PackageReference Include="DigOrDie.DODModAPI.AssetPacker" Version="0.1.2" />
   </ItemGroup>
