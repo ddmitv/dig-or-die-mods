@@ -321,7 +321,7 @@ public sealed class ExampleScreen : SSingletonScreen<ExampleScreen> {
     }
 }
 
-[BepInPlugin("example-mod", ThisPluginInfo.Name, ThisPluginInfo.Version)]
+[BepInPlugin("example-mod", "Example Mod", "1.0.0")]
 // You need to necessarily include dependency to DODModAPI plugin
 [BepInDependency(DODModAPI.DODModAPIPlugin.GUID)]
 public sealed class ExampleMod : BaseUnityPlugin {

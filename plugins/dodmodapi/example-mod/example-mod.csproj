@@ -1,6 +1,24 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../Plugin.Common.props" />
-  
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <!-- General properties from Plugin.Common.props -->
+  <PropertyGroup>
+    <TargetFramework>net35</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
+
+    <Deterministic>true</Deterministic>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <NoWarn>Harmony003</NoWarn>
+
+    <!-- Embed Github repository link into dll -->
+    <Description>https://github.com/ddmitv/dig-or-die-mods</Description>
+
+    <PolySharpExcludeGeneratedTypes>System.Range;System.Index</PolySharpExcludeGeneratedTypes>
+  </PropertyGroup>
+
+  <!-- Mod specific properties -->
   <PropertyGroup>
     <AssemblyName>example_mod</AssemblyName>
     <Product>DODModAPI Example Mod</Product>
@@ -12,12 +30,30 @@
     <PackageReference Include="DigOrDie.DODModAPI" Version="1.0.2" />
     <!-- Reference the AssetPacker to generate textures/sprites at build time -->
     <PackageReference Include="DigOrDie.DODModAPI.AssetPacker" Version="0.1.2" />
+
+    <!-- From Plugin.Common.props -->
+    <PackageReference Include="BepInEx.Core" Version="5.4.21" />
+    <PackageReference Include="DigOrDie.GameLibs" Version="[1.11.864]" />
+    <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
+
+    <!-- Allows to use modern C# features in NET 3.5 -->
+    <PackageReference Include="PolySharp" Version="1.15.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers" />
+    <!-- Allows to build NET 3.5 project from a Linux enviroment -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net35" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>
   
   <ItemGroup>
     <!-- Tell AssetPacker to process sprites.cfg and generate a class named "ExampleAssets" -->
     <ModAtlas Include="assets/sprites.cfg" AtlasName="ExampleAssets" />
   </ItemGroup>
-  
-  <Import Project="../../Plugin.Common.targets" />
+
+  <!-- Automatically copy mod's dll to Dig or Die's plugins folder -->
+  <Target Name="InstallPlugin" AfterTargets="Build" Condition="'$(DIG_OR_DIE_PATH)' != ''">
+    <PropertyGroup>
+      <_DigOrDiePath>$([MSBuild]::EnsureTrailingSlash('$(DIG_OR_DIE_PATH)'))</_DigOrDiePath>
+    </PropertyGroup>
+    
+    <Copy SourceFiles="$(TargetDir)$(AssemblyName).dll" DestinationFolder="$(_DigOrDiePath)BepInEx\plugins" />
+    <Message Text="Copying plugin assembly &quot;$(TargetDir)$(AssemblyName).dll&quot; to &quot;$(_DigOrDiePath)BepInEx\plugins\$(AssemblyName).dll&quot;" Importance="high" />
+  </Target>
 </Project>
