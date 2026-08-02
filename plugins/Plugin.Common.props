@@ -1,34 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
+    <!-- Dig or Die uses Unity .NET 3.5 Equivalent Mono runtime, so plugins must target net35 -->
     <TargetFramework>net35</TargetFramework>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Use modern C# features since we're using PolySharp -->
     <LangVersion>12.0</LangVersion>
+    <!-- Enable analyzers and code style enforcement during build. -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Debug info -->
     <DebugType>portable</DebugType>
     <DebugSymbols>true</DebugSymbols>
+    <!-- Enable unsafe blocks -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Enable nullable reference type annotations. -->
     <Nullable>enable</Nullable>
+    <!-- Produce deterministic builds (i.e., for the same source code the output dll must be bit-for-bit exactly the same) -->
     <Deterministic>true</Deterministic>
     
     <NoWarn>Harmony003</NoWarn>
-    
+
+    <!-- Default metadata shown for assemblies produced from this repository. -->
     <Description>https://github.com/ddmitv/dig-or-die-mods</Description>
-    
+
+    <!-- PolySharp's System.Range and System.Index requires System.ValueTuple which we don't have -->
     <PolySharpExcludeGeneratedTypes>System.Range;System.Index</PolySharpExcludeGeneratedTypes>
   </PropertyGroup>
-  
+
+  <!-- Remove debug info for release builds -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <DebugType>None</DebugType>
     <DebugSymbols>False</DebugSymbols>
   </PropertyGroup>
   
   <ItemGroup>
-    <PackageReference Include="BepInEx.Core" Version="5.4.21" />
+    <!-- Dig or Die's publicalized reference-only assemblies -->
     <PackageReference Include="DigOrDie.GameLibs" Version="[1.11.864]" />
+    <!-- BepInEx Core library -->
+    <PackageReference Include="BepInEx.Core" Version="5.4.21" />
     
     <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
+    <!-- Allows to use modern C# features on old .NET Framework 3.5 -->
     <PackageReference Include="PolySharp" Version="1.15.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers" />
+    <!-- Reference-only assemblies for .NET Framework 3.5, allows to build on Linux systems -->
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net35" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,5 @@
 <Project>
+  <!-- Generates a small C# class containing plugin metadata taken from MSBuild properties -->
   <Target Name="GenerateThisPluginInfoClass" BeforeTargets="CoreCompile">
     <WriteLinesToFile 
       File="$(BaseIntermediateOutputPath)ThisPluginInfo.g.cs"
@@ -11,7 +12,10 @@
       <Compile Include="$(BaseIntermediateOutputPath)ThisPluginInfo.g.cs" />
     </ItemGroup>
   </Target>
-  
+
+  <!-- Target to automatically copy plugin's dll files into BepInEx plugin directory on every build-->
+  <!-- You need to set the DIG_OR_DIE_PATH environment variable or MSBuild property to Dig or Die's directory to enable this target -->
+  <!-- Example: DIG_OR_DIE_PATH=C:/Program Files (x86)/Steam/steamapps/common/Dig or Die/ -->
   <Target Name="InstallPlugin" AfterTargets="Build" Condition="'$(DIG_OR_DIE_PATH)' != ''">
     <PropertyGroup>
       <_DigOrDiePath>$([MSBuild]::EnsureTrailingSlash('$(DIG_OR_DIE_PATH)'))</_DigOrDiePath>
@@ -19,6 +23,7 @@
     <Copy
       SourceFiles="$(TargetDir)$(AssemblyName).dll"
       DestinationFolder="$(_DigOrDiePath)BepInEx\plugins" />
+    
     <Message Text="Copying plugin assembly &quot;$(TargetDir)$(AssemblyName).dll&quot; to &quot;$(_DigOrDiePath)BepInEx\plugins\$(AssemblyName).dll&quot;" Importance="high" />
   </Target>
 </Project>
