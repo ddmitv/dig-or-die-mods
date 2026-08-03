@@ -4,7 +4,7 @@
   <PropertyGroup>
     <AssemblyName>ultra_hardcore</AssemblyName>
     <Product>Ultra Hardcore</Product>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
