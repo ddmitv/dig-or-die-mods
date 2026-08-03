@@ -6,7 +6,7 @@
     <Product>DODModAPI</Product>
     <PackageId>DigOrDie.DODModAPI</PackageId>
     <RootNamespace>DODModAPI</RootNamespace>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
 
     <Authors>ddmitv</Authors>
     <Description>Core modding API for Dig or Die. Provides registration systems for custom items, units, events, game modes, save data, network messages, UI screens, chat commands, textures, and surfaces.</Description>

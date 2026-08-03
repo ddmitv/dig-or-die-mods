@@ -31,9 +31,12 @@ jobs:
         with:
           dotnet-version: 9.0.x
 
+      - name: Restore dependencies
+        run: dotnet restore plugins/dodmodapi/dodmodapi.csproj
+
       - name: Pack DODModAPI
         run: |
-          dotnet pack plugins/dodmodapi/dodmodapi.csproj -c Release
+          dotnet pack plugins/dodmodapi/dodmodapi.csproj -c Release --no-restore -p:ContinuousIntegrationBuild=true
 
       - name: NuGet login
         uses: NuGet/login@v1
