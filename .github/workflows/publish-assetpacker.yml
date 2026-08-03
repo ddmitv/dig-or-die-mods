@@ -31,8 +31,11 @@ jobs:
         with:
           dotnet-version: 9.0.x
 
+      - name: Restore dependencies
+        run: dotnet restore plugins/dodmodapi/AssetPacker/AssetPacker.csproj
+
       - name: Pack AssetPacker
-        run: dotnet pack plugins/dodmodapi/AssetPacker/AssetPacker.csproj -c Release
+        run: dotnet pack plugins/dodmodapi/AssetPacker/AssetPacker.csproj -c Release --no-restore -p:ContinuousIntegrationBuild=true
 
       - name: NuGet login
         uses: NuGet/login@v1
