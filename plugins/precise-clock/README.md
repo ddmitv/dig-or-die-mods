@@ -30,7 +30,7 @@ The color of the text used by the clock.
 ### `[General]` `ClockPosition`
 
 **Setting type:** `ClockPosition` \
-**Default value:** `Bottom` \
+**Default value:** `AboveTimer` \
 **Acceptable values:** `Bottom`, `AboveTimer`
 
 Location of the clock. \
@@ -53,7 +53,7 @@ Format of time in the clock.
 | `Unit` | Represents time as a value between 0 and 1 (exclusive) without decimal point | 16400, 18000, 59230, 91735 |
 | `UnitPoint` | Represents time as a value between 0 and 1 (exclusive) with decimal point | 0.2194, 0.6234, 0.7400, 0.9000 |
 
-### `[General]` `Enable`
+### `[General]` `Enabled`
 
 **Setting type:** `bool` \
 **Default value:** `true`

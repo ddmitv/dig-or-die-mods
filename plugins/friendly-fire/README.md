@@ -44,13 +44,6 @@ Hides player icons from minimap.
 
 Bullets now damage the cells they are colliding with.
 
-### `[FriendlyFire]` `PlayerDamageToGround`
-
-**Setting type:** `bool` \
-**Default value:** `false`
-
-Bullets now damage the cells they are colliding with.
-
 ### `[FriendlyFire]` `DefenseDamagePlayers`
 
 **Setting type:** `bool` \
@@ -58,12 +51,3 @@ Bullets now damage the cells they are colliding with.
 
 Allows defense units (turrets) to hit and damage players theirs bullets are colliding with.
 Note that they will usually only target monsters, but if their bullet with hit a player it now will damage them instead of passing by.
-
-### `[General]` `UniqualizeVersionBuild`
-
-**Setting type:** `bool` \
-**Default value:** `false`
-
-Safe guard to prevent joining to server with different mod version.
-
-When using this config the build version will (usually) look like a random sequence of numbers.

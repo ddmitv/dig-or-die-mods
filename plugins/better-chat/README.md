@@ -38,6 +38,7 @@ A plugin that expands the list of available commands (chat messages starting wit
   - [`/freecam`](#freecam)
   - [`/exportpng`](#exportpng)
   - [`/clock`](#clock)
+  - [`/fullbright`](#fullbright)
 - [Configuration](#configuration)
     - [`[General]` `RepeatLastCommand`](#general-repeatlastcommand)
     - [`[ChatExpressionEvaluator]` `Enable`](#chatexpressionevaluator-enable)
@@ -288,21 +289,16 @@ Comma separated list of parameter name (case insensitive) followed by its value 
 | `water`             | `float`        | Pressure of the water/lava in the cell. |
 | `elecprod`          | `byte`         | Electric productivity of the cell. |
 | `eleccons`          | `byte`         | Electric consumption of the cell. |
-| `data0`             | `bool`         | First bit of the custom data of the cell. Each cell uses this data in own ways. |
-| `data1`             | `bool`         | Second bit of the custom data of the cell. |
-| `data2`             | `bool`         | Third bit of the custom data of the cell. |
+| `data`              | `byte`         | Custom data of the cell (0-7). Each cell uses this data in own ways. |
 | `burning`           | `bool`         | Specifies if cell is in burning state. |
 | `mapped`            | `bool`         | Specifies if cell is discovered in the minimap. |
 | `backwall`          | `bool`         | Specifies if cell has "Concrete Back Wall" placed. |
-| `bg0`               | `bool`         | First bit of data that determines cell's background. If this flag is not specified will not modify the background of existing the cell. |
-| `bg1`               | `bool`         | Second bit of data that determines cell's background. If this flag is not specified will not modify the background of existing the cell |
-| `bg2`               | `bool`         | Third bit of data that determines cell's background. If this flag is not specified will not modify the background of existing the cell. |
+| `bg`                | `byte` or `string` | Background surface of the cell. Accepts a number (0-7) or a named value: `none`, `dirt`, `rock`, `granit`, `crystal`, `lava`, `organic`. If not specified, will not modify the background of the existing cell. |
 | `waterfall`         | `bool`         | Specifies if cell is in "waterfall" state. |
 | `streamlfast`       | `bool`         | Specifies if cell is in "streamlfast" state. |
 | `streamrfast`       | `bool`         | Specifies if cell is in "streamrfast" state. |
 | `lava`              | `bool`         | Specifies if cell is contains lava. `false` for water. |
-| `haswireright`      | `bool`         | Specifies if cell has wire in the right. |
-| `haswiretop`        | `bool`         | Specifies if cell has wire in the top. |
+| `wire`              | `string`       | Wire placement. Accepts: `0` (none), `right`/`1`/`r`, `top`/`2`/`t`, `topright`/`righttop`/`rt`/`tr`/`3` (both). |
 | `electricalgostate` | `bool`         | Specifies if cell is in "electricalgostate" state. |
 | `powered`           | `bool`         | Specifies if cell is powered. |
 | `light`             | `Color24`      | Light that cell is transferring. |
@@ -441,7 +437,7 @@ Places `cell` to position `pos`.
 > Removes cell 5 cells above the player position.
 
 ```
-/place wallDoor{data0=1} ~ ~
+/place wallDoor{data=1} ~ ~
 ```
 > Places an **open** "Armored Door" at the **cell that player is standing in**.
 
@@ -488,9 +484,9 @@ The total number of filled cells is $(x_{max} - x_{min} + 1) \times (y_{max} - y
 > Clears entire world** but keeps background.
 
 ```
-/fill air{bg0=0} 0 0 1023 1023
+/fill air{bg=none} 0 0 1023 1023
 ```
-> Clears entire world with empty background.
+> Clears entire world and sets background to empty.
 
 ---
 
@@ -710,6 +706,21 @@ Creates an image of entire world and saves it in `path` (by default in `SavedScr
 10. Sets time to `0`.
 11. Sets time to `0.45` (when volcano lava cycle starts).
 12. Sets time to `0.9` (when volcano lava cycle ends).
+
+---
+
+## `/fullbright`
+
+```
+/fullbright
+```
+Toggles fullbright mode (forces minimum light level for all cells).
+
+> [!IMPORTANT]
+> Quite buggy, causes weird graphical glithes and surface material flickering (z-fighting).
+
+> [!NOTE]
+> This's a local command.
 
 # Configuration
 

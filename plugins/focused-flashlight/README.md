@@ -9,7 +9,7 @@ Works on all flashlight items (even that are added by other mods) and the light 
 
 # Configuration
 
-### `[General]` `Enable`
+### `[General]` `Enabled`
 
 **Setting type:** `bool` \
 **Default value:** `true`

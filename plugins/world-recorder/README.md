@@ -104,20 +104,21 @@ Bypasses the intermediate buffer for temporary world state saving.
 ### `[General]` `LightingMode`
 
 **Setting type:** `LightingMode` \
-**Default value:** `FullLighting` \
-**Acceptable values:** `FullLighting`, `MonochromeLighting`, `RGBLighting`, `LightingMapMonochrome`, `LightingMapRGB`, `ForceVectorMap`, `ElectricityMap`
+**Default value:** `FullBrightness` \
+**Acceptable values:** `FullBrightness`, `MonochromeLighting`, `RGBLighting`, `LightingMapMonochrome`, `LightingMapRGB`, `ForceVectorMap`, `ElectricityMap`, `DiscoveredMap`
 
 Lighting calculation method for rendering.
 
 | Option                  | Description                                                                  |
 | ----------------------- | ---------------------------------------------------------------------------- |
-| `FullLighting`          | Renders image ignoring all lighting (same color as in minimap) for cells     |
+| `FullBrightness`        | Renders image ignoring all lighting (same color as in minimap) for cells   |
 | `MonochromeLighting`    | Renders image using average lighting for cells                               |
 | `RGBLighting`           | Renders image using red, green and blue color for cells                      |
 | `LightingMapMonochrome` | Renders image as average lighting map (without using cell's colors)          |
 | `LightingMapRGB`        | Renders image as red, green and blue lightings (without using cell's colors) |
 | `ForceVectorMap`        | Renders image taking force direction as hue and magnitude as brightness      |
 | `ElectricityMap`        | Renders image as highlights of electricity production/consumption            |
+| `DiscoveredMap`         | Renders image with only discovered map parts                                  |
 
 ### `[General]` `ScreenshotWorld`
 

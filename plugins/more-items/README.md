@@ -3,7 +3,7 @@
 
 A plugin for adding entirely new items to the base game.
 
-Adds new 30 items with custom recipes:
+Adds new 30+ items with custom recipes:
 - 7 devices
 - 2 walls and 1 soil
 - 1 repair turret and 2 collectors
@@ -80,15 +80,6 @@ are created by **@seethejellyfish at Discord**.
 
 Respawn delay for bosses.
 Many recipes requires boss loot items, default value is the half than multiplayer default's one to reduce waiting for boss to respawn.
-
-### `[General]` `UniqualizeVersionBuild`
-
-**Setting type:** `bool` \
-**Default value:** `false`
-
-Safe guard to prevent joining to server with different mod version.
-
-When using this config the build version will (usually) look like a random sequence of numbers.
 
 ### `[General]` `Enable`
 

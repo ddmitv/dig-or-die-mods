@@ -136,12 +136,3 @@ For example, if before monster damage multiplier (param `m_monstersDamagesMult`)
 
 On the end of night multiplies monster health by provided value.
 For example, if before monster health multiplier (param `m_monstersHpMult`) was `1.5`, and if the `MonsterHpMultPerNight = 1.1`, then after the night it would be `1.65`, and then the next night `1.815` and etc.
-
-### `[General]` `UniqualizeVersionBuild`
-
-**Setting type:** `bool` \
-**Default value:** `false`
-
-Safe guard to prevent joining to server with different mod version.
-
-When using this config the build version will (usually) look like a random sequence of numbers.
