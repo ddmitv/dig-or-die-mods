@@ -27,9 +27,9 @@
   
   <ItemGroup>
     <!-- Reference the core API -->
-    <PackageReference Include="DigOrDie.DODModAPI" Version="1.0.2" />
+    <PackageReference Include="DigOrDie.DODModAPI" Version="1.0.3" />
     <!-- Reference the AssetPacker to generate textures/sprites at build time -->
-    <PackageReference Include="DigOrDie.DODModAPI.AssetPacker" Version="0.1.2" />
+    <PackageReference Include="DigOrDie.DODModAPI.AssetPacker" Version="0.1.4" />
 
     <!-- From Plugin.Common.props -->
     <PackageReference Include="BepInEx.Core" Version="5.4.21" />
